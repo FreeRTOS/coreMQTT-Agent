@@ -385,7 +385,7 @@ static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
     bool ret = false;
 
     /* Start at end of array, so that we will insert at the first available index. */
-    for( i = ( int32_t ) pAgentContext->maxSubscriptions - 1; i >= 0; i-- )
+    for( i = ( int32_t ) pAgentContext->maxSubscriptions - 1; i >= 0; i-- )//_RB_ Why is this scanning backward to find the first slot rather than just forwards and breaking when it finds a slot?
     {
         if( pxSubscriptions[ i ].usFilterLength == 0 )
         {
@@ -751,7 +751,7 @@ static void prvHandleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
         {
             if( pcSubackCodes[ i ] != MQTTSubAckFailure )
             {
-                LogInfo( ( "Adding subscription to %.*s\n",
+                LogInfo( ( "Adding subscription to %.*s\n",//_RB_ This format specifier is not portable..
                            pxSubscribeInfo[ i ].topicFilterLength,
                            pxSubscribeInfo[ i ].pTopicFilter ) );
                 prvAddSubscription( pAgentContext,
@@ -809,7 +809,7 @@ static MQTTContext_t * getContextForProcessLoop( void )
 
 /*-----------------------------------------------------------*/
 
-static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext )
+static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext ) //_RB_ Doesn't work unless there is only one MQTTContext_t object per connection.  Will need to do this by handle somehow.
 {
     MQTTAgentContext_t * ret = NULL;
     int i = 0;
@@ -1098,7 +1098,7 @@ bool MQTTAgent_Subscribe( MQTTContext_t * pMqttContext,
                           size_t subscriptionCount,
                           PublishCallback_t publishCallback,
                           void * pPublishCallbackContext,
-                          CommandContext_t * pCommandContext,
+                          void * pCommandContext,
                           CommandCallback_t cmdCallback )
 {
     configASSERT( pMqttContext != NULL );
