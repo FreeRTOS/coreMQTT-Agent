@@ -96,6 +96,12 @@ typedef void (* CommandCallback_t )( CommandContext_t *,
 typedef void (* PublishCallback_t )( MQTTPublishInfo_t * pxPublishInfo,
                                      void * pxSubscriptionContext );
 
+/**
+ * @brief MQTT contexts are owned by the MQTT agent and referenced using handles of
+ * type.
+ */
+typedef int MQTTContextHandle_t;
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -138,23 +144,23 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
 /**
  * @brief Add a command to call MQTT_Subscribe() for an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle to the MQTT connection to use.
  * @param[in] pSubscriptionList List of topics to subscribe to.
  * @param[in] subscriptionCount Number of topics to subscribe to.
- * @param[in] publishCallback Incoming publish callback for the subscriptions.
- * @param[in] pPublishCallbackContext Context for the publish callback.
- * @param[in] pCommandContext Optional completion callback context.
- * @param[in] cmdCallback Optional callback to invoke when the command completes.
+ * @param[in] incomingPublishCallback Incoming publish callback for the subscriptions.
+ * @param[in] incomingPublishCallbackContext Context for the publish callback.
+ * @param[in] commandCompleteCallback Optional callback to invoke when the command completes.
+ * @param[in] commandCompleteCallbackContext Optional completion callback context.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Subscribe( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
                           MQTTSubscribeInfo_t * pSubscriptionList,
                           size_t subscriptionCount,
-                          PublishCallback_t publishCallback,
-                          void * pPublishCallbackContext,
-                          void * pCommandContext,
-                          CommandCallback_t cmdCallback );
+                          PublishCallback_t incomingPublishCallback,
+                          void * incomingPublishCallbackContext,
+                          CommandCallback_t commandCompleteCallback,
+                          void * commandCompleteCallbackContext );
 
 /**
  * @brief Add a command to call MQTT_Unsubscribe() for an MQTT connection.
@@ -176,17 +182,18 @@ bool MQTTAgent_Unsubscribe( MQTTContext_t * pMqttContext,
 /**
  * @brief Add a command to call MQTT_Publish() for an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle for the MQTT context to use.
  * @param[in] pPublishInfo MQTT PUBLISH information.
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Publish( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
                         MQTTPublishInfo_t * pPublishInfo,
-                        CommandContext_t * pCommandContext,
-                        CommandCallback_t cmdCallback );
+                        CommandCallback_t commandCompleteCallback,
+                        CommandContext_t * commandCompleteCallbackContext );
+                        
 
 /**
  * @brief Add a command to call MQTT_ProcessLoop() for an MQTT connection.
@@ -230,24 +237,6 @@ bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
                            CommandCallback_t cmdCallback );
 
 /**
- * @brief Add a command to store data for an MQTT connection.
- *
- * @param[in] pMqttContext The MQTT connection information.
- * @param[in] defaultPublishCallback Incoming publish callback for topics without
- * a subscription.
- * @param[in] pDefaultPublishContext Context for default publish callback.
- * @param[in] pCommandContext Optional completion callback context.
- * @param[in] cmdCallback Optional callback to invoke when the command completes.
- *
- * @return `true` if the command was enqueued, else `false`.
- */
-bool MQTTAgent_Register( MQTTContext_t * pMqttContext,
-                         PublishCallback_t defaultPublishCallback,
-                         void * pDefaultPublishContext,
-                         CommandContext_t * pCommandContext,
-                         CommandCallback_t cmdCallback );
-
-/**
  * @brief Add a command to clear memory associated with an MQTT connection.
  *
  * @param[in] pMqttContext The MQTT connection information.
@@ -283,5 +272,16 @@ uint32_t MQTTAgent_GetNumWaiting( void );
  * @return `true` if the queue was created, else `false`.
  */
 bool MQTTAgent_CreateCommandQueue( const uint32_t uxCommandQueueLength );
+
+/*_RB_ To document. */
+MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle, 
+                             TransportInterface_t *pxTransportInterface, 
+                             MQTTGetCurrentTimeFunc_t prvGetTimeMs,
+                             PublishCallback_t vUnkownIncomingPublishCallback,
+                             void * pDefaultPublishContext );
+
+
+    /*_RB_ Temporary until all APIs are using the handle. */
+MQTTContext_t * MQTTAgent_GetMQTTContext( MQTTContextHandle_t xGlobalMQTTContextHandle );
 
 #endif /* MQTT_AGENT_H */
