@@ -56,7 +56,6 @@ typedef enum CommandType
     UNSUBSCRIBE, /**< @brief Call MQTT_Unsubscribe(). */
     PING,        /**< @brief Call MQTT_Ping(). */
     DISCONNECT,  /**< @brief Call MQTT_Disconnect(). */
-    INITIALIZE,  /**< @brief Assign an agent to an MQTT Context. */
     FREE,        /**< @brief Remove a mapping from an MQTT Context to the agent. */
     TERMINATE    /**< @brief Exit the command loop and stop processing commands. */
 } CommandType_t;
@@ -311,7 +310,13 @@ QueueHandle_t xCommandQueue;
 /**
  * @brief Array of contexts, one for each potential MQTT connection.
  */
-static MQTTAgentContext_t pAgentContexts[ MAX_CONNECTIONS ];
+static MQTTAgentContext_t xAgentContexts[ MAX_CONNECTIONS ] = { 0 };
+static MQTTContext_t xMQTTContexts[ MAX_CONNECTIONS ] = { 0 };
+
+/**
+ * @brief The network buffer must remain valid for the lifetime of the MQTT context.
+ */
+static uint8_t pcNetworkBuffer[ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. */
 
 /*-----------------------------------------------------------*/
 
@@ -474,7 +479,6 @@ static bool prvCreateCommand( CommandType_t xCommandType,
         case PROCESSLOOP:
         case PING:
         case DISCONNECT:
-        case INITIALIZE:
         case FREE:
             xIsValid = ( pMqttContext != NULL );
             break;
@@ -585,35 +589,13 @@ static MQTTStatus_t prvProcessCommand( Command_t * pxCommand )
 
             break;
 
-        case INITIALIZE:
-
-            for( i = 0; i < MAX_CONNECTIONS; i++ )
-            {
-                if( pAgentContexts[ i ].pMQTTContext == NULL )
-                {
-                    pAgentContexts[ i ].pMQTTContext = pMQTTContext;
-                    pAgentContexts[ i ].pendingAckSize = PENDING_ACKS_MAX_SIZE;
-                    pAgentContexts[ i ].maxSubscriptions = SUBSCRIPTIONS_MAX_COUNT;
-                    pAgentContexts[ i ].vDefaultPublishCallback = pxCommand->vPublishCallback;
-                    pAgentContexts[ i ].pDefaultSubscriptionContext = pxCommand->pPublishCallbackContext;
-                    break;
-                }
-            }
-
-            if( i == MAX_CONNECTIONS )
-            {
-                xStatus = MQTTNoMemory;
-            }
-
-            break;
-
         case FREE:
 
             for( i = 0; i < MAX_CONNECTIONS; i++ )
             {
-                if( pAgentContexts[ i ].pMQTTContext == pMQTTContext )
+                if( xAgentContexts[ i ].pMQTTContext == pMQTTContext )
                 {
-                    memset( &pAgentContexts[ i ], 0x00, sizeof( MQTTAgentContext_t ) );
+                    memset( &xAgentContexts[ i ], 0x00, sizeof( MQTTAgentContext_t ) );
                     break;
                 }
             }
@@ -796,7 +778,7 @@ static MQTTContext_t * getContextForProcessLoop( void )
 
     do
     {
-        ret = pAgentContexts[ contextIndex ].pMQTTContext;
+        ret = xAgentContexts[ contextIndex ].pMQTTContext;
 
         if( ++contextIndex >= MAX_CONNECTIONS )
         {
@@ -818,9 +800,9 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext ) 
 
     for( i = 0; i < MAX_CONNECTIONS; i++ )
     {
-        if( pAgentContexts[ i ].pMQTTContext == pMQTTContext )
+        if( xAgentContexts[ i ].pMQTTContext == pMQTTContext )
         {
-            ret = &pAgentContexts[ i ];
+            ret = &xAgentContexts[ i ];
             break;
         }
     }
@@ -904,6 +886,71 @@ void MQTTAgent_EventCallback( MQTTContext_t * pMqttContext,
         }
     }
 }
+
+/*-----------------------------------------------------------*/
+/*_RB_ Temporary until all APIs use the handle rather than the pointer. */
+MQTTContext_t * MQTTAgent_GetMQTTContext( MQTTContextHandle_t xMQTTContextHandle )
+{
+    MQTTContext_t *pxReturn;
+
+    if( xMQTTContextHandle < MAX_CONNECTIONS )
+    {
+        pxReturn = &( xMQTTContexts[ xMQTTContextHandle ] );
+    }
+    else
+    {
+        pxReturn = NULL;
+    }
+
+    return pxReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle, 
+                             TransportInterface_t *pxTransportInterface, 
+                             MQTTGetCurrentTimeFunc_t prvGetTimeMs,
+                             PublishCallback_t vUnkownIncomingPublishCallback,
+                             void * pDefaultPublishContext )
+{
+    MQTTStatus_t xReturn;
+    MQTTFixedBuffer_t xNetworkBuffer;
+
+    /*_RB_ Need to make singleton. */
+
+    /* Fill the values for network buffer. */
+    xNetworkBuffer.pBuffer = pcNetworkBuffer;
+    xNetworkBuffer.size = mqttexampleNETWORK_BUFFER_SIZE;
+
+    if( ( xMQTTContextHandle >= MAX_CONNECTIONS ) ||
+        ( pxTransportInterface == NULL ) ||
+        ( prvGetTimeMs == NULL ) )
+    {
+        xReturn = MQTTBadParameter;
+    }
+    else
+    {
+        xReturn = MQTT_Init( &( xMQTTContexts[ xMQTTContextHandle ] ),
+                             pxTransportInterface,
+                             prvGetTimeMs,
+                             MQTTAgent_EventCallback,
+                             &xNetworkBuffer );
+
+        if( xReturn == MQTTSuccess )
+        {
+            /* Also initialise the agent context.  Assert if already initialised. */
+            configASSERT( xAgentContexts[ xMQTTContextHandle ].pMQTTContext == NULL );
+            xAgentContexts[ xMQTTContextHandle ].pMQTTContext = &( xMQTTContexts[ xMQTTContextHandle ] );
+            xAgentContexts[ xMQTTContextHandle ].pendingAckSize = PENDING_ACKS_MAX_SIZE;
+            xAgentContexts[ xMQTTContextHandle ].maxSubscriptions = SUBSCRIPTIONS_MAX_COUNT;
+            xAgentContexts[ xMQTTContextHandle ].vDefaultPublishCallback = vUnkownIncomingPublishCallback;
+            xAgentContexts[ xMQTTContextHandle ].pDefaultSubscriptionContext = pDefaultPublishContext;
+        }
+    }
+
+    return xReturn;
+}
+
 
 /*-----------------------------------------------------------*/
 
@@ -1164,19 +1211,6 @@ bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
 {
     configASSERT( pMqttContext != NULL );
     return createAndAddCommand( DISCONNECT, pMqttContext, pCommandContext, cmdCallback, NULL, 0, NULL, NULL );
-}
-
-/*-----------------------------------------------------------*/
-
-bool MQTTAgent_Register( MQTTContext_t * pMqttContext,
-                         PublishCallback_t defaultPublishCallback,
-                         void * pDefaultPublishContext,
-                         CommandContext_t * pCommandContext,
-                         CommandCallback_t cmdCallback )
-{
-    configASSERT( pMqttContext != NULL );
-    configASSERT( pCommandContext != NULL );
-    return createAndAddCommand( INITIALIZE, pMqttContext, pCommandContext, cmdCallback, NULL, 0, defaultPublishCallback, pDefaultPublishContext );
 }
 
 /*-----------------------------------------------------------*/
