@@ -37,6 +37,7 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "semphr.h"
 
 /* MQTT agent include. */
@@ -319,9 +320,9 @@ static bool createAndAddCommandX( CommandType_t commandType,
 /**
  * @brief Queue for main task to handle MQTT operations.
  *
- * This is a private variable initialized by #MQTTAgent_CreateCommandQueue.
+ * This is a private variable initialized when the agent is initialised.
  */
-QueueHandle_t xCommandQueue;
+static QueueHandle_t xCommandQueue = NULL;
 
 /**
  * @brief Array of contexts, one for each potential MQTT connection.
@@ -993,6 +994,15 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle,
 {
     MQTTStatus_t xReturn;
     MQTTFixedBuffer_t xNetworkBuffer;
+    static uint8_t ucQueueStorageArea[ MQTT_AGENT_COMMAND_QUEUE_LENGTH * sizeof( Command_t * ) ];
+    static StaticQueue_t xStaticQueue;
+
+    /* The command queue should not have been created yet. */
+    configASSERT( xCommandQueue == NULL );
+    xCommandQueue = xQueueCreateStatic(  MQTT_AGENT_COMMAND_QUEUE_LENGTH,
+                                         sizeof( Command_t * ),
+                                         ucQueueStorageArea,
+                                         &xStaticQueue );
 
     /*_RB_ Need to make singleton. */
 
@@ -1042,6 +1052,9 @@ MQTTContext_t * MQTTAgent_CommandLoop( void )
     MQTTStatus_t xStatus = MQTTSuccess;
     static int lNumProcessed = 0;
     MQTTContext_t * ret = NULL;
+
+    /* The command queue should have been created before this task gets created. */
+    configASSERT( xCommandQueue );
 
     /* Loop until we receive a terminate command. */
     for( ; ; )
@@ -1373,48 +1386,6 @@ bool MQTTAgent_Terminate( void )
 uint32_t MQTTAgent_GetNumWaiting( void )
 {
     return uxQueueMessagesWaiting( xCommandQueue );
-}
-
-/*-----------------------------------------------------------*/
-
-bool MQTTAgent_CreateCommandQueue( const uint32_t uxCommandQueueLength )
-{
-    static BaseType_t xQueueCreated = pdFALSE;
-    BaseType_t xCreateAgent;
-
-    taskENTER_CRITICAL();
-    {
-        if( xQueueCreated == pdFALSE )
-        {
-            /* The agent has not been created yet, so try and create it. */
-            xCreateAgent = pdTRUE;
-            xQueueCreated = pdTRUE;
-        }
-        else
-        {
-            xCreateAgent = pdFALSE;
-        }
-    }
-    taskEXIT_CRITICAL();
-
-    if( xCreateAgent != pdFALSE )
-    {
-        /* The command queue should not have been created yet. */
-        configASSERT( xCommandQueue == NULL );
-        xCommandQueue = xQueueCreate( uxCommandQueueLength, sizeof( Command_t * ) );
-
-        if( xCommandQueue == NULL )
-        {
-            xQueueCreated = pdFALSE;
-            LogDebug( ( "Could not create queue.\n" ) );
-        }
-        else
-        {
-            LogInfo( ( "Successfully created MQTT agent queue.\n" ) );
-        }
-    }
-
-    return xQueueCreated;
 }
 
 /*-----------------------------------------------------------*/

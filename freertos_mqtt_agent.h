@@ -193,7 +193,7 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
                         MQTTPublishInfo_t * pPublishInfo,
                         CommandCallback_t commandCompleteCallback,
                         CommandContext_t * commandCompleteCallbackContext );
-                        
+
 
 /**
  * @brief Add a command to call MQTT_ProcessLoop() for an MQTT connection.
@@ -263,19 +263,9 @@ bool MQTTAgent_Terminate( void );
  */
 uint32_t MQTTAgent_GetNumWaiting( void );
 
-/**
- * @brief Initialize the command queue used for the MQTT agent.
- *
- * @param[in] uxCommandQueueLength The maximum number of commands that may be
- * enqueued.
- *
- * @return `true` if the queue was created, else `false`.
- */
-bool MQTTAgent_CreateCommandQueue( const uint32_t uxCommandQueueLength );
-
 /*_RB_ To document. */
-MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle, 
-                             TransportInterface_t *pxTransportInterface, 
+MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle,
+                             TransportInterface_t *pxTransportInterface,
                              MQTTGetCurrentTimeFunc_t prvGetTimeMs,
                              PublishCallback_t vUnkownIncomingPublishCallback,
                              void * pDefaultPublishContext );
