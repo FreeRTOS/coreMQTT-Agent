@@ -87,7 +87,7 @@ typedef struct CommandContext CommandContext_t;
 /**
  * @brief Callback function called when a command completes.
  */
-typedef void (* CommandCallback_t )( CommandContext_t *,
+typedef void (* CommandCallback_t )( void *,
                                      MQTTStatus_t );
 
 /**
@@ -146,7 +146,6 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
  *
  * @param[in] mqttContextHandle Handle to the MQTT connection to use.
  * @param[in] pSubscriptionList List of topics to subscribe to.
- * @param[in] subscriptionCount Number of topics to subscribe to.
  * @param[in] incomingPublishCallback Incoming publish callback for the subscriptions.
  * @param[in] incomingPublishCallbackContext Context for the publish callback.
  * @param[in] commandCompleteCallback Optional callback to invoke when the command completes.
@@ -155,8 +154,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
-                          MQTTSubscribeInfo_t * pSubscriptionList,
-                          size_t subscriptionCount,
+                          MQTTSubscribeInfo_t * pSubscriptionInfo,
                           PublishCallback_t incomingPublishCallback,
                           void * incomingPublishCallbackContext,
                           CommandCallback_t commandCompleteCallback,
@@ -167,7 +165,6 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
  *
  * @param[in] pMqttContext The MQTT connection information.
  * @param[in] pSubscriptionList List of topics to unsubscribe from.
- * @param[in] subscriptionCount Number of topics to unsubscribe from.
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
@@ -175,7 +172,6 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
  */
 bool MQTTAgent_Unsubscribe( MQTTContext_t * pMqttContext,
                             MQTTSubscribeInfo_t * pSubscriptionList,
-                            size_t subscriptionCount,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback );
 
@@ -206,7 +202,6 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_ProcessLoop( MQTTContext_t * pMqttContext,
-                            uint32_t timeoutMs,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback );
 
