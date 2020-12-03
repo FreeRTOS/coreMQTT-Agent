@@ -163,14 +163,14 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
 /**
  * @brief Add a command to call MQTT_Unsubscribe() for an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle to the MQTT connection to use.
  * @param[in] pSubscriptionList List of topics to unsubscribe from.
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Unsubscribe( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback );
@@ -194,40 +194,40 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
 /**
  * @brief Add a command to call MQTT_ProcessLoop() for an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle of the MQTT connection to use.
  * @param[in] timeoutMs Timeout for MQTT_ProcessLoop().
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_ProcessLoop( MQTTContext_t * pMqttContext,
+bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback );
 
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle of the MQTT connection to use.
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Ping( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
                      CommandContext_t * pCommandContext,
                      CommandCallback_t cmdCallback );
 
 /**
  * @brief Add a command to disconnect an MQTT connection.
  *
- * @param[in] pMqttContext The MQTT connection information.
+ * @param[in] mqttContextHandle Handle of the MQTT connection to use.
  * @param[in] pCommandContext Optional completion callback context.
  * @param[in] cmdCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
                            CommandContext_t * pCommandContext,
                            CommandCallback_t cmdCallback );
 
@@ -240,7 +240,7 @@ bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_Free( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
                      CommandContext_t * pCommandContext,
                      CommandCallback_t cmdCallback );
 

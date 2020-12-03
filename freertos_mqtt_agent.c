@@ -1292,13 +1292,12 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Unsubscribe( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( UNSUBSCRIBE, pMqttContext, pCommandContext, cmdCallback, pSubscriptionList, NULL, NULL );
+    return createAndAddCommandX( UNSUBSCRIBE, mqttContextHandle, pCommandContext, cmdCallback, pSubscriptionList, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
@@ -1319,50 +1318,46 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_ProcessLoop( MQTTContext_t * pMqttContext,
+bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
                             CommandContext_t * pCommandContext,
                             CommandCallback_t cmdCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( PROCESSLOOP, pMqttContext, pCommandContext, cmdCallback, NULL, NULL, NULL );
+    return createAndAddCommandX( PROCESSLOOP, mqttContextHandle, pCommandContext, cmdCallback, NULL, NULL, NULL );
 }
 
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Ping( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
                      CommandContext_t * pCommandContext,
                      CommandCallback_t cmdCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( PING, pMqttContext, pCommandContext, cmdCallback, NULL, NULL, NULL );
+    return createAndAddCommandX( PING, mqttContextHandle, pCommandContext, cmdCallback, NULL, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
                            CommandContext_t * pCommandContext,
                            CommandCallback_t cmdCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( DISCONNECT, pMqttContext, pCommandContext, cmdCallback, NULL, NULL, NULL );
+    return createAndAddCommandX( DISCONNECT, mqttContextHandle, pCommandContext, cmdCallback, NULL, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Free( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
                      CommandContext_t * pCommandContext,
                      CommandCallback_t cmdCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( FREE, pMqttContext, pCommandContext, cmdCallback, NULL, NULL, NULL );
+    return createAndAddCommandX( FREE, mqttContextHandle, pCommandContext, cmdCallback, NULL, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
 
 bool MQTTAgent_Terminate( void )
 {
-    return createAndAddCommand( TERMINATE, NULL, NULL, NULL, NULL, NULL, NULL );
+    return createAndAddCommandX( TERMINATE, NULL, NULL, NULL, NULL, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
