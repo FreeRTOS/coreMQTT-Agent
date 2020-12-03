@@ -173,7 +173,7 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * associated to the same topic filter once.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] topicFilter Topic filter string of subscription.
+ * @param[in] topicFilterString Topic filter string of subscription.
  * @param[in] topicFilterLength Length of topic filter string.
  * @param[in] pIncomingPublishCallback Callback function for the subscription.
  * @param[in] pIncomingPublishCallbackContext Context for the subscription callback.
@@ -181,7 +181,7 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * @return `true` if subscription added or exists, `false` if insufficient memory.
  */
 static bool addSubscription( MQTTAgentContext_t * pAgentContext,
-                             const char * topicFilter,
+                             const char * topicFilterString,
                              uint16_t topicFilterLength,
                              PublishCallback_t pIncomingPublishCallback,
                              void * pIncomingPublishCallbackContext );
@@ -193,20 +193,20 @@ static bool addSubscription( MQTTAgentContext_t * pAgentContext,
  * then every instance of the subscription will be removed.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] topicFilter Topic filter of subscription.
+ * @param[in] topicFilterString Topic filter of subscription.
  * @param[in] topicFilterLength Length of topic filter.
  */
-static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
-                                   const char * topicFilter,
-                                   uint16_t topicFilterLength );
+static void removeSubscription( MQTTAgentContext_t * pAgentContext,
+                                const char * topicFilterString,
+                                uint16_t topicFilterLength );
 
 /**
  * @brief Populate the parameters of a #Command_t
  *
- * @param[in] commandType Type of command.
+ * @param[in] commandType Type of command.  For example, publish or subscribe.
  * @param[in] pMqttContext Pointer to MQTT context to use for command.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
- * @param[in] publishCallback Subscription callback function for incomingin publishes.
+ * @param[in] incomingPublishCallback Subscription callback function for incoming publishes.
  * @param[in] pIncomingPublishCallbackContext Subscription callback context.
  * @param[in] pxContext Context and necessary structs for command.
  * @param[in] xCallback Callback for when command completes.
@@ -215,14 +215,14 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
  * @return `true` if all necessary structs for the command exist in pxContext,
  * else `false`
  */
-static bool prvCreateCommand( CommandType_t commandType,
-                              MQTTContext_t * pMqttContext,
-                              void * pMqttInfoParam,
-                              PublishCallback_t publishCallback,
-                              void * pIncomingPublishCallbackContext,
-                              CommandContext_t * pxContext,
-                              CommandCallback_t xCallback,
-                              Command_t * pCommand );
+static bool createCommand( CommandType_t commandType,
+                           MQTTContext_t * pMqttContext,
+                           void * pMqttInfoParam,
+                           PublishCallback_t incomingPublishCallback,
+                           void * pIncomingPublishCallbackContext,
+                           CommandContext_t * pxContext,
+                           CommandCallback_t xCallback,
+                           Command_t * pCommand );
 
 /**
  * @brief Add a command to the global command queue.
@@ -302,7 +302,7 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext );
  * @param[in] pCommandContext Context and necessary structs for command.
  * @param[in] cmdCallback Callback for when command completes.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
- * @param[in] publishCallback Subscription callback function for incoming publishes.
+ * @param[in] incomingPublishCallback Subscription callback function for incoming publishes.
  * @param[in] pIncomingPublishCallbackContext Subscription callback context.
  *
  * @return `true` if the command was added to the queue, `false` if not.
@@ -312,7 +312,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                  void * pMqttInfoParam,
                                  CommandCallback_t cmdCallback,
                                  CommandContext_t * pCommandContext,
-                                 PublishCallback_t publishCallback,
+                                 PublishCallback_t incomingPublishCallback,
                                  void * pIncomingPublishCallbackContext );
 
 /*-----------------------------------------------------------*/
@@ -450,7 +450,7 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 /*-----------------------------------------------------------*/
 
 static bool addSubscription( MQTTAgentContext_t * pAgentContext,
-                                const char * topicFilter,
+                                const char * topicFilterString,
                                 uint16_t topicFilterLength,
                                 PublishCallback_t pIncomingPublishCallback,
                                 void * pIncomingPublishCallbackContext )
@@ -468,7 +468,7 @@ static bool addSubscription( MQTTAgentContext_t * pAgentContext,
             ulAvailableIndex = i;
         }
         else if( ( pxSubscriptions[ i ].filterStringLength == topicFilterLength ) &&
-                 ( strncmp( topicFilter, pxSubscriptions[ i ].pSubscriptionFilterString, topicFilterLength ) == 0 ) )
+                 ( strncmp( topicFilterString, pxSubscriptions[ i ].pSubscriptionFilterString, topicFilterLength ) == 0 ) )
         {
             /* If a subscription already exists, don't do anything. */
             if( ( pxSubscriptions[ i ].pIncomingPublishCallback == pIncomingPublishCallback ) &&
@@ -488,7 +488,7 @@ static bool addSubscription( MQTTAgentContext_t * pAgentContext,
         pxSubscriptions[ ulAvailableIndex ].pIncomingPublishCallback = pIncomingPublishCallback;
         pxSubscriptions[ ulAvailableIndex ].pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
         configASSERT( topicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ); /*_RB_ Too late to catch this here. */
-        memcpy( pxSubscriptions[ ulAvailableIndex ].pSubscriptionFilterString, topicFilter, topicFilterLength );
+        memcpy( pxSubscriptions[ ulAvailableIndex ].pSubscriptionFilterString, topicFilterString, topicFilterLength );
         ret = true;
     }
 
@@ -497,8 +497,8 @@ static bool addSubscription( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
-                                   const char * topicFilter,
+static void removeSubscription( MQTTAgentContext_t * pAgentContext,
+                                   const char * topicFilterString,
                                    uint16_t topicFilterLength )
 {
     size_t i = 0;
@@ -508,7 +508,7 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
     {
         if( pxSubscriptions[ i ].filterStringLength == topicFilterLength )
         {
-            if( strncmp( pxSubscriptions[ i ].pSubscriptionFilterString, topicFilter, topicFilterLength ) == 0 )
+            if( strncmp( pxSubscriptions[ i ].pSubscriptionFilterString, topicFilterString, topicFilterLength ) == 0 )
             {
                 pxSubscriptions[ i ].filterStringLength = 0;
                 pxSubscriptions[ i ].pIncomingPublishCallback = NULL;
@@ -521,10 +521,10 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static bool prvCreateCommand( CommandType_t commandType,
+static bool createCommand( CommandType_t commandType,
                               MQTTContext_t * pMqttContext,
                               void * pMqttInfoParam,
-                              PublishCallback_t publishCallback,
+                              PublishCallback_t incomingPublishCallback,
                               void * pIncomingPublishCallbackContext,
                               CommandContext_t * pxContext,
                               CommandCallback_t xCallback,
@@ -538,7 +538,7 @@ static bool prvCreateCommand( CommandType_t commandType,
     switch( commandType )
     {
         case SUBSCRIBE:
-            xIsValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL ) && ( publishCallback != NULL );
+            xIsValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL ) && ( incomingPublishCallback != NULL );
             break;
 
         case UNSUBSCRIBE:
@@ -575,7 +575,7 @@ static bool prvCreateCommand( CommandType_t commandType,
 
         pCommand->commandType = commandType;
         pCommand->pMqttContext = pMqttContext;
-        pCommand->pIncomingPublishCallback = publishCallback;
+        pCommand->pIncomingPublishCallback = incomingPublishCallback;
         pCommand->pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
         pCommand->pxCmdContext = pxContext;
         pCommand->pCommandCompleteCallback = xCallback;
@@ -828,7 +828,7 @@ static void prvHandleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
         LogInfo( ( "Removing subscription to %.*s\n",
                     pxSubscribeInfo->topicFilterLength,
                     pxSubscribeInfo->pTopicFilter ) );
-        prvRemoveSubscription( pAgentContext,
+        removeSubscription( pAgentContext,
                                 pxSubscribeInfo->pTopicFilter,
                                 pxSubscribeInfo->topicFilterLength );
     }
@@ -1178,8 +1178,8 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
         /* Resubscribe if needed. */
         if( j > 0 )
         {
-//_RB_ removed j below           xCommandCreated = prvCreateCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, j, NULL, NULL, NULL, NULL, &xNewCommand );
-            xCommandCreated = prvCreateCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, NULL, NULL, NULL, NULL, &xNewCommand );
+//_RB_ removed j below           xCommandCreated = createCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, j, NULL, NULL, NULL, NULL, &xNewCommand );
+            xCommandCreated = createCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, NULL, NULL, NULL, NULL, &xNewCommand );
             configASSERT( xCommandCreated == true );
 //_RB_            xNewCommand.uintParam = j;
             xNewCommand.pIncomingPublishCallbackContext = NULL;
@@ -1199,7 +1199,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                  void * pMqttInfoParam,
                                  CommandCallback_t cmdCallback,
                                  CommandContext_t * pCommandContext,
-                                 PublishCallback_t publishCallback,
+                                 PublishCallback_t incomingPublishCallback,
                                  void * pIncomingPublishCallbackContext )
 {
     bool ret = false;
@@ -1226,10 +1226,10 @@ static bool createAndAddCommand( CommandType_t commandType,
 
         if( pCommand != NULL )
         {
-            ret = prvCreateCommand( commandType,
+            ret = createCommand( commandType,
                                     &( xMQTTContexts[ xMqttContextHandle ] ),
                                     pMqttInfoParam,
-                                    publishCallback,
+                                    incomingPublishCallback,
                                     pIncomingPublishCallbackContext,
                                     pCommandContext,
                                     cmdCallback,
