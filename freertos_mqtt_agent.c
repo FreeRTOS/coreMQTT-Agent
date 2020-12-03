@@ -115,10 +115,10 @@ typedef struct ackInfo
  */
 typedef struct subscriptionElement
 {
-    char pcSubscriptionFilter[ MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ];
-    uint16_t usFilterLength;
+    char pSubscriptionFilterString[ MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ];
+    uint16_t filterStringLength;
     PublishCallback_t pIncomingPublishCallback;
-    void * pSubscriptionContext;
+    void * pIncomingPublishCallbackContext;
 } SubscriptionElement_t;
 
 /**
@@ -128,9 +128,7 @@ typedef struct MQTTAgentContext
 {
     MQTTContext_t * pMQTTContext;
     AckInfo_t pPendingAcks[ PENDING_ACKS_MAX_SIZE ];
-    size_t pendingAckSize;
     SubscriptionElement_t pSubscriptionList[ SUBSCRIPTIONS_MAX_COUNT ];
-    size_t maxSubscriptions;
     MQTTSubscribeInfo_t pResendSubscriptions[ SUBSCRIPTIONS_MAX_COUNT ];
     PublishCallback_t vDefaultPublishCallback;
     void * pDefaultSubscriptionContext;
@@ -208,7 +206,7 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
  * @param[in] pMqttContext Pointer to MQTT context to use for command.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
  * @param[in] publishCallback Subscription callback function for incomingin publishes.
- * @param[in] pSubscriptionContext Subscription callback context.
+ * @param[in] pIncomingPublishCallbackContext Subscription callback context.
  * @param[in] pxContext Context and necessary structs for command.
  * @param[in] xCallback Callback for when command completes.
  * @param[out] pxCommand Pointer to initialized command.
@@ -220,7 +218,7 @@ static bool prvCreateCommand( CommandType_t commandType,
                               MQTTContext_t * pMqttContext,
                               void * pMqttInfoParam,
                               PublishCallback_t publishCallback,
-                              void * pSubscriptionContext,
+                              void * pIncomingPublishCallbackContext,
                               CommandContext_t * pxContext,
                               CommandCallback_t xCallback,
                               Command_t * pxCommand );
@@ -304,7 +302,7 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext );
  * @param[in] cmdCallback Callback for when command completes.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
  * @param[in] publishCallback Subscription callback function for incoming publishes.
- * @param[in] pSubscriptionContext Subscription callback context.
+ * @param[in] pIncomingPublishCallbackContext Subscription callback context.
  *
  * @return `true` if the command was added to the queue, `false` if not.
  */
@@ -314,7 +312,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                  CommandCallback_t cmdCallback,
                                  CommandContext_t * pCommandContext,
                                  PublishCallback_t publishCallback,
-                                 void * pSubscriptionContext );
+                                 void * pIncomingPublishCallbackContext );
 
 /*-----------------------------------------------------------*/
 
@@ -400,7 +398,7 @@ static bool prvAddAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     bool xAckAdded = false;
     AckInfo_t * pxPendingAcks = pAgentContext->pPendingAcks;
 
-    for( i = 0; i < pAgentContext->pendingAckSize; i++ )
+    for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
     {
         if( pxPendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
         {
@@ -424,7 +422,7 @@ static AckInfo_t prvGetAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     AckInfo_t xFoundAck = { 0 };
     AckInfo_t * pxPendingAcks = pAgentContext->pPendingAcks;
 
-    for( i = 0; i < pAgentContext->pendingAckSize; i++ )
+    for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
     {
         if( pxPendingAcks[ i ].packetId == packetId )
         {
@@ -457,39 +455,39 @@ static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
                                 void * pvSubscriptionContext )
 {
     int32_t i = 0;
-    size_t ulAvailableIndex = pAgentContext->maxSubscriptions;
+    size_t ulAvailableIndex = SUBSCRIPTIONS_MAX_COUNT;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
     bool ret = false;
 
     /* Start at end of array, so that we will insert at the first available index. */
-    for( i = ( int32_t ) pAgentContext->maxSubscriptions - 1; i >= 0; i-- )//_RB_ Why is this scanning backward to find the first slot rather than just forwards and breaking when it finds a slot?
+    for( i = ( int32_t ) SUBSCRIPTIONS_MAX_COUNT - 1; i >= 0; i-- )//_RB_ Why is this scanning backward to find the first slot rather than just forwards and breaking when it finds a slot?
     {
-        if( pxSubscriptions[ i ].usFilterLength == 0 )
+        if( pxSubscriptions[ i ].filterStringLength == 0 )
         {
             ulAvailableIndex = i;
         }
-        else if( ( pxSubscriptions[ i ].usFilterLength == usTopicFilterLength ) &&
-                 ( strncmp( pcTopicFilter, pxSubscriptions[ i ].pcSubscriptionFilter, usTopicFilterLength ) == 0 ) )
+        else if( ( pxSubscriptions[ i ].filterStringLength == usTopicFilterLength ) &&
+                 ( strncmp( pcTopicFilter, pxSubscriptions[ i ].pSubscriptionFilterString, usTopicFilterLength ) == 0 ) )
         {
             /* If a subscription already exists, don't do anything. */
             if( ( pxSubscriptions[ i ].pIncomingPublishCallback == pIncomingPublishCallback ) &&
-                ( pxSubscriptions[ i ].pSubscriptionContext == pvSubscriptionContext ) )
+                ( pxSubscriptions[ i ].pIncomingPublishCallbackContext == pvSubscriptionContext ) )
             {
                 LogWarn( ( "Subscription already exists.\n" ) );
-                ulAvailableIndex = pAgentContext->maxSubscriptions;
+                ulAvailableIndex = SUBSCRIPTIONS_MAX_COUNT;
                 ret = true;
                 break;
             }
         }
     }
 
-    if( ( ulAvailableIndex < pAgentContext->maxSubscriptions ) && ( pIncomingPublishCallback != NULL ) )
+    if( ( ulAvailableIndex < SUBSCRIPTIONS_MAX_COUNT ) && ( pIncomingPublishCallback != NULL ) )
     {
-        pxSubscriptions[ ulAvailableIndex ].usFilterLength = usTopicFilterLength;
+        pxSubscriptions[ ulAvailableIndex ].filterStringLength = usTopicFilterLength;
         pxSubscriptions[ ulAvailableIndex ].pIncomingPublishCallback = pIncomingPublishCallback;
-        pxSubscriptions[ ulAvailableIndex ].pSubscriptionContext = pvSubscriptionContext;
+        pxSubscriptions[ ulAvailableIndex ].pIncomingPublishCallbackContext = pvSubscriptionContext;
         configASSERT( usTopicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ); /*_RB_ Too late to catch this here. */
-        memcpy( pxSubscriptions[ ulAvailableIndex ].pcSubscriptionFilter, pcTopicFilter, usTopicFilterLength );
+        memcpy( pxSubscriptions[ ulAvailableIndex ].pSubscriptionFilterString, pcTopicFilter, usTopicFilterLength );
         ret = true;
     }
 
@@ -505,16 +503,16 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
     size_t i = 0;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
 
-    for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+    for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
     {
-        if( pxSubscriptions[ i ].usFilterLength == usTopicFilterLength )
+        if( pxSubscriptions[ i ].filterStringLength == usTopicFilterLength )
         {
-            if( strncmp( pxSubscriptions[ i ].pcSubscriptionFilter, pcTopicFilter, usTopicFilterLength ) == 0 )
+            if( strncmp( pxSubscriptions[ i ].pSubscriptionFilterString, pcTopicFilter, usTopicFilterLength ) == 0 )
             {
-                pxSubscriptions[ i ].usFilterLength = 0;
+                pxSubscriptions[ i ].filterStringLength = 0;
                 pxSubscriptions[ i ].pIncomingPublishCallback = NULL;
-                pxSubscriptions[ i ].pSubscriptionContext = NULL;
-                memset( pxSubscriptions[ i ].pcSubscriptionFilter, 0x00, MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE );
+                pxSubscriptions[ i ].pIncomingPublishCallbackContext = NULL;
+                memset( pxSubscriptions[ i ].pSubscriptionFilterString, 0x00, MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE );
             }
         }
     }
@@ -526,7 +524,7 @@ static bool prvCreateCommand( CommandType_t commandType,
                               MQTTContext_t * pMqttContext,
                               void * pMqttInfoParam,
                               PublishCallback_t publishCallback,
-                              void * pSubscriptionContext,
+                              void * pIncomingPublishCallbackContext,
                               CommandContext_t * pxContext,
                               CommandCallback_t xCallback,
                               Command_t * pxCommand )
@@ -577,7 +575,7 @@ static bool prvCreateCommand( CommandType_t commandType,
         pxCommand->commandType = commandType;
         pxCommand->pMqttContext = pMqttContext;
         pxCommand->pIncomingPublishCallback = publishCallback;
-        pxCommand->pIncomingPublishCallbackContext = pSubscriptionContext;
+        pxCommand->pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
         pxCommand->pxCmdContext = pxContext;
         pxCommand->pCommandCompleteCallback = xCallback;
     }
@@ -744,14 +742,14 @@ static void prvHandleIncomingPublish( MQTTAgentContext_t * pAgentContext,
 
     configASSERT( pxPublishInfo != NULL );
 
-    for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+    for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
     {
-        if( pxSubscriptions[ i ].usFilterLength > 0 )
+        if( pxSubscriptions[ i ].filterStringLength > 0 )
         {
             xStatus = MQTT_MatchTopic( pxPublishInfo->pTopicName,
                                        pxPublishInfo->topicNameLength,
-                                       pxSubscriptions[ i ].pcSubscriptionFilter,
-                                       pxSubscriptions[ i ].usFilterLength,
+                                       pxSubscriptions[ i ].pSubscriptionFilterString,
+                                       pxSubscriptions[ i ].filterStringLength,
                                        &xIsMatched );
             /* The call can't fail if the topic name and filter is valid. */
             configASSERT( xStatus == MQTTSuccess );
@@ -759,9 +757,9 @@ static void prvHandleIncomingPublish( MQTTAgentContext_t * pAgentContext,
             if( xIsMatched )
             {
                 LogDebug( ( "Adding publish to response queue for %.*s\n",
-                            pxSubscriptions[ i ].usFilterLength,
-                            pxSubscriptions[ i ].pcSubscriptionFilter ) );
-                pxSubscriptions[ i ].pIncomingPublishCallback( pxPublishInfo, pxSubscriptions[ i ].pSubscriptionContext );
+                            pxSubscriptions[ i ].filterStringLength,
+                            pxSubscriptions[ i ].pSubscriptionFilterString ) );
+                pxSubscriptions[ i ].pIncomingPublishCallback( pxPublishInfo, pxSubscriptions[ i ].pIncomingPublishCallbackContext );
                 xRelayedPublish = true;
             }
         }
@@ -1026,8 +1024,6 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle,
             /* Also initialise the agent context.  Assert if already initialised. */
             configASSERT( xAgentContexts[ xMQTTContextHandle ].pMQTTContext == NULL );
             xAgentContexts[ xMQTTContextHandle ].pMQTTContext = &( xMQTTContexts[ xMQTTContextHandle ] );
-            xAgentContexts[ xMQTTContextHandle ].pendingAckSize = PENDING_ACKS_MAX_SIZE;
-            xAgentContexts[ xMQTTContextHandle ].maxSubscriptions = SUBSCRIPTIONS_MAX_COUNT;
             xAgentContexts[ xMQTTContextHandle ].vDefaultPublishCallback = vUnkownIncomingPublishCallback;
             xAgentContexts[ xMQTTContextHandle ].pDefaultSubscriptionContext = pDefaultPublishContext;
 
@@ -1149,7 +1145,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
         BaseType_t xCommandAdded;
 
         /* We have a clean session, so clear all operations pending acknowledgments. */
-        for( i = 0; i < pAgentContext->pendingAckSize; i++ )
+        for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
         {
             if( pxPendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
             {
@@ -1167,12 +1163,12 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
         /* Populate the array of MQTTSubscribeInfo_t. It's possible there may be
          * repeated subscriptions in the list. This is fine, since clients
          * are able to subscribe to a topic with an existing subscription. */
-        for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+        for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
         {
-            if( pxSubscriptions[ i ].usFilterLength != 0 )
+            if( pxSubscriptions[ i ].filterStringLength != 0 )
             {
-                pxResendSubscriptions[ j ].pTopicFilter = pxSubscriptions[ i ].pcSubscriptionFilter;
-                pxResendSubscriptions[ j ].topicFilterLength = pxSubscriptions[ i ].usFilterLength;
+                pxResendSubscriptions[ j ].pTopicFilter = pxSubscriptions[ i ].pSubscriptionFilterString;
+                pxResendSubscriptions[ j ].topicFilterLength = pxSubscriptions[ i ].filterStringLength;
                 pxResendSubscriptions[ j ].qos = MQTTQoS1;
                 j++;
             }
@@ -1203,7 +1199,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                  CommandCallback_t cmdCallback,
                                  CommandContext_t * pCommandContext,
                                  PublishCallback_t publishCallback,
-                                 void * pSubscriptionContext )
+                                 void * pIncomingPublishCallbackContext )
 {
     bool ret = false;
     const TickType_t xBlockTimeMS = ( TickType_t ) 500;/*_RB_ Could make a parameter. */
@@ -1233,7 +1229,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                     &( xMQTTContexts[ xMqttContextHandle ] ),
                                     pMqttInfoParam,
                                     publishCallback,
-                                    pSubscriptionContext,
+                                    pIncomingPublishCallbackContext,
                                     pCommandContext,
                                     cmdCallback,
                                     pxCommand );
