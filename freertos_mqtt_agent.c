@@ -208,8 +208,8 @@ static void removeSubscription( MQTTAgentContext_t * pAgentContext,
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
  * @param[in] incomingPublishCallback Subscription callback function for incoming publishes.
  * @param[in] pIncomingPublishCallbackContext Subscription callback context.
- * @param[in] pxContext Context and necessary structs for command.
- * @param[in] xCallback Callback for when command completes.
+ * @param[in] commandCompleteCallback Callback for when command completes.
+ * @param[in] pCommandCompleteCallbackContext Context and necessary structs for command.
  * @param[out] pCommand Pointer to initialized command.
  *
  * @return `true` if all necessary structs for the command exist in pxContext,
@@ -220,8 +220,8 @@ static bool createCommand( CommandType_t commandType,
                            void * pMqttInfoParam,
                            PublishCallback_t incomingPublishCallback,
                            void * pIncomingPublishCallbackContext,
-                           CommandContext_t * pxContext,
-                           CommandCallback_t xCallback,
+                           CommandCallback_t commandCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContext,
                            Command_t * pCommand );
 
 /**
@@ -522,13 +522,13 @@ static void removeSubscription( MQTTAgentContext_t * pAgentContext,
 /*-----------------------------------------------------------*/
 
 static bool createCommand( CommandType_t commandType,
-                              MQTTContext_t * pMqttContext,
-                              void * pMqttInfoParam,
-                              PublishCallback_t incomingPublishCallback,
-                              void * pIncomingPublishCallbackContext,
-                              CommandContext_t * pxContext,
-                              CommandCallback_t xCallback,
-                              Command_t * pCommand )
+                           MQTTContext_t * pMqttContext,
+                           void * pMqttInfoParam,
+                           PublishCallback_t incomingPublishCallback,
+                           void * pIncomingPublishCallbackContext,
+                           CommandCallback_t commandCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContext,
+                           Command_t * pCommand )
 {
     bool xIsValid = true;
 
@@ -577,8 +577,8 @@ static bool createCommand( CommandType_t commandType,
         pCommand->pMqttContext = pMqttContext;
         pCommand->pIncomingPublishCallback = incomingPublishCallback;
         pCommand->pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
-        pCommand->pxCmdContext = pxContext;
-        pCommand->pCommandCompleteCallback = xCallback;
+        pCommand->pxCmdContext = pCommandCompleteCallbackContext;
+        pCommand->pCommandCompleteCallback = commandCompleteCallback;
     }
 
     return xIsValid;
@@ -1197,8 +1197,8 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
 static bool createAndAddCommand( CommandType_t commandType,
                                  MQTTContextHandle_t xMqttContextHandle,
                                  void * pMqttInfoParam,
-                                 CommandCallback_t cmdCallback,
-                                 CommandContext_t * pCommandContext,
+                                 CommandCallback_t commandCompleteCallback,
+                                 CommandContext_t * pCommandCompleteCallbackContext,
                                  PublishCallback_t incomingPublishCallback,
                                  void * pIncomingPublishCallbackContext )
 {
@@ -1227,13 +1227,13 @@ static bool createAndAddCommand( CommandType_t commandType,
         if( pCommand != NULL )
         {
             ret = createCommand( commandType,
-                                    &( xMQTTContexts[ xMqttContextHandle ] ),
-                                    pMqttInfoParam,
-                                    incomingPublishCallback,
-                                    pIncomingPublishCallbackContext,
-                                    pCommandContext,
-                                    cmdCallback,
-                                    pCommand );
+                                 &( xMQTTContexts[ xMqttContextHandle ] ),
+                                 pMqttInfoParam,
+                                 incomingPublishCallback,
+                                 pIncomingPublishCallbackContext,
+                                 commandCompleteCallback,
+                                 pCommandCompleteCallbackContext,
+                                 pCommand );
 
             if( ret )
             {
