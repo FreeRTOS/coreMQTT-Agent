@@ -327,7 +327,7 @@ static MQTTContext_t xMQTTContexts[ MAX_CONNECTIONS ] = { 0 };
 /**
  * @brief The network buffer must remain valid for the lifetime of the MQTT context.
  */
-static uint8_t pcNetworkBuffer[ MAX_CONNECTIONS ][ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. */
+static uint8_t pcNetworkBuffer[ MAX_CONNECTIONS ][ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. Also this requires both buffers to be the same size. */
 
 /*-----------------------------------------------------------*/
 
@@ -481,6 +481,7 @@ static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
         pxSubscriptions[ ulAvailableIndex ].usFilterLength = usTopicFilterLength;
         pxSubscriptions[ ulAvailableIndex ].vPublishCallback = vPublishCallback;
         pxSubscriptions[ ulAvailableIndex ].pSubscriptionContext = pvSubscriptionContext;
+        configASSERT( usTopicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ); /*_RB_ Too late to catch this here. */
         memcpy( pxSubscriptions[ ulAvailableIndex ].pcSubscriptionFilter, pcTopicFilter, usTopicFilterLength );
         ret = true;
     }
