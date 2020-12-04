@@ -105,19 +105,6 @@ typedef int MQTTContextHandle_t;
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Dispatch incoming publishes and acks to response queues and
- * command callbacks.
- *
- * @param[in] pMqttContext MQTT Context
- * @param[in] pPacketInfo Pointer to incoming packet.
- * @param[in] pDeserializedInfo Pointer to deserialized information from
- * the incoming packet.
- */
-void MQTTAgent_EventCallback( MQTTContext_t * pMqttContext,
-                              MQTTPacketInfo_t * pPacketInfo,
-                              MQTTDeserializedInfo_t * pDeserializedInfo );
-
-/**
  * @brief Process commands from the command queue in a loop.
  *
  * This demo requires a process loop command to be enqueued before calling this
@@ -138,7 +125,7 @@ MQTTContext_t * MQTTAgent_CommandLoop( void );
  * @return `MQTTSuccess` if it succeeds in resending publishes, else an
  * appropriate error code from `MQTT_Publish()`
  */
-MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
+MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
                                       bool xSessionPresent );
 
 /**
@@ -266,7 +253,10 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle,
                              void * pDefaultPublishContext );
 
 
-    /*_RB_ Temporary until all APIs are using the handle. */
-MQTTContext_t * MQTTAgent_GetMQTTContext( MQTTContextHandle_t xGlobalMQTTContextHandle );
+MQTTStatus_t MQTTAgent_Connect( MQTTContextHandle_t xMQTTContextHandle,
+                                const MQTTConnectInfo_t * pConnectInfo,
+                                const MQTTPublishInfo_t * pWillInfo,
+                                uint32_t timeoutMs,
+                                bool * pSessionPresent );
 
 #endif /* MQTT_AGENT_H */
