@@ -390,56 +390,79 @@ static MQTTContext_t mqttContexts[ MAX_CONNECTIONS ] = { 0 };
  */
 static uint8_t networkBuffers[ MAX_CONNECTIONS ][ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. Also this requires both buffers to be the same size. */
 
-//_RB_ Document the below functions and data.
-#define MQTT_COMMAND_CONTEXTS_POOL_SIZE 10 /*_RB_ Needs adding to the mqtt config defaults header file. */
-static Command_t xCommandStructurePool[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
-static SemaphoreHandle_t xFreeCommandStructureMutex = NULL;
+/**
+ * @brief The pool of command structures used to hold information on commands (such
+ * as PUBLISH or SUBSCRIBE) between the command being created by an API call and 
+ * by either an error or the execution of the commands callback.
+ */
+static Command_t commandStructurePool[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
+
+/**
+ * @brief A counting semaphore used to guard the pool of Command_t structures.  To
+ * obtain a structure first decrement the semaphore count.  To return a structure
+ * increment the semaphore count after the structure is back in the pool.
+ */
+static SemaphoreHandle_t freeCommandStructMutex = NULL;
+
+
+static bool packetProcessedDuringLoop = false;
 
 /*-----------------------------------------------------------*/
 
 static bool releaseCommandStructureToPool( Command_t *pxCommandToRelease )
 {
-    BaseType_t x;
-    bool ret = false;
+    size_t i;
+    bool structReturned = false;
 
-    for( x = 0; x < MQTT_COMMAND_CONTEXTS_POOL_SIZE; x++ )
+    /* See if the structure being returned is actually from the pool. */
+    for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
     {
-        if( pxCommandToRelease == &( xCommandStructurePool[ x ] ) )
+        if( pxCommandToRelease == &( commandStructurePool[ i ] ) )
         {
+            /* Yes its from the pool.  Clearing it to zero not only removes the old
+             * data it also sets the structure's commandType parameter to NONE to
+             * mark the structure as free again. */
             memset( ( void * ) pxCommandToRelease, 0x00, sizeof( Command_t ) );
-            xSemaphoreGive( xFreeCommandStructureMutex );
-            ret = true;
-            LogInfo( ( "Returned Command Context %d to pool", ( int ) x ) );
+
+            /* Give back the counting semaphore after returning the structure so the
+             * semaphore count equals the number of available structures. */
+            xSemaphoreGive( freeCommandStructMutex );
+            structReturned = true;
+
+            LogDebug( ( "Returned Command Context %d to pool", ( int ) i ) );
+
             break;
         }
     }
 
-    return ret;
+    return structReturned;
 }
 
 /*-----------------------------------------------------------*/
 
 static Command_t *getCommandStructureFromPool( TickType_t blockTimeMs )
 {
-    Command_t *pxReturn = NULL;
-    BaseType_t x;
+    Command_t *structToUse = NULL;
+    size_t i;
 
     /* Check counting semaphore has been created. */
-    if( xFreeCommandStructureMutex != NULL )
+    if( freeCommandStructMutex != NULL )
     {
         /* If the semaphore count is not zero then a command context is available. */
-        if( xSemaphoreTake( xFreeCommandStructureMutex, pdMS_TO_TICKS( blockTimeMs ) ) == pdPASS )
+        if( xSemaphoreTake( freeCommandStructMutex, pdMS_TO_TICKS( blockTimeMs ) ) == pdPASS )
         {
-            for( x = 0; x < MQTT_COMMAND_CONTEXTS_POOL_SIZE; x++ )
+            for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
             {
                 taskENTER_CRITICAL();
                 {
-                    if( xCommandStructurePool[ x ].commandType == NONE )
+                    if( commandStructurePool[ i ].commandType == NONE )
                     {
-                        LogInfo( ( "Removed Command Context %d from pool", ( int ) x ) );
-                        pxReturn = &( xCommandStructurePool[ x ] );
-                        memset( ( void * ) pxReturn, 0x00, sizeof( Command_t ) );
-                        pxReturn->commandType = !NONE;
+                        LogDebug( ( "Removed Command Context %d from pool", ( int ) i ) );
+                        structToUse = &( commandStructurePool[ i ] );
+
+                        /* To show the struct is no longer available to be returned
+                         * by calls to releaseCommandStructureToPool(). */
+                        structToUse->commandType = !NONE;
                         taskEXIT_CRITICAL();
                         break;
                     }
@@ -449,7 +472,7 @@ static Command_t *getCommandStructureFromPool( TickType_t blockTimeMs )
         }
     }
 
-    return pxReturn;
+    return structToUse;
 }
 
 /*-----------------------------------------------------------*/
@@ -786,10 +809,15 @@ static MQTTStatus_t processCommand( Command_t * pCommand )
 
     /* Run a single iteration of the process loop if there were no errors and
      * the MQTT connection still exists. */
-    if( ( xStatus == MQTTSuccess ) && ( pMQTTContext != NULL ) && ( pMQTTContext->connectStatus == MQTTConnected ) )
+    do
     {
-        xStatus = MQTT_ProcessLoop( pMQTTContext, processLoopTimeoutMs );
-    }
+        packetProcessedDuringLoop = false;
+
+        if( ( xStatus == MQTTSuccess ) && ( pMQTTContext != NULL ) && ( pMQTTContext->connectStatus == MQTTConnected ) )
+        {
+            xStatus = MQTT_ProcessLoop( pMQTTContext, processLoopTimeoutMs );
+        }
+    } while( packetProcessedDuringLoop == true );
 
     return xStatus;
 }
@@ -961,6 +989,8 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
     CommandCallback_t vAckCallback = NULL;
     MQTTAgentContext_t * pAgentContext = getAgentFromContext( pMqttContext );
 
+    packetProcessedDuringLoop = true;
+
     /* Handle incoming publish. The lower 4 bits of the publish packet
      * type is used for the dup, QoS, and retain flags. Hence masking
      * out the lower bits to check if the packet is publish. */
@@ -1036,7 +1066,7 @@ static bool createAndAddCommand( CommandType_t commandType,
                                  void * pIncomingPublishCallbackContext )
 {
     bool ret = false;
-    const TickType_t blockTimeMs = ( TickType_t ) pdMS_TO_TICKS( 500 );/*_RB_ Could make a parameter. */
+    const TickType_t blockTimeMs = ( TickType_t ) pdMS_TO_TICKS( 1500 );/*_RB_ Could make a parameter. */
     Command_t *pCommand = NULL;
 
     /* If the packet ID is zero then the MQTT context has not been initialised as 0
@@ -1140,9 +1170,9 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle,
             agentContexts[ xMQTTContextHandle ].pUnsolicitedPublishCallback = vUnkownIncomingPublishCallback;
             agentContexts[ xMQTTContextHandle ].pUnsolicitedPublishCallbackContext = pDefaultPublishContext;
 
-            memset( ( void * ) xCommandStructurePool, 0x00, sizeof( xCommandStructurePool ) );
-            xFreeCommandStructureMutex = xSemaphoreCreateCounting( MQTT_COMMAND_CONTEXTS_POOL_SIZE, MQTT_COMMAND_CONTEXTS_POOL_SIZE );
-            configASSERT( xFreeCommandStructureMutex ); /*_RB_ Create all objects here statically. */
+            memset( ( void * ) commandStructurePool, 0x00, sizeof( commandStructurePool ) );
+            freeCommandStructMutex = xSemaphoreCreateCounting( MQTT_COMMAND_CONTEXTS_POOL_SIZE, MQTT_COMMAND_CONTEXTS_POOL_SIZE );
+            configASSERT( freeCommandStructMutex ); /*_RB_ Create all objects here statically. */
         }
     }
 
