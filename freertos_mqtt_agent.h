@@ -38,6 +38,14 @@
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
 
+
+/**
+ * @brief The size to use for the network buffer.
+ */
+#ifndef mqttexampleNETWORK_BUFFER_SIZE
+    #define mqttexampleNETWORK_BUFFER_SIZE    ( 1024U )
+#endif
+
 /**
  * @brief Timeout for MQTT_ProcessLoop function in milliseconds.
  *

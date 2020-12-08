@@ -692,6 +692,8 @@ static MQTTStatus_t processCommand( Command_t * pCommand )
     uint32_t processLoopTimeoutMs = MQTT_AGENT_PROCESS_LOOP_TIMEOUT_MS;
     const size_t xMaxCount = ( size_t ) 1; /* The agent interface only allows one subscription command at a time. */
 
+    bool isEmptyCommand = ( pCommand->commandType == NONE );
+
     switch( pCommand->commandType )
     {
         case PUBLISH:
@@ -795,7 +797,10 @@ static MQTTStatus_t processCommand( Command_t * pCommand )
             pCommand->pCommandCompleteCallback( pCommand->pxCmdContext, xStatus );
         }
 
-        releaseCommandStructureToPool( pCommand );
+        if( !isEmptyCommand )
+        {
+            releaseCommandStructureToPool( pCommand );
+        }
     }
 
     /* If empty command, iterate through stored contexts so that all MQTT
@@ -806,6 +811,10 @@ static MQTTStatus_t processCommand( Command_t * pCommand )
 //        /* Set context for original command in case this results in a network error. */
 //        pCommand->pMqttContext = pMQTTContext;
 //    }
+    if( isEmptyCommand )
+    {
+        pMQTTContext = getContextForProcessLoop();
+    }
 
     /* Run a single iteration of the process loop if there were no errors and
      * the MQTT connection still exists. */
@@ -1188,6 +1197,7 @@ MQTTContext_t * MQTTAgent_CommandLoop( void )
     MQTTStatus_t xStatus = MQTTSuccess;
     static int lNumProcessed = 0;
     MQTTContext_t * ret = NULL;
+    Command_t emptyCommand = { 0 };
 
     /* The command queue should have been created before this task gets created. */
     configASSERT( commandQueue );
@@ -1195,6 +1205,7 @@ MQTTContext_t * MQTTAgent_CommandLoop( void )
     /* Loop until we receive a terminate command. */
     for( ; ; )
     {
+        pCommand = &emptyCommand;
         /* If there is no command in the queue, try again. */
         if( xQueueReceive( commandQueue, &( pCommand ), MQTT_AGENT_QUEUE_WAIT_TIME ) != pdFALSE )
         {
