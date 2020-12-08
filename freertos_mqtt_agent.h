@@ -160,15 +160,15 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
  *
  * @param[in] mqttContextHandle Handle to the MQTT connection to use.
  * @param[in] pSubscriptionList List of topics to unsubscribe from.
- * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] cmdCompleteCallback Optional callback to invoke when the command completes.
+ * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
-                            CommandContext_t * pCommandCompleteCallbackContext,
-                            CommandCallback_t cmdCompleteCallback );
+                            CommandCallback_t cmdCompleteCallback,
+                            CommandContext_t * pCommandCompleteCallbackContext );
 
 /**
  * @brief Add a command to call MQTT_Publish() for an MQTT connection.
@@ -186,18 +186,16 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
                         CommandContext_t * commandCompleteCallbackContext );
 
 /**
- * @brief Add a command to call MQTT_ProcessLoop() for an MQTT connection.
+ * @brief Send a message to the MQTT agent purely to trigger an iteration of its loop,
+ * which will result in a call to MQTT_ProcessLoop().  This function can be used to
+ * wake the MQTT agent task when it is known data may be available on the connected
+ * socket.
  *
  * @param[in] mqttContextHandle Handle of the MQTT connection to use.
- * @param[in] timeoutMs Timeout for MQTT_ProcessLoop().
- * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
- * @param[in] cmdCompleteCallback Optional callback to invoke when the command completes.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
-bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
-                            CommandContext_t * pCommandCompleteCallbackContext,
-                            CommandCallback_t cmdCompleteCallback );
+bool MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle );
 
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
@@ -209,8 +207,8 @@ bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
-                     CommandContext_t * pCommandCompleteCallbackContext,
-                     CommandCallback_t cmdCompleteCallback );
+                     CommandCallback_t cmdCompleteCallback,
+                     CommandContext_t * pCommandCompleteCallbackContext );
 
 /**
  * @brief Add a command to disconnect an MQTT connection.
@@ -222,8 +220,8 @@ bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
-                           CommandContext_t * pCommandCompleteCallbackContext,
-                           CommandCallback_t cmdCompleteCallback );
+                           CommandCallback_t cmdCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContex );
 
 /**
  * @brief Add a command to clear memory associated with an MQTT connection.
@@ -235,8 +233,8 @@ bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
  * @return `true` if the command was enqueued, else `false`.
  */
 bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
-                     CommandContext_t * pCommandCompleteCallbackContext,
-                     CommandCallback_t cmdCompleteCallback );
+                     CommandCallback_t cmdCompleteCallback,
+                     CommandContext_t * pCommandCompleteCallbackContext );
 
 /**
  * @brief Add a termination command to the command queue.

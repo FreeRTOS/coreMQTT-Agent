@@ -875,7 +875,6 @@ static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
                                    MQTTPublishInfo_t * pPublishInfo )
 {
     bool isMatched = false, relayedPublish = false;
-    MQTTStatus_t operationStatus;
     size_t i;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
 
@@ -883,23 +882,19 @@ static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
     {
         if( pxSubscriptions[ i ].filterStringLength > 0 )
         {
-            operationStatus = MQTT_MatchTopic( pPublishInfo->pTopicName,
-                                               pPublishInfo->topicNameLength,
-                                               pxSubscriptions[ i ].pSubscriptionFilterString,
-                                               pxSubscriptions[ i ].filterStringLength,
-                                               &isMatched );
+            MQTT_MatchTopic( pPublishInfo->pTopicName,
+                             pPublishInfo->topicNameLength,
+                             pxSubscriptions[ i ].pSubscriptionFilterString,
+                             pxSubscriptions[ i ].filterStringLength,
+                             &isMatched );
             if( isMatched )
             {
-                LogDebug( ( "Adding publish to response queue for %.*s\n",
+                LogDebug( ( "Adding incoming publish callback %.*s\n",
                             pxSubscriptions[ i ].filterStringLength,
                             pxSubscriptions[ i ].pSubscriptionFilterString ) );
-                pxSubscriptions[ i ].pIncomingPublishCallback( pPublishInfo, pxSubscriptions[ i ].pIncomingPublishCallbackContext );
+                pxSubscriptions[ i ].pIncomingPublishCallback( pPublishInfo, 
+                                                               pxSubscriptions[ i ].pIncomingPublishCallbackContext );
                 relayedPublish = true;
-            }
-            else
-            {
-                /* Terminate the string for logging. */
-                LogWarn( ( "Received unmatched incoming publish." ) );
             }
         }
     }
@@ -1455,8 +1450,8 @@ bool ret;
 
 bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
-                            CommandContext_t * pCommandCompleteCallbackContext,
-                            CommandCallback_t cmdCompleteCallback )/*_RB_ Swap these parameters around and check the other command APIs.  Also document what happens to the contexts in the header file - i.e. it gets passed into the callback. */
+                            CommandCallback_t cmdCompleteCallback,
+                            CommandContext_t * pCommandCompleteCallbackContext )
 {
     return createAndAddCommand( UNSUBSCRIBE,                    /* commandType */
                                 mqttContextHandle,              /* mqttContextHandle */
@@ -1485,15 +1480,13 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
-                            CommandContext_t * pCommandCompleteCallbackContext,
-                            CommandCallback_t cmdCompleteCallback )
+bool MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle )
 {
     return createAndAddCommand( PROCESSLOOP,                    /* commandType */
                                 mqttContextHandle,              /* mqttContextHandle */
                                 NULL,                           /* pMqttInfoParam */
-                                cmdCompleteCallback,            /* commandCompleteCallback */
-                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* commandCompleteCallback */
+                                NULL,                           /* pCommandCompleteCallbackContext */
                                 NULL,                           /* incomingPublishCallback */
                                 NULL );                         /* pIncomingPublishCallbackContext */
 }
@@ -1501,9 +1494,9 @@ bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle, /*_RB_ Use this in the demo. */
-                     CommandContext_t * pCommandCompleteCallbackContext,
-                     CommandCallback_t cmdCompleteCallback )
+bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,                     
+                     CommandCallback_t cmdCompleteCallback,
+                     CommandContext_t * pCommandCompleteCallbackContext )
 {
     return createAndAddCommand( PING,                           /* commandType */
                                 mqttContextHandle,              /* mqttContextHandle */
@@ -1517,8 +1510,8 @@ bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle, /*_RB_ Use this in t
 /*-----------------------------------------------------------*/
 
 bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
-                           CommandContext_t * pCommandCompleteCallbackContext,
-                           CommandCallback_t cmdCompleteCallback )
+                           CommandCallback_t cmdCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContext )
 {
     return createAndAddCommand( DISCONNECT,                     /* commandType */
                                 mqttContextHandle,              /* mqttContextHandle */
@@ -1532,8 +1525,8 @@ bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
 /*-----------------------------------------------------------*/
 
 bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
-                     CommandContext_t * pCommandCompleteCallbackContext,
-                     CommandCallback_t cmdCompleteCallback )
+                     CommandCallback_t cmdCompleteCallback,
+                     CommandContext_t * pCommandCompleteCallbackContext )
 {
     return createAndAddCommand( FREE,                           /* commandType */
                                 mqttContextHandle,              /* mqttContextHandle */
