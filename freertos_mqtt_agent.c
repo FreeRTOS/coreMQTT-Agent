@@ -844,10 +844,6 @@ static MQTTStatus_t processCommand( Command_t * pCommand ) //_RB_ Break up into 
 //        /* Set context for original command in case this results in a network error. */
 //        pCommand->pMqttContext = pMQTTContext;
 //    }
-    if( isEmptyCommand )
-    {
-        pMQTTContext = getContextForProcessLoop();
-    }
 
     /* Run a single iteration of the process loop if there were no errors and
      * the MQTT connection still exists. */
@@ -1251,7 +1247,6 @@ MQTTContext_t * MQTTAgent_CommandLoop( void )
     Command_t *pCommand;
     MQTTStatus_t operationStatus = MQTTSuccess;
     MQTTContext_t * ret = NULL;
-    Command_t emptyCommand = { 0 };
 
     /* The command queue should have been created before this task gets created. */
     configASSERT( commandQueue );
