@@ -26,17 +26,29 @@
 
 /**
  * @file mqtt_agent.c
- * @brief Implements functions in mqtt_agent.h.
+ * @brief Implements an MQTT agent (or daemon task) to enable multithreaded access to 
+ * coreMQTT.
+ * 
+ * @note Implements an MQTT agent (or daemon task) on top of the coreMQTT MQTT client
+ * library.  The agent makes coreMQTT usage thread safe by being the only task (or
+ * thread) in the system that is allowed to access the native coreMQTT API - and in
+ * so doing, serialises all access to coreMQTT even when multiple tasks are using the
+ * same MQTT connection.
+ * 
+ * The agent provides an equivalent API for each coreMQTT API.  Whereas coreMQTT
+ * APIs are prefixed "MQTT_", the agent APIs are prefixed "MQTTAgent_".  For example,
+ * that agent's MQTTAgent_Publish() API is the thread safe equivalent to coreMQTT's
+ * MQTT_Publish() API.
+ * 
+ * See https://_RB_ for examples and usage information.
  */
 
 /* Standard includes. */
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
-#include "task.h"
 #include "semphr.h"
 
 /* MQTT agent include. */
@@ -60,25 +72,30 @@ typedef enum CommandType
     TERMINATE    /**< @brief Exit the command loop and stop processing commands. */
 } CommandType_t;
 
+/**
+ * Commands sent to the MQTT agent include subscribe commands and publish commands,
+ * but never both at the same time.  Therefore the structures that describe a publish
+ * or subscribe operation can be in a union in order to save memory. */
 typedef union MqttOperation
 {
-    MQTTPublishInfo_t xPublishInfo;
-    MQTTSubscribeInfo_t xSubscribeInfo;
+    MQTTPublishInfo_t publishInfo;
+    MQTTSubscribeInfo_t subscribeInfo;
 } MqttOperationInfo_t;
 
 /**
- * @brief A command for interacting with the MQTT API.
- */
+ * @brief The commands sent from the publish API to the MQTT agent.
+ * 
+ * @note The structure used to pass information from the public facing API into the 
+ * agent task. */
 typedef struct Command
 {
-    CommandType_t xCommandType;
+    CommandType_t commandType;
     CommandContext_t * pxCmdContext;
-    CommandCallback_t vCallback;
-    MQTTContext_t * pMqttContext;    
-    uint32_t uintParam;
-    PublishCallback_t vPublishCallback;
-    void * pPublishCallbackContext;
-    MqttOperationInfo_t xMqttOperationInfo;
+    CommandCallback_t pCommandCompleteCallback;
+    MQTTContext_t * pMqttContext;
+    PublishCallback_t pIncomingPublishCallback;
+    void * pIncomingPublishCallbackContext;
+    MqttOperationInfo_t mqttOperationInfo;
 } Command_t;
 
 /**
@@ -86,8 +103,8 @@ typedef struct Command
  */
 typedef struct ackInfo
 {
-    uint16_t usPacketId;
-    Command_t *pxOriginalCommand;
+    uint16_t packetId;
+    Command_t *pOriginalCommand;
 } AckInfo_t;
 
 /**
@@ -99,10 +116,10 @@ typedef struct ackInfo
  */
 typedef struct subscriptionElement
 {
-    char pcSubscriptionFilter[ MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ];
-    uint16_t usFilterLength;
-    PublishCallback_t vPublishCallback;
-    void * pSubscriptionContext;
+    PublishCallback_t pIncomingPublishCallback;
+    void * pIncomingPublishCallbackContext;
+    uint16_t filterStringLength;
+    char pSubscriptionFilterString[ MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE ];
 } SubscriptionElement_t;
 
 /**
@@ -112,12 +129,10 @@ typedef struct MQTTAgentContext
 {
     MQTTContext_t * pMQTTContext;
     AckInfo_t pPendingAcks[ PENDING_ACKS_MAX_SIZE ];
-    size_t pendingAckSize;
     SubscriptionElement_t pSubscriptionList[ SUBSCRIPTIONS_MAX_COUNT ];
-    size_t maxSubscriptions;
     MQTTSubscribeInfo_t pResendSubscriptions[ SUBSCRIPTIONS_MAX_COUNT ];
-    PublishCallback_t vDefaultPublishCallback;
-    void * pDefaultSubscriptionContext;
+    PublishCallback_t pUnsolicitedPublishCallback;
+    void * pUnsolicitedPublishCallbackContext;
 } MQTTAgentContext_t;
 
 /*-----------------------------------------------------------*/
@@ -127,28 +142,28 @@ typedef struct MQTTAgentContext
  * an acknowledgment.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] usPacketId Packet ID of pending ack.
- * @param[in] pxCommand Copy of command that is expecting an ack.
+ * @param[in] packetId Packet ID of pending ack.
+ * @param[in] pCommand Pointer to command that is expecting an ack.
  *
  * @return `true` if the operation was added; else `false`
  */
-static bool prvAddAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                     uint16_t usPacketId,
-                                     Command_t * pxCommand );
+static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                  uint16_t packetId,
+                                  Command_t * pCommand );
 
 /**
  * @brief Retrieve an operation from the list of pending acks, and optionally
- * remove it.
+ * remove it from the list.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] usPacketId Packet ID of incoming ack.
- * @param[in] xRemove Flag indicating if the operation should be removed.
+ * @param[in] packetId Packet ID of incoming ack.
+ * @param[in] remove Flag indicating if the operation should be removed from the list.
  *
  * @return Stored information about the operation awaiting the ack.
  */
-static AckInfo_t prvGetAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                          uint16_t usPacketId,
-                                          bool xRemove );
+static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                       uint16_t incomingPacketId,
+                                       bool remove );
 
 /**
  * @brief Add a subscription to the subscription list.
@@ -158,18 +173,18 @@ static AckInfo_t prvGetAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * associated to the same topic filter once.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] pcTopicFilter Topic filter of subscription.
- * @param[in] usTopicFilterLength Length of topic filter.
- * @param[in] vPublishCallback Callback function for the subscription.
- * @param[in] pvSubscriptionContext Context for the subscription callback.
+ * @param[in] topicFilterString Topic filter string of subscription.
+ * @param[in] topicFilterLength Length of topic filter string.
+ * @param[in] pIncomingPublishCallback Callback function for the subscription.
+ * @param[in] pIncomingPublishCallbackContext Context for the subscription callback.
  *
  * @return `true` if subscription added or exists, `false` if insufficient memory.
  */
-static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
-                                const char * pcTopicFilter,
-                                uint16_t usTopicFilterLength,
-                                PublishCallback_t vPublishCallback,
-                                void * pvSubscriptionContext );
+static bool addSubscription( MQTTAgentContext_t * pAgentContext,
+                             const char * topicFilterString,
+                             uint16_t topicFilterLength,
+                             PublishCallback_t pIncomingPublishCallback,
+                             void * pIncomingPublishCallbackContext );
 
 /**
  * @brief Remove a subscription from the subscription list.
@@ -178,47 +193,45 @@ static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
  * then every instance of the subscription will be removed.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] pcTopicFilter Topic filter of subscription.
- * @param[in] usTopicFilterLength Length of topic filter.
+ * @param[in] topicFilterString Topic filter of subscription.
+ * @param[in] topicFilterLength Length of topic filter.
  */
-static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
-                                   const char * pcTopicFilter,
-                                   uint16_t usTopicFilterLength );
+static void removeSubscription( MQTTAgentContext_t * pAgentContext,
+                                const char * topicFilterString,
+                                uint16_t topicFilterLength );
 
 /**
  * @brief Populate the parameters of a #Command_t
  *
- * @param[in] xCommandType Type of command.
+ * @param[in] commandType Type of command.  For example, publish or subscribe.
  * @param[in] pMqttContext Pointer to MQTT context to use for command.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
- * @param[in] uintParam Subscription count or process loop timeout, if applicable.
- * @param[in] publishCallback Subscription callback function for incomingin publishes.
- * @param[in] pSubscriptionContext Subscription callback context.
- * @param[in] pxContext Context and necessary structs for command.
- * @param[in] xCallback Callback for when command completes.
- * @param[out] pxCommand Pointer to initialized command.
+ * @param[in] incomingPublishCallback Subscription callback function for incoming publishes.
+ * @param[in] pIncomingPublishCallbackContext Subscription callback context.
+ * @param[in] commandCompleteCallback Callback for when command completes.
+ * @param[in] pCommandCompleteCallbackContext Context and necessary structs for command.
+ * @param[out] pCommand Pointer to initialized command.
  *
  * @return `true` if all necessary structs for the command exist in pxContext,
  * else `false`
  */
-static bool prvCreateCommand( CommandType_t xCommandType,
-                              MQTTContext_t * pMqttContext,
-                              void * pMqttInfoParam,
-                              uint32_t uintParam,
-                              PublishCallback_t publishCallback,
-                              void * pSubscriptionContext,
-                              CommandContext_t * pxContext,
-                              CommandCallback_t xCallback,
-                              Command_t * pxCommand );
+static bool createCommand( CommandType_t commandType,
+                           MQTTContext_t * pMqttContext,
+                           void * pMqttInfoParam,
+                           PublishCallback_t incomingPublishCallback,
+                           void * pIncomingPublishCallbackContext,
+                           CommandCallback_t commandCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContext,
+                           Command_t * pCommand );
 
 /**
  * @brief Add a command to the global command queue.
  *
- * @param[in] pxCommand Pointer to command to copy to queue.
+ * @param[in] pCommand Pointer to command to copy to queue.
  *
  * @return true if the command was added to the queue, else false.
  */
-static bool prvAddCommandToQueue( Command_t * pxCommand );
+static bool addCommandToQueue( Command_t * pCommand );
 
 /**
  * @brief Process a #Command_t.
@@ -228,37 +241,49 @@ static bool prvAddCommandToQueue( Command_t * pxCommand );
  * a SUBSCRIBE packet will be sent anyway, and if multiple tasks are subscribed
  * to a topic filter, then they will all be unsubscribed after an UNSUBSCRIBE.
  *
- * @param[in] pxCommand Pointer to command to process.
+ * @param[in] pCommand Pointer to command to process.
  *
  * @return status of MQTT library API call.
  */
-static MQTTStatus_t prvProcessCommand( Command_t * pxCommand );
+static MQTTStatus_t processCommand( Command_t * pCommand );
 
 /**
  * @brief Dispatch an incoming publish to the appropriate publish callback.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] pxPublishInfo Incoming publish information.
+ * @param[in] pPublishInfo Incoming publish information.
  */
-static void prvHandleIncomingPublish( MQTTAgentContext_t * pAgentContext,
-                                      MQTTPublishInfo_t * pxPublishInfo );
+static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
+                                   MQTTPublishInfo_t * pPublishInfo );
+
+/**
+ * @brief Dispatch incoming publishes and acks to their various handler functions.
+ *
+ * @param[in] pMqttContext MQTT Context
+ * @param[in] pPacketInfo Pointer to incoming packet.
+ * @param[in] pDeserializedInfo Pointer to deserialized information from
+ * the incoming packet.
+ */
+static void mqttEventCallback( MQTTContext_t * pMqttContext,
+                               MQTTPacketInfo_t * pPacketInfo,
+                               MQTTDeserializedInfo_t * pDeserializedInfo );
 
 /**
  * @brief Add or delete subscription information from a SUBACK or UNSUBACK.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] pxPacketInfo Pointer to incoming packet.
- * @param[in] pxDeserializedInfo Pointer to deserialized information from
+ * @param[in] pPacketInfo Pointer to incoming packet.
+ * @param[in] pDeserializedInfo Pointer to deserialized information from
  * the incoming packet.
- * @param[in] pxAckInfo Pointer to stored information for the original subscribe
+ * @param[in] pAckInfo Pointer to stored information for the original subscribe
  * or unsubscribe operation resulting in the received packet.
- * @param[in] ucPacketType The type of the incoming packet, either SUBACK or UNSUBACK.
+ * @param[in] packetType The type of the incoming packet, either SUBACK or UNSUBACK.
  */
-static void prvHandleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
-                                       MQTTPacketInfo_t * pxPacketInfo,
-                                       MQTTDeserializedInfo_t * pxDeserializedInfo,
-                                       AckInfo_t * pxAckInfo,
-                                       uint8_t ucPacketType );
+static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
+                                    MQTTPacketInfo_t * pPacketInfo,
+                                    MQTTDeserializedInfo_t * pDeserializedInfo,
+                                    AckInfo_t * pAckInfo,
+                                    uint8_t packetType );
 
 /**
  * @brief Retrieve an MQTT context for an empty command's process loop.
@@ -284,99 +309,166 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext );
  * @brief Helper function for creating a command and adding it to the command
  * queue.
  *
- * @param[in] xCommandType Type of command.
- * @param[in] pMqttContext Pointer to MQTT context to use for command.
- * @param[in] pCommandContext Context and necessary structs for command.
- * @param[in] cmdCallback Callback for when command completes.
+ * @param[in] commandType Type of command.
+ * @param[in] mqttContextHandle Handle of the MQTT connection to use.
+ * @param[in] pCommandCompleteCallbackContext Context and necessary structs for command.
+ * @param[in] cmdCompleteCallback Callback for when command completes.
  * @param[in] pMqttInfoParam Pointer to MQTTPublishInfo_t or MQTTSubscribeInfo_t.
- * @param[in] uintParam Subscription count or process loop timeout, if applicable.
- * @param[in] publishCallback Subscription callback function for incomingin publishes.
- * @param[in] pSubscriptionContext Subscription callback context.
+ * @param[in] incomingPublishCallback Subscription callback function for incoming 
+ *            publishes.
+ * @param[in] pIncomingPublishCallbackContext Subscription callback context.
  *
  * @return `true` if the command was added to the queue, `false` if not.
  */
 static bool createAndAddCommand( CommandType_t commandType,
-                                 MQTTContext_t * pMqttContext,
-                                 CommandContext_t * pCommandContext,
-                                 CommandCallback_t cmdCallback,
+                                 MQTTContextHandle_t mqttContextHandle,
                                  void * pMqttInfoParam,
-                                 uint32_t uintParam,
-                                 PublishCallback_t publishCallback,
-                                 void * pSubscriptionContext );
+                                 CommandCallback_t cmdCompleteCallback,
+                                 CommandContext_t * pCommandCompleteCallbackContext,
+                                 PublishCallback_t incomingPublishCallback,
+                                 void * pIncomingPublishCallbackContext );
 
-/*_RB_ Temporary until all commands use the handle. */
-static bool createAndAddCommandX( CommandType_t commandType,
-                                  MQTTContextHandle_t xMqttContextHandle,
-                                  CommandContext_t * pCommandContext,
-                                  CommandCallback_t cmdCallback,
-                                  void * pMqttInfoParam,
-                                  uint32_t uintParam,
-                                  PublishCallback_t publishCallback,
-                                  void * pSubscriptionContext );
+
+/**
+ * @brief Obtain a Command_t structure from the pool of structures managed by the agent.
+ * 
+ * @note Command_t structures hold everything the MQTT agent needs to process a 
+ * command that originates from application.  Examples of commands are PUBLISH and
+ * SUBSCRIBE.  The Command_t structure must persist for the duration of the command's
+ * operation so are obtained from a pool of statically allocated structures when a
+ * new command is created, and returned to the pool when the command is complete.
+ * The MQTT_COMMAND_CONTEXTS_POOL_SIZE configuration file constant defines how many
+ * structures the pool contains.
+ *
+ * @param[in] blockTimeMs The length of time the calling task should remain in the
+ * Blocked state (so not consuming any CPU time) to wait for a Command_t structure to
+ * become available should one not be immediately at the time of the call.
+ *
+ * @return A pointer to a Command_t structure if one because available before 
+ * blockTimeMs time expired, otherwise NULL.
+ */
+static Command_t *getCommandStructureFromPool( TickType_t blockTimeMs );
+
+/**
+ * @brief Give a Command_t structure back to the the pool of structures managed by 
+ * the agent.
+ * 
+ * @note Command_t structures hold everything the MQTT agent needs to process a 
+ * command that originates from application.  Examples of commands are PUBLISH and
+ * SUBSCRIBE.  The Command_t structure must persist for the duration of the command's
+ * operation so are obtained from a pool of statically allocated structures when a
+ * new command is created, and returned to the pool when the command is complete.
+ * The MQTT_COMMAND_CONTEXTS_POOL_SIZE configuration file constant defines how many
+ * structures the pool contains.
+ *
+ * @param[in] pxCommandToRelease A pointer to the Command_t structure to return to
+ * the pool.  The structure must first have been obtained by calling
+ * getCommandStructureFromPool(), otherwise releaseCommandStructureToPool() will
+ * have no effect.
+ *
+ * @return true if the Command_t structure was returned to the pool, otherwise false.
+ */
+static bool releaseCommandStructureToPool( Command_t *pxCommandToRelease );
 
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Queue for main task to handle MQTT operations.
+ * @brief Queue used to pass commands from the application to the MQTT agent..
  *
- * This is a private variable initialized by #MQTTAgent_CreateCommandQueue.
+ * This is a private variable initialized when the agent is initialised.
  */
-QueueHandle_t xCommandQueue;
+static QueueHandle_t commandQueue = NULL;
 
 /**
- * @brief Array of contexts, one for each potential MQTT connection.
+ * @brief Arrays of agent and MQTT contexts, one for each potential MQTT connection.
  */
-static MQTTAgentContext_t xAgentContexts[ MAX_CONNECTIONS ] = { 0 };
-static MQTTContext_t xMQTTContexts[ MAX_CONNECTIONS ] = { 0 };
+static MQTTAgentContext_t agentContexts[ MAX_CONNECTIONS ] = { 0 }; /*_RB_ Change name of constant. */
+static MQTTContext_t mqttContexts[ MAX_CONNECTIONS ] = { 0 };
 
 /**
  * @brief The network buffer must remain valid for the lifetime of the MQTT context.
  */
-static uint8_t pcNetworkBuffer[ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. */
+static uint8_t networkBuffers[ MAX_CONNECTIONS ][ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. Also this requires both buffers to be the same size. */
+
+/**
+ * @brief The pool of command structures used to hold information on commands (such
+ * as PUBLISH or SUBSCRIBE) between the command being created by an API call and 
+ * by either an error or the execution of the commands callback.
+ */
+static Command_t commandStructurePool[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
+
+/**
+ * @brief A counting semaphore used to guard the pool of Command_t structures.  To
+ * obtain a structure first decrement the semaphore count.  To return a structure
+ * increment the semaphore count after the structure is back in the pool.
+ */
+static SemaphoreHandle_t freeCommandStructMutex = NULL;
+
+/**
+ * @brief Flag that is set to true in the application callback to let the agent know
+ * that calling MQTT_ProcessLoop() resulted in events on the connected socket.  If
+ * the flag gets set to true then MQTT_ProcessLoop() is called again as there may be
+ * more received data waiting to be processed.
+ */
+static bool packetProcessedDuringLoop = false;
 
 /*-----------------------------------------------------------*/
 
-//_RB_ Document the below functions and data.
-#define MAX_COMMAND_CONTEXTS 10
-static Command_t xCommandStructurePool[ MAX_COMMAND_CONTEXTS ];
-static SemaphoreHandle_t xFreeCommandStructureMutex = NULL;
-static void pxReleaseCommandStructure( Command_t *pxCommandToRelease )
+static bool releaseCommandStructureToPool( Command_t *pxCommandToRelease )
 {
-    BaseType_t x;
+    size_t i;
+    bool structReturned = false;
 
-    for( x = 0; x < MAX_COMMAND_CONTEXTS; x++ )
+    /* See if the structure being returned is actually from the pool. */
+    for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
     {
-        if( pxCommandToRelease == &( xCommandStructurePool[ x ] ) )
+        if( pxCommandToRelease == &( commandStructurePool[ i ] ) )
         {
+            /* Yes its from the pool.  Clearing it to zero not only removes the old
+             * data it also sets the structure's commandType parameter to NONE to
+             * mark the structure as free again. */
             memset( ( void * ) pxCommandToRelease, 0x00, sizeof( Command_t ) );
-            xSemaphoreGive( xFreeCommandStructureMutex );
-            LogInfo( ( "Returned Command Context %d to pool", ( int ) x ) );
+
+            /* Give back the counting semaphore after returning the structure so the
+             * semaphore count equals the number of available structures. */
+            xSemaphoreGive( freeCommandStructMutex );
+            structReturned = true;
+
+            LogDebug( ( "Returned Command Context %d to pool", ( int ) i ) );
+
             break;
         }
     }
+
+    return structReturned;
 }
 
-static Command_t *pxGetCommandStructure( TickType_t xMaxBlockTime )
+/*-----------------------------------------------------------*/
+
+static Command_t *getCommandStructureFromPool( TickType_t blockTimeMs )
 {
-    Command_t *pxReturn = NULL;
-    BaseType_t x;
+    Command_t *structToUse = NULL;
+    size_t i;
 
     /* Check counting semaphore has been created. */
-    if( xFreeCommandStructureMutex != NULL )
+    if( freeCommandStructMutex != NULL )
     {
         /* If the semaphore count is not zero then a command context is available. */
-        if( xSemaphoreTake( xFreeCommandStructureMutex, xMaxBlockTime ) == pdPASS )
+        if( xSemaphoreTake( freeCommandStructMutex, pdMS_TO_TICKS( blockTimeMs ) ) == pdPASS )
         {
-            for( x = 0; x < MAX_COMMAND_CONTEXTS; x++ )
+            for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
             {
                 taskENTER_CRITICAL();
                 {
-                    if( xCommandStructurePool[ x ].xCommandType == NONE )
+                    /* If the commandType is NONE then the structure is not in use. */
+                    if( commandStructurePool[ i ].commandType == NONE )
                     {
-                        LogInfo( ( "Removed Command Context %d from pool", ( int ) x ) );
-                        pxReturn = &( xCommandStructurePool[ x ] );
-                        memset( ( void * ) pxReturn, 0x00, sizeof( Command_t ) );
-                        pxReturn->xCommandType = !NONE;
+                        LogDebug( ( "Removed Command Context %d from pool", ( int ) i ) );
+                        structToUse = &( commandStructurePool[ i ] );
+
+                        /* To show the struct is no longer available to be returned
+                         * by calls to releaseCommandStructureToPool(). */
+                        structToUse->commandType = !NONE;
                         taskEXIT_CRITICAL();
                         break;
                     }
@@ -386,108 +478,121 @@ static Command_t *pxGetCommandStructure( TickType_t xMaxBlockTime )
         }
     }
 
-    return pxReturn;
-}
-
-
-static bool prvAddAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                     uint16_t usPacketId,
-                                     Command_t * pxCommand )
-{
-    size_t i = 0;
-    bool xAckAdded = false;
-    AckInfo_t * pxPendingAcks = pAgentContext->pPendingAcks;
-
-    for( i = 0; i < pAgentContext->pendingAckSize; i++ )
-    {
-        if( pxPendingAcks[ i ].usPacketId == MQTT_PACKET_ID_INVALID )
-        {
-            pxPendingAcks[ i ].usPacketId = usPacketId;
-            pxPendingAcks[ i ].pxOriginalCommand = pxCommand;
-            xAckAdded = true;
-            break;
-        }
-    }
-
-    return xAckAdded;
+    return structToUse;
 }
 
 /*-----------------------------------------------------------*/
 
-static AckInfo_t prvGetAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                          uint16_t usPacketId,
-                                          bool xRemove )
+static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                  uint16_t packetId,
+                                  Command_t * pCommand )
 {
     size_t i = 0;
-    AckInfo_t xFoundAck = { 0 };
-    AckInfo_t * pxPendingAcks = pAgentContext->pPendingAcks;
+    bool ackAdded = false;
+    AckInfo_t * pendingAcks = pAgentContext->pPendingAcks;
 
-    for( i = 0; i < pAgentContext->pendingAckSize; i++ )
+    /* Look for an unused space in the array of message IDs that are still waiting to
+     * be acknowledged. */
+    for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
     {
-        if( pxPendingAcks[ i ].usPacketId == usPacketId )
+        /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is not in
+         * use. */
+        if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
         {
-            xFoundAck = pxPendingAcks[ i ];
+            pendingAcks[ i ].packetId = packetId;
+            pendingAcks[ i ].pOriginalCommand = pCommand;
+            ackAdded = true;
+            break;
+        }
+    }
 
-            if( xRemove )
+    return ackAdded;
+}
+
+/*-----------------------------------------------------------*/
+
+static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                       uint16_t incomingPacketId,
+                                       bool remove )
+{
+    size_t i = 0;
+    AckInfo_t foundAck = { 0 };
+    AckInfo_t * pendingAcks = pAgentContext->pPendingAcks;
+
+    /* Look through the array of packet IDs that are still waiting to be acked to
+     * find one with incomginPacketId. */
+    for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
+    {
+        if( pendingAcks[ i ].packetId == incomingPacketId )
+        {
+            foundAck = pendingAcks[ i ];
+
+            if( remove )
             {
-                pxPendingAcks[ i ].usPacketId = MQTT_PACKET_ID_INVALID;
-//_RB_ What to do here to return the command.                memset( pxPendingAcks[ i ].pxOriginalCommand, 0x00, sizeof( Command_t ) );
+                pendingAcks[ i ].packetId = MQTT_PACKET_ID_INVALID;
             }
 
             break;
         }
     }
 
-    if( xFoundAck.usPacketId == MQTT_PACKET_ID_INVALID )
+    if( foundAck.packetId == MQTT_PACKET_ID_INVALID )
     {
-        LogError( ( "No ack found for packet id %u.\n", usPacketId ) );
+        LogError( ( "No ack found for packet id %u.\n", incomingPacketId ) );
     }
 
-    return xFoundAck;
+    return foundAck;
 }
 
 /*-----------------------------------------------------------*/
 
-static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
-                                const char * pcTopicFilter,
-                                uint16_t usTopicFilterLength,
-                                PublishCallback_t vPublishCallback,
-                                void * pvSubscriptionContext )
+static bool addSubscription( MQTTAgentContext_t * pAgentContext,
+                             const char * topicFilterString,
+                             uint16_t topicFilterLength,
+                             PublishCallback_t pIncomingPublishCallback,
+                             void * pIncomingPublishCallbackContext )
 {
     int32_t i = 0;
-    size_t ulAvailableIndex = pAgentContext->maxSubscriptions;
+    size_t availableIndex = SUBSCRIPTIONS_MAX_COUNT;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
     bool ret = false;
 
-    /* Start at end of array, so that we will insert at the first available index. */
-    for( i = ( int32_t ) pAgentContext->maxSubscriptions - 1; i >= 0; i-- )//_RB_ Why is this scanning backward to find the first slot rather than just forwards and breaking when it finds a slot?
+    /* The topic filter length was checked when the SUBSCRIBE command was created. */
+    configASSERT( topicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE );
+
+    if( topicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE )
     {
-        if( pxSubscriptions[ i ].usFilterLength == 0 )
+        /* Start at end of array, so that we will insert at the first available index.
+         * Scans backwards to find duplicates. */
+        for( i = ( int32_t ) SUBSCRIPTIONS_MAX_COUNT - 1; i >= 0; i-- )
         {
-            ulAvailableIndex = i;
-        }
-        else if( ( pxSubscriptions[ i ].usFilterLength == usTopicFilterLength ) &&
-                 ( strncmp( pcTopicFilter, pxSubscriptions[ i ].pcSubscriptionFilter, usTopicFilterLength ) == 0 ) )
-        {
-            /* If a subscription already exists, don't do anything. */
-            if( ( pxSubscriptions[ i ].vPublishCallback == vPublishCallback ) &&
-                ( pxSubscriptions[ i ].pSubscriptionContext == pvSubscriptionContext ) )
+            if( pxSubscriptions[ i ].filterStringLength == 0 )
             {
-                LogWarn( ( "Subscription already exists.\n" ) );
-                ulAvailableIndex = pAgentContext->maxSubscriptions;
-                ret = true;
-                break;
+                availableIndex = i;
+            }
+            else if( ( pxSubscriptions[ i ].filterStringLength == topicFilterLength ) &&
+                     ( strncmp( topicFilterString, pxSubscriptions[ i ].pSubscriptionFilterString, topicFilterLength ) == 0 ) )
+            {
+                /* If a subscription already exists, don't do anything. */
+                if( ( pxSubscriptions[ i ].pIncomingPublishCallback == pIncomingPublishCallback ) &&
+                    ( pxSubscriptions[ i ].pIncomingPublishCallbackContext == pIncomingPublishCallbackContext ) )
+                {
+                    LogWarn( ( "Subscription already exists.\n" ) );
+                    availableIndex = SUBSCRIPTIONS_MAX_COUNT;
+                    ret = true;
+                    break;
+                }
             }
         }
-    }
 
-    if( ( ulAvailableIndex < pAgentContext->maxSubscriptions ) && ( vPublishCallback != NULL ) )
-    {
-        pxSubscriptions[ ulAvailableIndex ].usFilterLength = usTopicFilterLength;
-        pxSubscriptions[ ulAvailableIndex ].vPublishCallback = vPublishCallback;
-        pxSubscriptions[ ulAvailableIndex ].pSubscriptionContext = pvSubscriptionContext;
-        memcpy( pxSubscriptions[ ulAvailableIndex ].pcSubscriptionFilter, pcTopicFilter, usTopicFilterLength );
-        ret = true;
+        if( ( availableIndex < SUBSCRIPTIONS_MAX_COUNT ) && ( pIncomingPublishCallback != NULL ) )
+        {
+            pxSubscriptions[ availableIndex ].filterStringLength = topicFilterLength;
+            pxSubscriptions[ availableIndex ].pIncomingPublishCallback = pIncomingPublishCallback;
+            pxSubscriptions[ availableIndex ].pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
+            memcpy( pxSubscriptions[ availableIndex ].pSubscriptionFilterString, topicFilterString, topicFilterLength );
+            ret = true;
+        }
     }
 
     return ret;
@@ -495,23 +600,20 @@ static bool prvAddSubscription( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
-                                   const char * pcTopicFilter,
-                                   uint16_t usTopicFilterLength )
+static void removeSubscription( MQTTAgentContext_t * pAgentContext,
+                                const char * topicFilterString,
+                                uint16_t topicFilterLength )
 {
     size_t i = 0;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
 
-    for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+    for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
     {
-        if( pxSubscriptions[ i ].usFilterLength == usTopicFilterLength )
+        if( pxSubscriptions[ i ].filterStringLength == topicFilterLength )
         {
-            if( strncmp( pxSubscriptions[ i ].pcSubscriptionFilter, pcTopicFilter, usTopicFilterLength ) == 0 )
+            if( strncmp( pxSubscriptions[ i ].pSubscriptionFilterString, topicFilterString, topicFilterLength ) == 0 )
             {
-                pxSubscriptions[ i ].usFilterLength = 0;
-                pxSubscriptions[ i ].vPublishCallback = NULL;
-                pxSubscriptions[ i ].pSubscriptionContext = NULL;
-                memset( pxSubscriptions[ i ].pcSubscriptionFilter, 0x00, MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE );
+                memset( &( pxSubscriptions[ i ] ), 0x00, sizeof( SubscriptionElement_t ) );
             }
         }
     }
@@ -519,248 +621,285 @@ static void prvRemoveSubscription( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static bool prvCreateCommand( CommandType_t xCommandType,
-                              MQTTContext_t * pMqttContext,
-                              void * pMqttInfoParam,
-                              uint32_t uintParam,
-                              PublishCallback_t publishCallback,
-                              void * pSubscriptionContext,
-                              CommandContext_t * pxContext,
-                              CommandCallback_t xCallback,
-                              Command_t * pxCommand )
+static bool createCommand( CommandType_t commandType,
+                           MQTTContext_t * pMqttContext,
+                           void * pMqttInfoParam,
+                           PublishCallback_t incomingPublishCallback,
+                           void * pIncomingPublishCallbackContext,
+                           CommandCallback_t commandCompleteCallback,
+                           CommandContext_t * pCommandCompleteCallbackContext,
+                           Command_t * pCommand )
 {
-    bool xIsValid = true;
+    bool isValid;
+    MQTTSubscribeInfo_t *pSubscribeInfo;
 
-    memset( pxCommand, 0x00, sizeof( Command_t ) );
+    memset( pCommand, 0x00, sizeof( Command_t ) );
 
     /* Determine if required parameters are present in context. */
-    switch( xCommandType )
+    switch( commandType )
     {
         case SUBSCRIBE:
-            xIsValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL ) && ( uintParam > 0U ) && ( publishCallback != NULL );            
+            pSubscribeInfo = ( MQTTSubscribeInfo_t * ) pMqttInfoParam;
+            isValid = ( pMqttContext != NULL ) && 
+                      ( pMqttInfoParam != NULL ) && 
+                      ( incomingPublishCallback != NULL ) &&
+                      ( pSubscribeInfo->topicFilterLength < MQTT_AGENT_SUBSCRIPTION_BUFFER_SIZE );
             break;
 
         case UNSUBSCRIBE:
-            xIsValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL ) && ( uintParam > 0U );
+            isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
             break;
 
         case PUBLISH:
-            xIsValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
+            isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
             break;
 
         case PROCESSLOOP:
         case PING:
         case DISCONNECT:
         case FREE:
-            xIsValid = ( pMqttContext != NULL );
+            isValid = ( pMqttContext != NULL );
             break;
 
         default:
             /* Other operations don't need the MQTT context. */
+            isValid = true;
             break;
     }
 
-    if( xIsValid )
+    if( isValid )
     {
-        if( xCommandType == SUBSCRIBE )
+        /* Copy the publish or subscribe info into the command so the application
+         * writer does not need to keep it in context until the command completes. */
+        if( commandType == SUBSCRIBE )
         {
-            pxCommand->xMqttOperationInfo.xSubscribeInfo = *( ( MQTTSubscribeInfo_t * ) pMqttInfoParam );
-        }
-        
-        if( xCommandType == PUBLISH )
-        {
-            pxCommand->xMqttOperationInfo.xPublishInfo = *( ( MQTTPublishInfo_t * ) pMqttInfoParam );
+            pCommand->mqttOperationInfo.subscribeInfo = *( ( MQTTSubscribeInfo_t * ) pMqttInfoParam );
         }
 
-        pxCommand->xCommandType = xCommandType;
-        pxCommand->pMqttContext = pMqttContext;
-        pxCommand->uintParam = uintParam;
-        pxCommand->vPublishCallback = publishCallback;
-        pxCommand->pPublishCallbackContext = pSubscriptionContext;
-        pxCommand->pxCmdContext = pxContext;
-        pxCommand->vCallback = xCallback;
+        if( commandType == PUBLISH )
+        {
+            pCommand->mqttOperationInfo.publishInfo = *( ( MQTTPublishInfo_t * ) pMqttInfoParam );
+        }
+
+        pCommand->commandType = commandType;
+        pCommand->pMqttContext = pMqttContext;
+        pCommand->pIncomingPublishCallback = incomingPublishCallback;
+        pCommand->pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
+        pCommand->pxCmdContext = pCommandCompleteCallbackContext;
+        pCommand->pCommandCompleteCallback = commandCompleteCallback;
     }
 
-    return xIsValid;
+    return isValid;
 }
 
 /*-----------------------------------------------------------*/
 
-static bool prvAddCommandToQueue( Command_t * pxCommand )
+static bool addCommandToQueue( Command_t * pCommand )
 {
-    return xQueueSendToBack( xCommandQueue, &pxCommand, MQTT_AGENT_QUEUE_WAIT_TIME );
-}
+bool ret;
 
-/*-----------------------------------------------------------*/
-
-static MQTTStatus_t prvProcessCommand( Command_t * pxCommand )
-{
-    MQTTStatus_t xStatus = MQTTSuccess;
-    uint16_t usPacketId = MQTT_PACKET_ID_INVALID;
-    bool xAddAckToList = false, xAckAdded = false;
-    MQTTPublishInfo_t * pxPublishInfo;
-    MQTTSubscribeInfo_t * pxSubscribeInfo;
-    MQTTContext_t * pMQTTContext = pxCommand->pMqttContext;
-    MQTTAgentContext_t * pAgentContext = NULL;
-    uint32_t i;
-    uint32_t processLoopTimeoutMs = MQTT_AGENT_PROCESS_LOOP_TIMEOUT_MS;
-
-    switch( pxCommand->xCommandType )
+    /* The application called an API function.  The API function was validated and
+     * packed into a Command_t structure.  Now post a reference to the Command_t
+     * structure to the MQTT agent for processing. */
+    if( commandQueue == NULL )
     {
-        case PUBLISH:
-            pxPublishInfo = ( MQTTPublishInfo_t * )  &( pxCommand->xMqttOperationInfo.xPublishInfo );
-
-            if( pxPublishInfo->qos != MQTTQoS0 )
-            {
-                usPacketId = MQTT_GetPacketId( pMQTTContext );
-            }
-
-            LogDebug( ( "Publishing message to %.*s.\n", ( int ) pxPublishInfo->topicNameLength, pxPublishInfo->pTopicName ) );
-            xStatus = MQTT_Publish( pMQTTContext, pxPublishInfo, usPacketId );
-
-            /* Add to pending ack list, or call callback if QoS 0. */
-            xAddAckToList = ( pxPublishInfo->qos != MQTTQoS0 ) && ( xStatus == MQTTSuccess );
-            break;
-
-        case SUBSCRIBE:
-        case UNSUBSCRIBE:
-            pxSubscribeInfo = ( MQTTSubscribeInfo_t * ) &( pxCommand->xMqttOperationInfo.xSubscribeInfo );
-            configASSERT( pxSubscribeInfo->pTopicFilter != NULL );
-            usPacketId = MQTT_GetPacketId( pMQTTContext );
-
-            if( pxCommand->xCommandType == SUBSCRIBE )
-            {
-                /* Even if some subscriptions already exist in the subscription list,
-                 * it is fine to send another subscription request. A valid use case
-                 * for this is changing the maximum QoS of the subscription. */
-                xStatus = MQTT_Subscribe( pMQTTContext,
-                                          pxSubscribeInfo,
-                                          pxCommand->uintParam,
-                                          usPacketId );
-            }
-            else
-            {
-                xStatus = MQTT_Unsubscribe( pMQTTContext,
-                                            pxSubscribeInfo,
-                                            pxCommand->uintParam,
-                                            usPacketId );
-            }
-
-            xAddAckToList = ( xStatus == MQTTSuccess );
-            break;
-
-        case PING:
-            xStatus = MQTT_Ping( pMQTTContext );
-
-            break;
-
-        case DISCONNECT:
-            xStatus = MQTT_Disconnect( pMQTTContext );
-
-            break;
-
-        case FREE:
-
-            for( i = 0; i < MAX_CONNECTIONS; i++ )
-            {
-                if( xAgentContexts[ i ].pMQTTContext == pMQTTContext )
-                {
-                    memset( &xAgentContexts[ i ], 0x00, sizeof( MQTTAgentContext_t ) );
-                    break;
-                }
-            }
-
-            break;
-
-        case TERMINATE:
-            LogInfo( ( "Terminating command loop.\n" ) );
-
-        default:
-            break;
-    }
-
-    if( xAddAckToList )
-    {
-        pAgentContext = getAgentFromContext( pxCommand->pMqttContext );
-        xAckAdded = prvAddAwaitingOperation( pAgentContext, usPacketId, pxCommand );
-
-        /* Set the return status if no memory was available to store the operation
-         * information. */
-        if( !xAckAdded )
-        {
-            LogError( ( "No memory to wait for acknowledgment for packet %u\n", usPacketId ) );
-
-            /* All operations that can wait for acks (publish, subscribe, unsubscribe)
-             * require a context. */
-            xStatus = MQTTNoMemory;//_RB_ Should the command structure be returned here?
-        }
+        ret = false;
     }
     else
     {
-        //_RB_ Should the command structure be freed here?
+        ret = xQueueSendToBack( commandQueue, &pCommand, MQTT_AGENT_QUEUE_WAIT_TIME );
     }
 
-    if( !xAckAdded )
+    return ret;
+}
+
+/*-----------------------------------------------------------*/
+
+static MQTTStatus_t processCommand( Command_t * pCommand ) //_RB_ Break up into sub-functions.
+{
+    MQTTStatus_t operationStatus = MQTTSuccess;
+    uint16_t packetId = MQTT_PACKET_ID_INVALID;
+    bool addAckToList = false, ackAdded = false;
+    MQTTPublishInfo_t * pPublishInfo;
+    MQTTSubscribeInfo_t * pSubscribeInfo;    
+    MQTTAgentContext_t * pAgentContext;
+    MQTTContext_t * pMQTTContext;
+    size_t i;
+    uint32_t processLoopTimeoutMs = MQTT_AGENT_PROCESS_LOOP_TIMEOUT_MS;
+    const size_t maxNewSubscriptionsInOneGo = ( size_t ) 1; /* The agent interface only allows one subscription command at a time. */
+
+    if( pCommand != NULL )
     {
-        /* The command is complete, call the callback. */
-        if( pxCommand->vCallback != NULL )
+        pMQTTContext = pCommand->pMqttContext;
+        switch( pCommand->commandType )
         {
-            pxCommand->vCallback( pxCommand->pxCmdContext, xStatus );
+            case PUBLISH:
+                pPublishInfo = ( MQTTPublishInfo_t * )  &( pCommand->mqttOperationInfo.publishInfo );
+
+                if( pPublishInfo->qos != MQTTQoS0 )
+                {
+                    packetId = MQTT_GetPacketId( pMQTTContext );
+                }
+
+                LogInfo( ( "Publishing message to %.*s.\n", ( int ) pPublishInfo->topicNameLength, pPublishInfo->pTopicName ) );
+                operationStatus = MQTT_Publish( pMQTTContext, pPublishInfo, packetId );
+
+                /* Add to pending ack list, or call callback if QoS 0. */
+                addAckToList = ( pPublishInfo->qos != MQTTQoS0 ) && ( operationStatus == MQTTSuccess );
+                break;
+
+            case SUBSCRIBE:
+            case UNSUBSCRIBE:
+                pSubscribeInfo = ( MQTTSubscribeInfo_t * ) &( pCommand->mqttOperationInfo.subscribeInfo );
+                packetId = MQTT_GetPacketId( pMQTTContext );
+
+                if( pCommand->commandType == SUBSCRIBE )
+                {
+                    /* Even if some subscriptions already exist in the subscription list,
+                     * it is fine to send another subscription request. A valid use case
+                     * for this is changing the maximum QoS of the subscription. */
+                    operationStatus = MQTT_Subscribe( pMQTTContext,
+                                              pSubscribeInfo,
+                                              maxNewSubscriptionsInOneGo,
+                                              packetId );
+                }
+                else
+                {
+                    operationStatus = MQTT_Unsubscribe( pMQTTContext,
+                                                pSubscribeInfo,
+                                                maxNewSubscriptionsInOneGo,
+                                                packetId );
+                }
+
+                addAckToList = ( operationStatus == MQTTSuccess );
+                break;
+
+            case PING:
+                operationStatus = MQTT_Ping( pMQTTContext );
+
+                break;
+
+            case DISCONNECT:
+                operationStatus = MQTT_Disconnect( pMQTTContext );
+
+                break;
+
+            case FREE:
+                for( i = 0; i < MAX_CONNECTIONS; i++ )
+                {
+                    if( agentContexts[ i ].pMQTTContext == pMQTTContext )
+                    {
+                        memset( &agentContexts[ i ], 0x00, sizeof( MQTTAgentContext_t ) );
+                        break;
+                    }
+                }
+
+                break;
+
+            case TERMINATE:
+                LogInfo( ( "Terminating command loop.\n" ) );
+
+            default:
+                break;
         }
 
-        pxReleaseCommandStructure( pxCommand );
+        if( addAckToList )
+        {
+            pAgentContext = getAgentFromContext( pCommand->pMqttContext );
+            ackAdded = addAwaitingOperation( pAgentContext, packetId, pCommand );
+
+            /* Set the return status if no memory was available to store the operation
+             * information. */
+            if( !ackAdded )
+            {
+                LogError( ( "No memory to wait for acknowledgment for packet %u\n", packetId ) );
+
+                /* All operations that can wait for acks (publish, subscribe, unsubscribe)
+                 * require a context. */
+                operationStatus = MQTTNoMemory;//_RB_ Should the command structure be returned here?
+            }
+        }
+        else
+        {
+            //_RB_ Should the command structure be freed here?
+        }
+
+        if( !ackAdded )
+        {
+            /* The command is complete, call the callback. */
+            if( pCommand->pCommandCompleteCallback != NULL )
+            {
+                pCommand->pCommandCompleteCallback( pCommand->pxCmdContext, operationStatus );
+            }
+
+            releaseCommandStructureToPool( pCommand );
+        }
     }
 
     /* If empty command, iterate through stored contexts so that all MQTT
      * connections are used equally across the empty commands. */
-//_RB_ Command structure has already been released    if( pxCommand->xCommandType == NONE )
+//_RB_ Command structure has already been released    if( pCommand->commandType == NONE )
 //    {
 //        pMQTTContext = getContextForProcessLoop();
 //        /* Set context for original command in case this results in a network error. */
-//        pxCommand->pMqttContext = pMQTTContext;
+//        pCommand->pMqttContext = pMQTTContext;
 //    }
 
     /* Run a single iteration of the process loop if there were no errors and
      * the MQTT connection still exists. */
-    if( ( xStatus == MQTTSuccess ) && ( pMQTTContext != NULL ) && ( pMQTTContext->connectStatus == MQTTConnected ) )
+    for( i = 0; i < MAX_CONNECTIONS; i++ )
     {
-        xStatus = MQTT_ProcessLoop( pMQTTContext, processLoopTimeoutMs );
+        pAgentContext = &( agentContexts[ i ] );
+        if( pAgentContext->pMQTTContext != NULL )
+        {
+            do
+            {
+                packetProcessedDuringLoop = false;
+
+                if( ( operationStatus == MQTTSuccess ) && 
+                    ( pAgentContext->pMQTTContext->connectStatus == MQTTConnected ) )
+                {
+                    operationStatus = MQTT_ProcessLoop( pAgentContext->pMQTTContext, 
+                                                        processLoopTimeoutMs );
+                }
+            } while( packetProcessedDuringLoop == true );
+        }
     }
 
-    return xStatus;
+    return operationStatus;/*_RB_ Need to determine which agent the status came from. */
 }
 
 /*-----------------------------------------------------------*/
 
-static void prvHandleIncomingPublish( MQTTAgentContext_t * pAgentContext,
-                                      MQTTPublishInfo_t * pxPublishInfo )
+static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
+                                   MQTTPublishInfo_t * pPublishInfo )
 {
-    bool xIsMatched = false, xRelayedPublish = false;
-    MQTTStatus_t xStatus;
+    bool isMatched = false, relayedPublish = false;
+    MQTTStatus_t operationStatus;
     size_t i;
     SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
 
-    configASSERT( pxPublishInfo != NULL );
-
-    for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+    for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
     {
-        if( pxSubscriptions[ i ].usFilterLength > 0 )
+        if( pxSubscriptions[ i ].filterStringLength > 0 )
         {
-            xStatus = MQTT_MatchTopic( pxPublishInfo->pTopicName,
-                                       pxPublishInfo->topicNameLength,
-                                       pxSubscriptions[ i ].pcSubscriptionFilter,
-                                       pxSubscriptions[ i ].usFilterLength,
-                                       &xIsMatched );
-            /* The call can't fail if the topic name and filter is valid. */
-            configASSERT( xStatus == MQTTSuccess );
-
-            if( xIsMatched )
+            operationStatus = MQTT_MatchTopic( pPublishInfo->pTopicName,
+                                               pPublishInfo->topicNameLength,
+                                               pxSubscriptions[ i ].pSubscriptionFilterString,
+                                               pxSubscriptions[ i ].filterStringLength,
+                                               &isMatched );
+            if( isMatched )
             {
                 LogDebug( ( "Adding publish to response queue for %.*s\n",
-                            pxSubscriptions[ i ].usFilterLength,
-                            pxSubscriptions[ i ].pcSubscriptionFilter ) );
-                pxSubscriptions[ i ].vPublishCallback( pxPublishInfo, pxSubscriptions[ i ].pSubscriptionContext );
-                xRelayedPublish = true;
+                            pxSubscriptions[ i ].filterStringLength,
+                            pxSubscriptions[ i ].pSubscriptionFilterString ) );
+                pxSubscriptions[ i ].pIncomingPublishCallback( pPublishInfo, pxSubscriptions[ i ].pIncomingPublishCallbackContext );
+                relayedPublish = true;
+            }
+            else
+            {
+                /* Terminate the string for logging. */
+                LogWarn( ( "Received unmatched incoming publish." ) );
             }
         }
     }
@@ -769,79 +908,76 @@ static void prvHandleIncomingPublish( MQTTAgentContext_t * pAgentContext,
      * possible on topics reserved by the broker, e.g. those beginning with
      * '$'. In this case, we copy the publish to a queue we configured to
      * receive these publishes. */
-    if( !xRelayedPublish )
+    if( !relayedPublish )
     {
         LogWarn( ( "Publish received on topic %.*s with no subscription.\n",
-                   pxPublishInfo->topicNameLength,
-                   pxPublishInfo->pTopicName ) );
+                   pPublishInfo->topicNameLength,
+                   pPublishInfo->pTopicName ) );
 
-        if( pAgentContext->vDefaultPublishCallback != NULL )
+        if( pAgentContext->pUnsolicitedPublishCallback != NULL )
         {
-            pAgentContext->vDefaultPublishCallback( pxPublishInfo, pAgentContext->pDefaultSubscriptionContext );
+            pAgentContext->pUnsolicitedPublishCallback( pPublishInfo, 
+                                                        pAgentContext->pUnsolicitedPublishCallbackContext );
         }
     }
 }
 
 /*-----------------------------------------------------------*/
 
-static void prvHandleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
-                                       MQTTPacketInfo_t * pxPacketInfo,
-                                       MQTTDeserializedInfo_t * pxDeserializedInfo,
-                                       AckInfo_t * pxAckInfo,
-                                       uint8_t ucPacketType )
+static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
+                                    MQTTPacketInfo_t * pPacketInfo,
+                                    MQTTDeserializedInfo_t * pDeserializedInfo,
+                                    AckInfo_t * pAckInfo,
+                                    uint8_t packetType )
 {
-    size_t i;
-    CommandContext_t * pxAckContext = NULL;
-    CommandCallback_t vAckCallback = NULL;
-    uint8_t * pcSubackCodes = NULL;
-    MQTTSubscribeInfo_t * pxSubscribeInfo = NULL;
+    CommandContext_t * pAckContext = NULL;
+    CommandCallback_t ackCallback = NULL;
+    uint8_t * pSubackCodes = NULL;
+    MQTTSubscribeInfo_t * pSubscribeInfo = NULL;
 
-    configASSERT( pxAckInfo != NULL );
+    configASSERT( pAckInfo != NULL );
 
-    pxAckContext = pxAckInfo->pxOriginalCommand->pxCmdContext;
-    vAckCallback = pxAckInfo->pxOriginalCommand->vCallback;
-    pxSubscribeInfo = &( pxAckInfo->pxOriginalCommand->xMqttOperationInfo.xSubscribeInfo );
-    pcSubackCodes = pxPacketInfo->pRemainingData + 2U;
+    pAckContext = pAckInfo->pOriginalCommand->pxCmdContext;
+    ackCallback = pAckInfo->pOriginalCommand->pCommandCompleteCallback;
+    pSubscribeInfo = &( pAckInfo->pOriginalCommand->mqttOperationInfo.subscribeInfo );
+    pSubackCodes = pPacketInfo->pRemainingData + 2U; /*_RB_ Where does 2 come from? */
 
-    for( i = 0; i < pxAckInfo->pxOriginalCommand->uintParam; i++ )
+    if( packetType == MQTT_PACKET_TYPE_SUBACK )
     {
-        if( ucPacketType == MQTT_PACKET_TYPE_SUBACK )
+        if( *pSubackCodes != MQTTSubAckFailure )
         {
-            if( pcSubackCodes[ i ] != MQTTSubAckFailure )
-            {
-                LogInfo( ( "Adding subscription to %.*s\n",//_RB_ This format specifier is not portable..
-                           pxSubscribeInfo[ i ].topicFilterLength,
-                           pxSubscribeInfo[ i ].pTopicFilter ) );
-                prvAddSubscription( pAgentContext,
-                                    pxSubscribeInfo[ i ].pTopicFilter,
-                                    pxSubscribeInfo[ i ].topicFilterLength,
-                                    pxAckInfo->pxOriginalCommand->vPublishCallback,
-                                    pxAckInfo->pxOriginalCommand->pPublishCallbackContext );
-            }
-            else
-            {
-                LogError( ( "Subscription to %.*s failed.\n",
-                            pxSubscribeInfo[ i ].topicFilterLength,
-                            pxSubscribeInfo[ i ].pTopicFilter ) );
-            }
+            LogInfo( ( "Adding subscription to %.*s\n",//_RB_ This format specifier is not portable.  Need to do something so topic filters are always terminated.
+                        pSubscribeInfo->topicFilterLength,
+                        pSubscribeInfo->pTopicFilter ) );
+            addSubscription( pAgentContext,
+                             pSubscribeInfo->pTopicFilter,
+                             pSubscribeInfo->topicFilterLength,
+                             pAckInfo->pOriginalCommand->pIncomingPublishCallback,
+                             pAckInfo->pOriginalCommand->pIncomingPublishCallbackContext );
         }
         else
         {
-            LogInfo( ( "Removing subscription to %.*s\n",
-                       pxSubscribeInfo[ i ].topicFilterLength,
-                       pxSubscribeInfo[ i ].pTopicFilter ) );
-            prvRemoveSubscription( pAgentContext,
-                                   pxSubscribeInfo[ i ].pTopicFilter,
-                                   pxSubscribeInfo[ i ].topicFilterLength );
+            LogError( ( "Subscription to %.*s failed.\n",
+                        pSubscribeInfo->topicFilterLength,
+                        pSubscribeInfo->pTopicFilter ) );
         }
     }
-
-    if( vAckCallback != NULL )
+    else
     {
-        vAckCallback( pxAckContext, pxDeserializedInfo->deserializationResult );
+        LogInfo( ( "Removing subscription to %.*s\n",
+                    pSubscribeInfo->topicFilterLength,
+                    pSubscribeInfo->pTopicFilter ) );
+        removeSubscription( pAgentContext,
+                            pSubscribeInfo->pTopicFilter,
+                            pSubscribeInfo->topicFilterLength );
     }
 
-    pxReleaseCommandStructure( pxAckInfo->pxOriginalCommand ); //_RB_ Is this always the right place for this?
+    if( ackCallback != NULL )
+    {
+        ackCallback( pAckContext, pDeserializedInfo->deserializationResult );
+    }
+
+    releaseCommandStructureToPool( pAckInfo->pOriginalCommand ); //_RB_ Is this always the right place for this?
 }
 
 /*-----------------------------------------------------------*/
@@ -856,7 +992,7 @@ static MQTTContext_t * getContextForProcessLoop( void )
 
     do
     {
-        ret = xAgentContexts[ contextIndex ].pMQTTContext;
+        ret = agentContexts[ contextIndex ].pMQTTContext;
 
         if( ++contextIndex >= MAX_CONNECTIONS )
         {
@@ -869,7 +1005,7 @@ static MQTTContext_t * getContextForProcessLoop( void )
 
 /*-----------------------------------------------------------*/
 
-static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext ) //_RB_ Doesn't work unless there is only one MQTTContext_t object per connection.  Will need to do this by handle somehow.
+static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext )
 {
     MQTTAgentContext_t * ret = NULL;
     int i = 0;
@@ -878,9 +1014,9 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext ) 
 
     for( i = 0; i < MAX_CONNECTIONS; i++ )
     {
-        if( xAgentContexts[ i ].pMQTTContext == pMQTTContext )
+        if( agentContexts[ i ].pMQTTContext == pMQTTContext )
         {
-            ret = &xAgentContexts[ i ];
+            ret = &agentContexts[ i ];
             break;
         }
     }
@@ -890,23 +1026,33 @@ static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext ) 
 
 /*-----------------------------------------------------------*/
 
-void MQTTAgent_EventCallback( MQTTContext_t * pMqttContext,
-                              MQTTPacketInfo_t * pPacketInfo,
-                              MQTTDeserializedInfo_t * pDeserializedInfo )
+static void mqttEventCallback( MQTTContext_t * pMqttContext,
+                               MQTTPacketInfo_t * pPacketInfo,
+                               MQTTDeserializedInfo_t * pDeserializedInfo )
 {
+    AckInfo_t ackInfo;
+    uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
+    CommandCallback_t ackCallback = NULL;
+    MQTTAgentContext_t * pAgentContext;
+    const uint8_t uppderNibble = ( uint8_t ) 0xF0;
+
     configASSERT( pMqttContext != NULL );
     configASSERT( pPacketInfo != NULL );
-    AckInfo_t xAckInfo;
-    uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
-    CommandCallback_t vAckCallback = NULL;
-    MQTTAgentContext_t * pAgentContext = getAgentFromContext( pMqttContext );
 
-    /* Handle incoming publish. The lower 4 bits of the publish packet
-     * type is used for the dup, QoS, and retain flags. Hence masking
-     * out the lower bits to check if the packet is publish. */
-    if( ( pPacketInfo->type & 0xF0U ) == MQTT_PACKET_TYPE_PUBLISH )
+    pAgentContext = getAgentFromContext( pMqttContext );
+    configASSERT( pAgentContext != NULL );
+
+    /* This callback executes from within MQTT_ProcessLoop().  Setting this flag
+     * indicates that the callback executed so the caller of MQTT_ProcessLoop() knows
+     * it should call it again as there may be more data to process. */
+    packetProcessedDuringLoop = true;
+
+    /* Handle incoming publish. The lower 4 bits of the publish packet type is used 
+     * for the dup, QoS, and retain flags. Hence masking out the lower bits to check 
+     * if the packet is publish. */
+    if( ( pPacketInfo->type & uppderNibble ) == MQTT_PACKET_TYPE_PUBLISH )
     {
-        prvHandleIncomingPublish( pAgentContext, pDeserializedInfo->pPublishInfo );
+        handleIncomingPublish( pAgentContext, pDeserializedInfo->pPublishInfo );
     }
     else
     {
@@ -915,27 +1061,32 @@ void MQTTAgent_EventCallback( MQTTContext_t * pMqttContext,
         {
             case MQTT_PACKET_TYPE_PUBACK:
             case MQTT_PACKET_TYPE_PUBCOMP:
-                xAckInfo = prvGetAwaitingOperation( pAgentContext, packetIdentifier, true );
+                ackInfo = getAwaitingOperation( pAgentContext, packetIdentifier, true );
 
-                if( xAckInfo.usPacketId == packetIdentifier )
+                if( ackInfo.packetId == packetIdentifier )
                 {
-                    vAckCallback = xAckInfo.pxOriginalCommand->vCallback;
+                    ackCallback = ackInfo.pOriginalCommand->pCommandCompleteCallback;
 
-                    if( vAckCallback != NULL )
+                    if( ackCallback != NULL )
                     {
-                        vAckCallback( xAckInfo.pxOriginalCommand->pxCmdContext, pDeserializedInfo->deserializationResult );
+                        ackCallback( ackInfo.pOriginalCommand->pxCmdContext, 
+                                     pDeserializedInfo->deserializationResult );
                     }
                 }
-                pxReleaseCommandStructure( xAckInfo.pxOriginalCommand ); //_RB_ Is this always the right place for this?
+                releaseCommandStructureToPool( ackInfo.pOriginalCommand ); //_RB_ Is this always the right place for this?
                 break;
 
             case MQTT_PACKET_TYPE_SUBACK:
             case MQTT_PACKET_TYPE_UNSUBACK:
-                xAckInfo = prvGetAwaitingOperation( pAgentContext, packetIdentifier, true );
+                ackInfo = getAwaitingOperation( pAgentContext, packetIdentifier, true );
 
-                if( xAckInfo.usPacketId == packetIdentifier )
+                if( ackInfo.packetId == packetIdentifier )
                 {
-                    prvHandleSubscriptionAcks( pAgentContext, pPacketInfo, pDeserializedInfo, &xAckInfo, pPacketInfo->type );
+                    handleSubscriptionAcks( pAgentContext, 
+                                            pPacketInfo, 
+                                            pDeserializedInfo, 
+                                            &ackInfo, 
+                                            pPacketInfo->type );
                 }
                 else
                 {
@@ -966,112 +1117,163 @@ void MQTTAgent_EventCallback( MQTTContext_t * pMqttContext,
 }
 
 /*-----------------------------------------------------------*/
-/*_RB_ Temporary until all APIs use the handle rather than the pointer. */
-MQTTContext_t * MQTTAgent_GetMQTTContext( MQTTContextHandle_t xMQTTContextHandle )
+//_RB_ Should return an MQTTStatus_t.
+static bool createAndAddCommand( CommandType_t commandType,
+                                 MQTTContextHandle_t mqttContextHandle,
+                                 void * pMqttInfoParam,
+                                 CommandCallback_t commandCompleteCallback,
+                                 CommandContext_t * pCommandCompleteCallbackContext,
+                                 PublishCallback_t incomingPublishCallback,
+                                 void * pIncomingPublishCallbackContext )
 {
-    MQTTContext_t *pxReturn;
+    bool ret = false;
+    const TickType_t blockTimeMs = ( TickType_t ) pdMS_TO_TICKS( 1500 );/*_RB_ Could make a parameter. */
+    Command_t *pCommand;
 
-    if( xMQTTContextHandle < MAX_CONNECTIONS )
+    /* If the packet ID is zero then the MQTT context has not been initialised as 0
+     * is the initial value but not a valid packet ID. */
+    if( ( mqttContextHandle < MAX_CONNECTIONS ) && ( mqttContexts[ mqttContextHandle ].nextPacketId != 0 ) )
     {
-        pxReturn = &( xMQTTContexts[ xMQTTContextHandle ] );
-    }
-    else
-    {
-        pxReturn = NULL;
+        if( commandType == PROCESSLOOP ) /*_RB_ What if another task calls this? */
+        {
+            static Command_t xStaticCommand = { 0 };
+
+            /* This is called from the MQTT agent context so cannot wait for a command
+             * structure.  The command structure is only used to unblock the task rather
+             * than carry data so can just be a single static here. */
+            pCommand = &xStaticCommand;
+        }
+        else
+        {
+            pCommand = getCommandStructureFromPool( blockTimeMs );
+        }
+
+        if( pCommand != NULL )
+        {
+            ret = createCommand( commandType,
+                                 &( mqttContexts[ mqttContextHandle ] ),
+                                 pMqttInfoParam,
+                                 incomingPublishCallback,
+                                 pIncomingPublishCallbackContext,
+                                 commandCompleteCallback,
+                                 pCommandCompleteCallbackContext,
+                                 pCommand );
+
+            if( ret )
+            {
+                ret = addCommandToQueue( pCommand );
+            }
+
+            if( ret == false )
+            {
+                /* Could not send the command to the queue so release the command
+                 * structure again. */
+                releaseCommandStructureToPool( pCommand );
+            }
+        }
+        else
+        {
+            ret = false;
+        }
+
+        return ret;
+
     }
 
-    return pxReturn;
+    return ret;
 }
 
 /*-----------------------------------------------------------*/
 
-MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t xMQTTContextHandle, 
-                             TransportInterface_t *pxTransportInterface, 
-                             MQTTGetCurrentTimeFunc_t prvGetTimeMs,
-                             PublishCallback_t vUnkownIncomingPublishCallback,
+MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
+                             TransportInterface_t *pTransportInterface,
+                             MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
+                             PublishCallback_t unkownIncomingPublishCallback,
                              void * pDefaultPublishContext )
 {
-    MQTTStatus_t xReturn;
-    MQTTFixedBuffer_t xNetworkBuffer;
+    MQTTStatus_t returnStatus;
+    MQTTFixedBuffer_t networkBuffer;
+    static uint8_t staticQueueStorageArea[ MQTT_AGENT_COMMAND_QUEUE_LENGTH * sizeof( Command_t * ) ];
+    static StaticQueue_t staticQueueStructure;
+
+    /* The command queue should not have been created yet. */
+    configASSERT( commandQueue == NULL ); /*_RB_ Needs to change so two contexts can be used in the same agent. */
+    commandQueue = xQueueCreateStatic(  MQTT_AGENT_COMMAND_QUEUE_LENGTH,
+                                        sizeof( Command_t * ),
+                                        staticQueueStorageArea,
+                                        &staticQueueStructure );
 
     /*_RB_ Need to make singleton. */
 
-    /* Fill the values for network buffer. */
-    xNetworkBuffer.pBuffer = pcNetworkBuffer;
-    xNetworkBuffer.size = mqttexampleNETWORK_BUFFER_SIZE;
-
-    if( ( xMQTTContextHandle >= MAX_CONNECTIONS ) ||
-        ( pxTransportInterface == NULL ) ||
-        ( prvGetTimeMs == NULL ) )
+    if( ( mqttContextHandle >= MAX_CONNECTIONS ) ||
+        ( pTransportInterface == NULL ) ||
+        ( getCurrentTimeMs == NULL ) )
     {
-        xReturn = MQTTBadParameter;
+        returnStatus = MQTTBadParameter;
     }
     else
     {
-        xReturn = MQTT_Init( &( xMQTTContexts[ xMQTTContextHandle ] ),
-                             pxTransportInterface,
-                             prvGetTimeMs,
-                             MQTTAgent_EventCallback,
-                             &xNetworkBuffer );
+        /* Fill the values for network buffer. */
+        networkBuffer.pBuffer = &( networkBuffers[ mqttContextHandle ][ 0 ] );
+        networkBuffer.size = mqttexampleNETWORK_BUFFER_SIZE;
 
-        if( xReturn == MQTTSuccess )
+        returnStatus = MQTT_Init( &( mqttContexts[ mqttContextHandle ] ),
+                                  pTransportInterface,
+                                  getCurrentTimeMs,
+                                  mqttEventCallback,
+                                  &networkBuffer );
+
+        if( returnStatus == MQTTSuccess )
         {
             /* Also initialise the agent context.  Assert if already initialised. */
-            configASSERT( xAgentContexts[ xMQTTContextHandle ].pMQTTContext == NULL );
-            xAgentContexts[ xMQTTContextHandle ].pMQTTContext = &( xMQTTContexts[ xMQTTContextHandle ] );
-            xAgentContexts[ xMQTTContextHandle ].pendingAckSize = PENDING_ACKS_MAX_SIZE;
-            xAgentContexts[ xMQTTContextHandle ].maxSubscriptions = SUBSCRIPTIONS_MAX_COUNT;
-            xAgentContexts[ xMQTTContextHandle ].vDefaultPublishCallback = vUnkownIncomingPublishCallback;
-            xAgentContexts[ xMQTTContextHandle ].pDefaultSubscriptionContext = pDefaultPublishContext;
+            configASSERT( agentContexts[ mqttContextHandle ].pMQTTContext == NULL );
+            agentContexts[ mqttContextHandle ].pMQTTContext = &( mqttContexts[ mqttContextHandle ] );
+            agentContexts[ mqttContextHandle ].pUnsolicitedPublishCallback = unkownIncomingPublishCallback;
+            agentContexts[ mqttContextHandle ].pUnsolicitedPublishCallbackContext = pDefaultPublishContext;
 
-            memset( ( void * ) xCommandStructurePool, 0x00, sizeof( xCommandStructurePool ) );
-            xFreeCommandStructureMutex = xSemaphoreCreateCounting( MAX_COMMAND_CONTEXTS, MAX_COMMAND_CONTEXTS );
-            configASSERT( xFreeCommandStructureMutex ); /*_RB_ Create all objects here statically. */
+            memset( ( void * ) commandStructurePool, 0x00, sizeof( commandStructurePool ) );
+            freeCommandStructMutex = xSemaphoreCreateCounting( MQTT_COMMAND_CONTEXTS_POOL_SIZE, MQTT_COMMAND_CONTEXTS_POOL_SIZE );
+            configASSERT( freeCommandStructMutex ); /*_RB_ Create all objects here statically. */
         }
     }
 
-    return xReturn;
+    return returnStatus;
 }
-
 
 /*-----------------------------------------------------------*/
 
 MQTTContext_t * MQTTAgent_CommandLoop( void )
 {
-    Command_t *pxCommand;
-    MQTTStatus_t xStatus = MQTTSuccess;
-    static int lNumProcessed = 0;
+    Command_t *pCommand;
+    MQTTStatus_t operationStatus = MQTTSuccess;
     MQTTContext_t * ret = NULL;
+
+    /* The command queue should have been created before this task gets created. */
+    configASSERT( commandQueue );
 
     /* Loop until we receive a terminate command. */
     for( ; ; )
     {
-        /* If there is no command in the queue, try again. */
-        if( xQueueReceive( xCommandQueue, &( pxCommand ), MQTT_AGENT_QUEUE_WAIT_TIME ) != pdFALSE )
-        {
-            /* Keep a count of processed operations, for debug logs. */
-            lNumProcessed++;
-        }
-
-        xStatus = prvProcessCommand( pxCommand );
+        /* Wait for the next command, if any. */
+        pCommand = NULL;
+        xQueueReceive( commandQueue, &( pCommand ), MQTT_AGENT_QUEUE_WAIT_TIME );
+        operationStatus = processCommand( pCommand );
 
         /* Return the current MQTT context if status was not successful. */
-        if( xStatus != MQTTSuccess )
+        if( operationStatus != MQTTSuccess )
         {
             LogError( ( "MQTT operation failed with status %s\n",
-                        MQTT_Status_strerror( xStatus ) ) );
-            ret = pxCommand->pMqttContext;
+                        MQTT_Status_strerror( operationStatus ) ) );
+            ret = pCommand->pMqttContext;
             break;
         }
 
         /* Terminate the loop if we receive the termination command. */
-        if( pxCommand->xCommandType == TERMINATE )
+        if( pCommand->commandType == TERMINATE )
         {
             ret = NULL;
             break;
         }
-
-        LogDebug( ( "Processed %d operations.", lNumProcessed ) );
     }
 
     return ret;
@@ -1079,214 +1281,190 @@ MQTTContext_t * MQTTAgent_CommandLoop( void )
 
 /*-----------------------------------------------------------*/
 
-MQTTStatus_t MQTTAgent_ResumeSession( MQTTContext_t * pMqttContext,
-                                      bool xSessionPresent )
+MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
+                                      bool sessionPresent ) /*_RB_ Need to test this function. */
 {
-    MQTTStatus_t xResult = MQTTSuccess;
-    MQTTAgentContext_t * pAgentContext = getAgentFromContext( pMqttContext );
-    AckInfo_t * pxPendingAcks = pAgentContext->pPendingAcks;
-    SubscriptionElement_t * pxSubscriptions = pAgentContext->pSubscriptionList;
-    MQTTSubscribeInfo_t * pxResendSubscriptions = pAgentContext->pResendSubscriptions;
-    MQTTPublishInfo_t * pxOriginalPublish = NULL;
+    MQTTStatus_t statusResult = MQTTSuccess;
+    MQTTContext_t *pMqttContext;
+    MQTTAgentContext_t * pAgentContext;
+    AckInfo_t * pendingAcks;
+    SubscriptionElement_t * pxSubscriptions;
+    MQTTSubscribeInfo_t * pxResendSubscriptions;
+    MQTTPublishInfo_t * originalPublish = NULL;
 
-    /* Resend publishes if session is present. NOTE: It's possible that some
-     * of the operations that were in progress during the network interruption
-     * were subscribes. In that case, we would want to mark those operations
-     * as completing with error and remove them from the list of operations, so
-     * that the calling task can try subscribing again. We do not handle that
-     * case in this demo for simplicity, since only one subscription packet is
-     * sent per iteration of this demo. */
-    if( xSessionPresent )
+    /* If the packet ID is zero then the MQTT context has not been initialised as 0
+     * is the initial value but not a valid packet ID. */
+    if( ( mqttContextHandle < MAX_CONNECTIONS ) && ( mqttContexts[ mqttContextHandle ].nextPacketId != 0 ) )
     {
-        MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
-        uint16_t packetId = MQTT_PACKET_ID_INVALID;
-        AckInfo_t xFoundAck;
+        pMqttContext = &( mqttContexts[ mqttContextHandle ] );
+        pAgentContext = getAgentFromContext( pMqttContext );
+        pendingAcks = pAgentContext->pPendingAcks;
+        pxSubscriptions = pAgentContext->pSubscriptionList;
+        pxResendSubscriptions = pAgentContext->pResendSubscriptions;
 
-        packetId = MQTT_PublishToResend( pAgentContext->pMQTTContext, &cursor );
-
-        while( packetId != MQTT_PACKET_ID_INVALID )
+        /* Resend publishes if session is present. NOTE: It's possible that some
+         * of the operations that were in progress during the network interruption
+         * were subscribes. In that case, we would want to mark those operations
+         * as completing with error and remove them from the list of operations, so
+         * that the calling task can try subscribing again. We do not handle that
+         * case in this demo for simplicity, since only one subscription packet is
+         * sent per iteration of this demo. */
+        if( sessionPresent )
         {
-            /* Retrieve the operation but do not remove it from the list. */
-            xFoundAck = prvGetAwaitingOperation( pAgentContext, packetId, false );
-
-            if( xFoundAck.usPacketId == packetId )
-            {
-                /* Set the DUP flag. */
-                pxOriginalPublish = &( xFoundAck.pxOriginalCommand->xMqttOperationInfo.xPublishInfo );
-                pxOriginalPublish->dup = true;
-                xResult = MQTT_Publish( pAgentContext->pMQTTContext, pxOriginalPublish, packetId );
-
-                if( xResult != MQTTSuccess )
-                {
-                    LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( xResult ) ) );
-                    break;
-                }
-            }
+            MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
+            uint16_t packetId = MQTT_PACKET_ID_INVALID;
+            AckInfo_t foundAck;
 
             packetId = MQTT_PublishToResend( pAgentContext->pMQTTContext, &cursor );
-        }
-    }
 
-    /* If we wanted to resume a session but none existed with the broker, we
-     * should mark all in progress operations as errors so that the tasks that
-     * created them can try again. Also, we will resubscribe to the filters in
-     * the subscription list, so tasks do not unexpectedly lose their subscriptions. */
-    else
-    {
-        size_t i = 0, j = 0;
-        Command_t xNewCommand;
-        bool xCommandCreated = false;
-        BaseType_t xCommandAdded;
-
-        /* We have a clean session, so clear all operations pending acknowledgments. */
-        for( i = 0; i < pAgentContext->pendingAckSize; i++ )
-        {
-            if( pxPendingAcks[ i ].usPacketId != MQTT_PACKET_ID_INVALID )
+            while( packetId != MQTT_PACKET_ID_INVALID )
             {
-                if( pxPendingAcks[ i ].pxOriginalCommand->vCallback != NULL )
+                /* Retrieve the operation but do not remove it from the list. */
+                foundAck = getAwaitingOperation( pAgentContext, packetId, false );
+
+                if( foundAck.packetId == packetId )
                 {
-                    /* Bad response to indicate network error. */
-                    pxPendingAcks[ i ].pxOriginalCommand->vCallback( pxPendingAcks[ i ].pxOriginalCommand->pxCmdContext, MQTTBadResponse );
+                    /* Set the DUP flag. */
+                    originalPublish = &( foundAck.pOriginalCommand->mqttOperationInfo.publishInfo );
+                    originalPublish->dup = true;
+                    statusResult = MQTT_Publish( pAgentContext->pMQTTContext, originalPublish, packetId );
+
+                    if( statusResult != MQTTSuccess )
+                    {
+                        LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
+                        break;
+                    }
                 }
 
-                /* Now remove it from the list. */
-                prvGetAwaitingOperation( pAgentContext, pxPendingAcks[ i ].usPacketId, true );
+                packetId = MQTT_PublishToResend( pAgentContext->pMQTTContext, &cursor );
             }
         }
 
-        /* Populate the array of MQTTSubscribeInfo_t. It's possible there may be
-         * repeated subscriptions in the list. This is fine, since clients
-         * are able to subscribe to a topic with an existing subscription. */
-        for( i = 0; i < pAgentContext->maxSubscriptions; i++ )
+        /* If we wanted to resume a session but none existed with the broker, we
+         * should mark all in progress operations as errors so that the tasks that
+         * created them can try again. Also, we will resubscribe to the filters in
+         * the subscription list, so tasks do not unexpectedly lose their subscriptions. */
+        else
         {
-            if( pxSubscriptions[ i ].usFilterLength != 0 )
+            size_t i = 0, j = 0;
+            Command_t xNewCommand;
+            bool xCommandCreated = false;
+            BaseType_t xCommandAdded;
+
+            /* We have a clean session, so clear all operations pending acknowledgments. */
+            for( i = 0; i < PENDING_ACKS_MAX_SIZE; i++ )
             {
-                pxResendSubscriptions[ j ].pTopicFilter = pxSubscriptions[ i ].pcSubscriptionFilter;
-                pxResendSubscriptions[ j ].topicFilterLength = pxSubscriptions[ i ].usFilterLength;
-                pxResendSubscriptions[ j ].qos = MQTTQoS1;
-                j++;
+                if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
+                {
+                    if( pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback != NULL )
+                    {
+                        /* Bad response to indicate network error. */
+                        pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback( pendingAcks[ i ].pOriginalCommand->pxCmdContext, MQTTBadResponse );
+                    }
+
+                    /* Now remove it from the list. */
+                    getAwaitingOperation( pAgentContext, pendingAcks[ i ].packetId, true );
+                }
+            }
+
+            /* Populate the array of MQTTSubscribeInfo_t. It's possible there may be
+             * repeated subscriptions in the list. This is fine, since clients
+             * are able to subscribe to a topic with an existing subscription. */
+            for( i = 0; i < SUBSCRIPTIONS_MAX_COUNT; i++ )
+            {
+                if( pxSubscriptions[ i ].filterStringLength != 0 )
+                {
+                    pxResendSubscriptions[ j ].pTopicFilter = pxSubscriptions[ i ].pSubscriptionFilterString;
+                    pxResendSubscriptions[ j ].topicFilterLength = pxSubscriptions[ i ].filterStringLength;
+                    pxResendSubscriptions[ j ].qos = MQTTQoS1;
+                    j++;
+                }
+            }
+
+            /* Resubscribe if needed. */
+            if( j > 0 )
+            {
+    //_RB_ removed j below           xCommandCreated = createCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, j, NULL, NULL, NULL, NULL, &xNewCommand );
+                xCommandCreated = createCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, NULL, NULL, NULL, NULL, &xNewCommand );
+                configASSERT( xCommandCreated == true );
+    //_RB_            xNewCommand.uintParam = j;
+                xNewCommand.pIncomingPublishCallbackContext = NULL;
+                /* Send to the front of the queue so we will resubscribe as soon as possible. */
+                xCommandAdded = xQueueSendToFront( commandQueue, &xNewCommand, MQTT_AGENT_QUEUE_WAIT_TIME );
+                configASSERT( xCommandAdded == pdTRUE );
             }
         }
-
-        /* Resubscribe if needed. */
-        if( j > 0 )
-        {
-            xCommandCreated = prvCreateCommand( SUBSCRIBE, pMqttContext, pxResendSubscriptions, j, NULL, NULL, NULL, NULL, &xNewCommand );
-            configASSERT( xCommandCreated == true );
-            xNewCommand.uintParam = j;
-            xNewCommand.pPublishCallbackContext = NULL;
-            /* Send to the front of the queue so we will resubscribe as soon as possible. */
-            xCommandAdded = xQueueSendToFront( xCommandQueue, &xNewCommand, MQTT_AGENT_QUEUE_WAIT_TIME );
-            configASSERT( xCommandAdded == pdTRUE );
-        }
+    }
+    else
+    {
+        statusResult = MQTTIllegalState;
     }
 
-    return xResult;
+    return statusResult;
 }
 
 /*-----------------------------------------------------------*/
 
-static bool createAndAddCommandX( CommandType_t commandType,
-                                  MQTTContextHandle_t xMqttContextHandle,
-                                  CommandContext_t * pCommandContext,
-                                  CommandCallback_t cmdCallback,
-                                  void * pMqttInfoParam,
-                                  uint32_t uintParam,
-                                  PublishCallback_t publishCallback,
-                                  void * pSubscriptionContext )
+MQTTStatus_t MQTTAgent_Connect( MQTTContextHandle_t mqttContextHandle,
+                                const MQTTConnectInfo_t * pConnectInfo,
+                                const MQTTPublishInfo_t * pWillInfo,
+                                uint32_t timeoutMs,
+                                bool * pSessionPresent )
 {
-    bool bReturn;
-
-    if( xMqttContextHandle < MAX_CONNECTIONS )
+    MQTTStatus_t ret;
+    
+    if( ( mqttContextHandle < MAX_CONNECTIONS ) && 
+        ( mqttContexts[ mqttContextHandle ].connectStatus == MQTTNotConnected ) )
     {
-        bReturn = createAndAddCommand( commandType,
-                                       &( xMQTTContexts[ xMqttContextHandle ] ),
-                                       pCommandContext,
-                                       cmdCallback,
-                                       pMqttInfoParam,
-                                       uintParam,
-                                       publishCallback,
-                                       pSubscriptionContext );
+        ret = MQTT_Connect( &( mqttContexts[ mqttContextHandle ] ),
+                            pConnectInfo,
+                            pWillInfo,
+                            timeoutMs,
+                            pSessionPresent );
     }
     else
     {
-        bReturn = false;
-    }
-
-    return bReturn;
-}
-
-/*-----------------------------------------------------------*/
-
-//_RB_ Should return an MQTTStatus_t.
-static bool createAndAddCommand( CommandType_t commandType,
-                                 MQTTContext_t * pMqttContext,
-                                 CommandContext_t * pCommandContext,
-                                 CommandCallback_t cmdCallback,
-                                 void * pMqttInfoParam,
-                                 uint32_t uintParam,
-                                 PublishCallback_t publishCallback,
-                                 void * pSubscriptionContext )
-{
-    bool ret = false;
-    const TickType_t xBlockTimeMS = ( TickType_t ) 500;
-    Command_t *pxCommand = pxGetCommandStructure( pdMS_TO_TICKS( xBlockTimeMS ) );
-
-    if( pxCommand != NULL )
-    {
-        ret = prvCreateCommand( commandType,
-                                pMqttContext,
-                                pMqttInfoParam,
-                                uintParam,
-                                publishCallback,
-                                pSubscriptionContext,
-                                pCommandContext,
-                                cmdCallback,
-                                pxCommand );
-
-        if( ret )
-        {
-            ret = prvAddCommandToQueue( pxCommand );
-        }
-    }
-    else
-    {
-        ret = pdFALSE;
+        ret = MQTTIllegalState;
     }
 
     return ret;
-}
+} 
 
 /*-----------------------------------------------------------*/
 /*_RB_ Should return MQTTStatus_t. */
 bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
-                          MQTTSubscribeInfo_t * pSubscriptionList,
-                          size_t subscriptionCount,
+                          MQTTSubscribeInfo_t * pSubscriptionInfo,
                           PublishCallback_t incomingPublishCallback,
                           void * incomingPublishCallbackContext,
                           CommandCallback_t commandCompleteCallback,
                           void * commandCompleteCallbackContext )
 {
-    return createAndAddCommandX( SUBSCRIBE,
-                                mqttContextHandle,
-                                commandCompleteCallbackContext,
-                                commandCompleteCallback,
-                                pSubscriptionList,
-                                subscriptionCount,
-                                incomingPublishCallback,
-                                incomingPublishCallbackContext );
+bool ret;
+
+    ret = createAndAddCommand( SUBSCRIBE,                       /* commandType */
+                               mqttContextHandle,               /* mqttContextHandle */
+                               pSubscriptionInfo,               /* pMqttInfoParam */
+                               commandCompleteCallback,         /* commandCompleteCallback */
+                               commandCompleteCallbackContext,  /* pCommandCompleteCallbackContext */
+                               incomingPublishCallback,         /* incomingPublishCallback */
+                               incomingPublishCallbackContext );/* pIncomingPublishCallbackContext */
+    return ret;
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Unsubscribe( MQTTContext_t * pMqttContext,
+bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
-                            size_t subscriptionCount,
-                            CommandContext_t * pCommandContext,
-                            CommandCallback_t cmdCallback )
+                            CommandContext_t * pCommandCompleteCallbackContext,
+                            CommandCallback_t cmdCompleteCallback )/*_RB_ Swap these parameters around and check the other command APIs.  Also document what happens to the contexts in the header file - i.e. it gets passed into the callback. */
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( UNSUBSCRIBE, pMqttContext, pCommandContext, cmdCallback, pSubscriptionList, subscriptionCount, NULL, NULL );
+    return createAndAddCommand( UNSUBSCRIBE,                    /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                pSubscriptionList,              /* pMqttInfoParam */
+                                cmdCompleteCallback,            /* commandCompleteCallback */
+                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
 }
 
 /*-----------------------------------------------------------*/
@@ -1296,111 +1474,106 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
                         CommandCallback_t commandCompleteCallback,
                         CommandContext_t * commandCompleteCallbackContext )
 {
-    return createAndAddCommandX( PUBLISH,
-                                mqttContextHandle,
-                                commandCompleteCallbackContext,
-                                commandCompleteCallback,
-                                pPublishInfo,
-                                0,
-                                NULL,
-                                NULL );
+    return createAndAddCommand( PUBLISH,                        /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                pPublishInfo,                   /* pMqttInfoParam */
+                                commandCompleteCallback,        /* commandCompleteCallback */
+                                commandCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_ProcessLoop( MQTTContext_t * pMqttContext,
-                            uint32_t timeoutMs,
-                            CommandContext_t * pCommandContext,
-                            CommandCallback_t cmdCallback )
+bool MQTTAgent_ProcessLoop( MQTTContextHandle_t mqttContextHandle,
+                            CommandContext_t * pCommandCompleteCallbackContext,
+                            CommandCallback_t cmdCompleteCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( PROCESSLOOP, pMqttContext, pCommandContext, cmdCallback, NULL, timeoutMs, NULL, NULL );
+    return createAndAddCommand( PROCESSLOOP,                    /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                NULL,                           /* pMqttInfoParam */
+                                cmdCompleteCallback,            /* commandCompleteCallback */
+                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
+}
+
+
+/*-----------------------------------------------------------*/
+
+bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle, /*_RB_ Use this in the demo. */
+                     CommandContext_t * pCommandCompleteCallbackContext,
+                     CommandCallback_t cmdCompleteCallback )
+{
+    return createAndAddCommand( PING,                           /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                NULL,                           /* pMqttInfoParam */
+                                cmdCompleteCallback,            /* commandCompleteCallback */
+                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Ping( MQTTContext_t * pMqttContext,
-                     CommandContext_t * pCommandContext,
-                     CommandCallback_t cmdCallback )
+bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
+                           CommandContext_t * pCommandCompleteCallbackContext,
+                           CommandCallback_t cmdCompleteCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( PING, pMqttContext, pCommandContext, cmdCallback, NULL, 0, NULL, NULL );
+    return createAndAddCommand( DISCONNECT,                     /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                NULL,                           /* pMqttInfoParam */
+                                cmdCompleteCallback,            /* commandCompleteCallback */
+                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
 }
 
 /*-----------------------------------------------------------*/
 
-bool MQTTAgent_Disconnect( MQTTContext_t * pMqttContext,
-                           CommandContext_t * pCommandContext,
-                           CommandCallback_t cmdCallback )
+bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
+                     CommandContext_t * pCommandCompleteCallbackContext,
+                     CommandCallback_t cmdCompleteCallback )
 {
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( DISCONNECT, pMqttContext, pCommandContext, cmdCallback, NULL, 0, NULL, NULL );
-}
-
-/*-----------------------------------------------------------*/
-
-bool MQTTAgent_Free( MQTTContext_t * pMqttContext,
-                     CommandContext_t * pCommandContext,
-                     CommandCallback_t cmdCallback )
-{
-    configASSERT( pMqttContext != NULL );
-    return createAndAddCommand( FREE, pMqttContext, pCommandContext, cmdCallback, NULL, 0, NULL, NULL );
+    return createAndAddCommand( FREE,                           /* commandType */
+                                mqttContextHandle,              /* mqttContextHandle */
+                                NULL,                           /* pMqttInfoParam */
+                                cmdCompleteCallback,            /* commandCompleteCallback */
+                                pCommandCompleteCallbackContext,/* pCommandCompleteCallbackContext */
+                                NULL,                           /* incomingPublishCallback */
+                                NULL );                         /* pIncomingPublishCallbackContext */
 }
 
 /*-----------------------------------------------------------*/
 
 bool MQTTAgent_Terminate( void )
 {
-    return createAndAddCommand( TERMINATE, NULL, NULL, NULL, NULL, 0, NULL, NULL );
+    return createAndAddCommand( TERMINATE, 0, NULL, NULL, NULL, NULL, NULL );
 }
 
 /*-----------------------------------------------------------*/
 
 uint32_t MQTTAgent_GetNumWaiting( void )
 {
-    return uxQueueMessagesWaiting( xCommandQueue );
+uint32_t ret;
+
+    if( commandQueue != NULL )
+    {
+        ret = uxQueueMessagesWaiting( commandQueue );
+    }
+    else
+    {
+        ret = 0U;
+    }
+
+    return ret;
 }
 
-/*-----------------------------------------------------------*/
-
-bool MQTTAgent_CreateCommandQueue( const uint32_t uxCommandQueueLength )
+//_RB_ Hack to integrate OTA.
+MQTTContext_t * MQTTAgent_GetMQTTContext( int );
+MQTTContext_t * MQTTAgent_GetMQTTContext( int x )
 {
-    static BaseType_t xQueueCreated = pdFALSE;
-    BaseType_t xCreateAgent;
-
-    taskENTER_CRITICAL();
-    {
-        if( xQueueCreated == pdFALSE )
-        {
-            /* The agent has not been created yet, so try and create it. */
-            xCreateAgent = pdTRUE;
-            xQueueCreated = pdTRUE;
-        }
-        else
-        {
-            xCreateAgent = pdFALSE;
-        }
-    }
-    taskEXIT_CRITICAL();
-
-    if( xCreateAgent != pdFALSE )
-    {
-        /* The command queue should not have been created yet. */
-        configASSERT( xCommandQueue == NULL );
-        xCommandQueue = xQueueCreate( uxCommandQueueLength, sizeof( Command_t * ) );
-
-        if( xCommandQueue == NULL )
-        {
-            xQueueCreated = pdFALSE;
-            LogDebug( ( "Could not create queue.\n" ) );
-        }
-        else
-        {
-            LogInfo( ( "Successfully created MQTT agent queue.\n" ) );
-        }
-    }
-
-    return xQueueCreated;
+    return &mqttContexts[ x ];
 }
-
 /*-----------------------------------------------------------*/
+
