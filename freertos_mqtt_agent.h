@@ -149,9 +149,10 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
                           MQTTSubscribeInfo_t * pSubscriptionInfo,
                           PublishCallback_t incomingPublishCallback,
                           void * incomingPublishCallbackContext,
@@ -169,9 +170,10 @@ bool MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
                             MQTTSubscribeInfo_t * pSubscriptionList,
                             CommandCallback_t cmdCompleteCallback,
                             CommandContext_t * pCommandCompleteCallbackContext,
@@ -188,9 +190,10 @@ bool MQTTAgent_Unsubscribe( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
                         MQTTPublishInfo_t * pPublishInfo,
                         CommandCallback_t commandCompleteCallback,
                         CommandContext_t * commandCompleteCallbackContext,
@@ -207,9 +210,10 @@ bool MQTTAgent_Publish( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle, uint32_t blockTimeMS );
+MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle, uint32_t blockTimeMS );
 
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
@@ -221,9 +225,10 @@ bool MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle, uint32
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
 
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
                      CommandCallback_t cmdCompleteCallback,
                      CommandContext_t * pCommandCompleteCallbackContext,
                      uint32_t blockTImeMS );
@@ -238,9 +243,10 @@ bool MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
                            CommandCallback_t cmdCompleteCallback,
                            CommandContext_t * pCommandCompleteCallbackContex,
                            uint32_t blockTimeMS );
@@ -255,9 +261,10 @@ bool MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
+MQTTStatus_t MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
                      CommandCallback_t cmdCompleteCallback,
                      CommandContext_t * pCommandCompleteCallbackContext,
                      uint32_t blockTimeMS );
@@ -268,9 +275,10 @@ bool MQTTAgent_Free( MQTTContextHandle_t mqttContextHandle,
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  * 
- * @return `true` if the command was enqueued, else `false`.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * Otherwise an enumerated error code.
  */
-bool MQTTAgent_Terminate( uint32_t blockTimemS );
+MQTTStatus_t MQTTAgent_Terminate( uint32_t blockTimemS );
 
 /**
  * @brief Get the number of commands waiting in the queue.
