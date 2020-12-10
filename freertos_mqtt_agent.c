@@ -397,7 +397,7 @@ static MQTTContext_t mqttContexts[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ] = { 0 };
 /**
  * @brief The network buffer must remain valid for the lifetime of the MQTT context.
  */
-static uint8_t networkBuffers[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ][ mqttexampleNETWORK_BUFFER_SIZE ];/*_RB_ Need to move and rename constant. Also this requires both buffers to be the same size. */
+static uint8_t networkBuffers[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ][ MQTT_AGENT_NETWORK_BUFFER_SIZE ];
 
 /**
  * @brief The pool of command structures used to hold information on commands (such
@@ -648,7 +648,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
     /* Determine if required parameters are present in context. */
     switch( commandType )
     {
-        case SUBSCRIBE:
+        case SUBSCRIBE: /*_RB_ Should not be accepted if MQTT_AGENT_MAX_OUTSTANDING_ACKS has been reached. */
             pSubscribeInfo = ( MQTTSubscribeInfo_t * ) pMqttInfoParam;
             isValid = ( pMqttContext != NULL ) && 
                       ( pMqttInfoParam != NULL ) && 
@@ -660,7 +660,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
             break;
 
-        case PUBLISH:
+        case PUBLISH:/*_RB_ Should not be accepted if MQTT_AGENT_MAX_OUTSTANDING_ACKS has been reached or if the payload length is greater than MQTT_AGENT_NETWORK_BUFFER_SIZE. */
             isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
             break;
 
@@ -1234,7 +1234,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
     {
         /* Fill the values for network buffer. */
         networkBuffer.pBuffer = &( networkBuffers[ mqttContextHandle ][ 0 ] );
-        networkBuffer.size = mqttexampleNETWORK_BUFFER_SIZE;
+        networkBuffer.size = MQTT_AGENT_NETWORK_BUFFER_SIZE;
 
         returnStatus = MQTT_Init( &( mqttContexts[ mqttContextHandle ] ),
                                   pTransportInterface,
