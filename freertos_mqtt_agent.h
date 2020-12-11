@@ -243,8 +243,8 @@ MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTContextHandle_t mqttContextHandle
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
  *
  * @param[in] mqttContextHandle Handle of the MQTT connection to use.
- * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] cmdCompleteCallback Optional callback to invoke when the command completes.
+ * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] blockTimeMS The maximum amount of time in milliseconds to wait for the
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
@@ -261,8 +261,8 @@ MQTTStatus_t MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
  * @brief Add a command to disconnect an MQTT connection.
  *
  * @param[in] mqttContextHandle Handle of the MQTT connection to use.
- * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] cmdCompleteCallback Optional callback to invoke when the command completes.
+ * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] blockTimeMS The maximum amount of time in milliseconds to wait for the
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
@@ -279,8 +279,8 @@ MQTTStatus_t MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
  * @brief Add a command to clear memory associated with an MQTT connection.
  *
  * @param[in] mqttContextHandle Handle of the MQTT context to clear.
- * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] cmdCompleteCallback Optional callback to invoke when the command completes.
+ * @param[in] pCommandCompleteCallbackContext Optional completion callback context.
  * @param[in] blockTimeMS The maximum amount of time in milliseconds to wait for the
  * command to be posted to the MQTT agent should the MQTT agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
@@ -321,19 +321,19 @@ uint32_t MQTTAgent_GetNumWaiting( void );
  * library.  See https://www.freertos.org/network-interface.html
  * @param[in] getCurrentTimeMs Pointer to a function that returns a count value
  * that increments every millisecond.
- * @param[in] unkownIncomingPublishCallback A callback to execute should the
+ * @param[in] unknownIncomingPublishCallback A callback to execute should the
  * agent receive a publish message from a topic filter it is not subscribed to.
  * This can happen with incoming control information.
  * @param[in] pDefaultPublishContext A pointer to a context structure defined by
  * the application writer.  The context is passed into
- * unkownIncomingPublishCallback() should it be called.
+ * unknownIncomingPublishCallback() should it be called.
  *
  * @return `true` if the command was enqueued, else `false`.
  */
 MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             PublishCallback_t unkownIncomingPublishCallback,
+                             PublishCallback_t unknownIncomingPublishCallback,
                              void * pDefaultPublishContext );
 
 /**
@@ -354,7 +354,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
  * to be established before giving up.
  * @param[out] pSessionPresent Whether a previous session was present. Only
  * relevant if not establishing a clean session.
- * unkownIncomingPublishCallback() should it be called.
+ * unknownIncomingPublishCallback() should it be called.
  *
  * @return #MQTTNoMemory if the #MQTTContext_t.networkBuffer is too small to
  * hold the MQTT packet;

@@ -1267,7 +1267,7 @@ static void resubscribeCallback( void * pResubscribeContext,
 MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             PublishCallback_t unkownIncomingPublishCallback,
+                             PublishCallback_t unknownIncomingPublishCallback,
                              void * pDefaultPublishContext )
 {
     MQTTStatus_t returnStatus;
@@ -1307,7 +1307,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
             /* Also initialise the agent context.  Assert if already initialised. */
             configASSERT( agentContexts[ mqttContextHandle ].pMQTTContext == NULL );
             agentContexts[ mqttContextHandle ].pMQTTContext = &( mqttContexts[ mqttContextHandle ] );
-            agentContexts[ mqttContextHandle ].pUnsolicitedPublishCallback = unkownIncomingPublishCallback;
+            agentContexts[ mqttContextHandle ].pUnsolicitedPublishCallback = unknownIncomingPublishCallback;
             agentContexts[ mqttContextHandle ].pUnsolicitedPublishCallbackContext = pDefaultPublishContext;
 
             memset( ( void * ) commandStructurePool, 0x00, sizeof( commandStructurePool ) );
