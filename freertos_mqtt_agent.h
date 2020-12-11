@@ -39,10 +39,11 @@
 /**
  * @brief The maximum number of pending acknowledgments to track for a single
  * connection.
- * @note The MQTT agent tracks MQTT commands (such as PUBLISH and SUBSCRIBE) th
- * at are still waiting to be acknowledged.  MQTT_AGENT_MAX_OUTSTANDING_ACKS set
- * the maximum number of acknowledgments that can be outstanding at any one time.
- * The higher this number is the greater the agent's RAM consumption will be.
+ * @note The MQTT agent tracks MQTT commands (such as PUBLISH and SUBSCRIBE) 
+ * that are still waiting to be acknowledged.  MQTT_AGENT_MAX_OUTSTANDING_ACKS 
+ * set the maximum number of acknowledgments that can be outstanding at any one 
+ * time. The higher this number is the greater the agent's RAM consumption will 
+ * be.
  */
 #ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
     #define MQTT_AGENT_MAX_OUTSTANDING_ACKS               ( 20 )
