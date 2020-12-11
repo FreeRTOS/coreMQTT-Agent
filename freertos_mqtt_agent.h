@@ -31,9 +31,6 @@
 #ifndef MQTT_AGENT_H
 #define MQTT_AGENT_H
 
-/* Demo Specific configs. */
-#include "demo_config.h" //_RB_ Remove this.
-
 /* MQTT library includes. */
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
@@ -42,42 +39,67 @@
 /**
  * @brief The maximum number of MQTT connections that can be tracked.
  */
-#ifndef MQTT_AGENT_MAX_CONNECTIONS
+#ifndef MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS
     #define MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS           1
 #endif
 
 /**
  * @brief The maximum number of pending acknowledgments to track for a single
  * connection.
+ *
+ * @note The MQTT agent tracks MQTT commands (such as PUBLISH and SUBSCRIBE) th
+ * at are still waiting to be acknowledged.  MQTT_AGENT_MAX_OUTSTANDING_ACKS set
+ * the maximum number of acknowledgments that can be outstanding at any one time.
+ * The higher this number is the greater the agent's RAM consumption will be.
  */
 #ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
-    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS                  20
+    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS               ( 20 )
 #endif
 
 /**
  * @brief The maximum number of subscriptions to track for a single connection.
+ *
+ * @note The MQTT agent keeps a record of all existing MQTT subscriptions.
+ * MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS sets the maximum number of
+ * subscriptions records that can be maintained at one time.  The higher this
+ * number is the greater the agent's RAM consumption will be.
  */
 #ifndef MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS
-    #define MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS            10
+    #define MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS     ( 10 )
 #endif
 
 /**
  * @brief Size of statically allocated buffers for holding subscription filters.
+ *
+ * @note Subscription filters are strings such as "/my/topicname/#".  These
+ * strings are limited to a maximum of MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH
+ * characters. The higher this number is the greater the agent's RAM consumption
+ * will be.
  */
 #ifndef MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH
-    #define MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH    100
+    #define MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH     ( 100 )
 #endif
 
 /**
- * @brief Time in MS that the MQTT agent task will wait in the Blocked state (so not
- * using any CPU time) for a command to arrive in its command queue before exiting
- * the blocked state so it can call MQTT_ProcessLoop().  It is important 
- * MQTT_ProcessLoop() is called often if there is known MQTT traffic, but calling it
- * too often can take processing time away from lower priority tasks and waste CPU
- * time and power.
+ * @brief Dimensions the buffer used to serialise and deserialise MQTT packets.
+ * @note Specified in bytes.  Must be large enough to hold the maximum
+ * anticipated MQTT payload.
+ */
+#ifndef MQTT_AGENT_NETWORK_BUFFER_SIZE
+    #define MQTT_AGENT_NETWORK_BUFFER_SIZE                ( 5000 )
+#endif
+
+/**
+ * @brief Time in MS that the MQTT agent task will wait in the Blocked state (so
+ * not using any CPU time) for a command to arrive in its command queue before
+ * exiting the blocked state so it can call MQTT_ProcessLoop().
+ *
+ * @note It is important MQTT_ProcessLoop() is called often if there is known
+ * MQTT traffic, but calling it too often can take processing time away from
+ * lower priority tasks and waste CPU time and power.
  */
 #ifndef MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
-    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME             pdMS_TO_TICKS( 1000 )
+    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME          pdMS_TO_TICKS( 1000 )
 #endif
 
 /*-----------------------------------------------------------*/
@@ -248,7 +270,7 @@ MQTTStatus_t MQTTAgent_Ping( MQTTContextHandle_t mqttContextHandle,
  */
 MQTTStatus_t MQTTAgent_Disconnect( MQTTContextHandle_t mqttContextHandle,
                            CommandCallback_t cmdCompleteCallback,
-                           CommandContext_t * pCommandCompleteCallbackContex,
+                           CommandContext_t * pCommandCompleteCallbackContext,
                            uint32_t blockTimeMS );
 
 /**
