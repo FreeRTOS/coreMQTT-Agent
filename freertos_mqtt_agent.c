@@ -794,6 +794,7 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
 
                 /* Add to pending ack list, or call callback if QoS 0. */
                 addAckToList = ( pPublishInfo->qos != MQTTQoS0 ) && ( operationStatus == MQTTSuccess );
+
                 break;
 
             case SUBSCRIBE:
