@@ -707,6 +707,11 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             isValid = ( incomingPublishCallback != NULL );
         }
 
+        if( commandType == UNSUBSCRIBE )
+        {
+            pCommand->mqttOperationInfo.subscribeInfo = *((MQTTSubscribeInfo_t*)pMqttInfoParam);
+        }
+
         if( commandType == PUBLISH )
         {
             pCommand->mqttOperationInfo.publishInfo = *( ( MQTTPublishInfo_t * ) pMqttInfoParam );
