@@ -93,7 +93,7 @@ typedef struct Command
     MQTTContext_t * pMqttContext;
     CommandCallback_t pCommandCompleteCallback;
     CommandContext_t * pxCmdContext;
-    PublishCallback_t pIncomingPublishCallback;
+    IncomingPublishCallback_t pIncomingPublishCallback;
     void * pIncomingPublishCallbackContext;
     MqttOperationInfo_t mqttOperationInfo;
 } Command_t;
@@ -116,7 +116,7 @@ typedef struct ackInfo
  */
 typedef struct subscriptionElement
 {
-    PublishCallback_t pIncomingPublishCallback;
+    IncomingPublishCallback_t pIncomingPublishCallback;
     void * pIncomingPublishCallbackContext;
     uint16_t filterStringLength;
     char pSubscriptionFilterString[ MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH ];
@@ -130,7 +130,7 @@ typedef struct MQTTAgentContext
     MQTTContext_t * pMQTTContext;
     AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
     SubscriptionElement_t pSubscriptionList[ MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS ];
-    PublishCallback_t pUnsolicitedPublishCallback;
+    IncomingPublishCallback_t pUnsolicitedPublishCallback;
     void * pUnsolicitedPublishCallbackContext;
 } MQTTAgentContext_t;
 
@@ -182,7 +182,7 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 static bool addSubscription( MQTTAgentContext_t * pAgentContext,
                              const char * topicFilterString,
                              uint16_t topicFilterLength,
-                             PublishCallback_t pIncomingPublishCallback,
+                             IncomingPublishCallback_t pIncomingPublishCallback,
                              void * pIncomingPublishCallbackContext );
 
 /**
@@ -217,7 +217,7 @@ static void removeSubscription( MQTTAgentContext_t * pAgentContext,
 static MQTTStatus_t createCommand( CommandType_t commandType,
                                    MQTTContext_t * pMqttContext,
                                    void * pMqttInfoParam,
-                                   PublishCallback_t incomingPublishCallback,
+                                   IncomingPublishCallback_t incomingPublishCallback,
                                    void * pIncomingPublishCallbackContext,
                                    CommandCallback_t commandCompleteCallback,
                                    CommandContext_t * pCommandCompleteCallbackContext,
@@ -335,7 +335,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          void * pMqttInfoParam,
                                          CommandCallback_t cmdCompleteCallback,
                                          CommandContext_t * pCommandCompleteCallbackContext,
-                                         PublishCallback_t incomingPublishCallback,
+                                         IncomingPublishCallback_t incomingPublishCallback,
                                          void * pIncomingPublishCallbackContext,
                                          uint32_t blockTimeMS );
 
@@ -576,7 +576,7 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 static bool addSubscription( MQTTAgentContext_t * pAgentContext,
                              const char * topicFilterString,
                              uint16_t topicFilterLength,
-                             PublishCallback_t pIncomingPublishCallback,
+                             IncomingPublishCallback_t pIncomingPublishCallback,
                              void * pIncomingPublishCallbackContext )
 {
     int32_t i = 0;
@@ -651,7 +651,7 @@ static void removeSubscription( MQTTAgentContext_t * pAgentContext,
 static MQTTStatus_t createCommand( CommandType_t commandType,
                                    MQTTContext_t * pMqttContext,
                                    void * pMqttInfoParam,
-                                   PublishCallback_t incomingPublishCallback,
+                                   IncomingPublishCallback_t incomingPublishCallback,
                                    void * pIncomingPublishCallbackContext,
                                    CommandCallback_t commandCompleteCallback,
                                    CommandContext_t * pCommandCompleteCallbackContext,
@@ -1181,7 +1181,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          void * pMqttInfoParam,
                                          CommandCallback_t commandCompleteCallback,
                                          CommandContext_t * pCommandCompleteCallbackContext,
-                                         PublishCallback_t incomingPublishCallback,
+                                         IncomingPublishCallback_t incomingPublishCallback,
                                          void * pIncomingPublishCallbackContext,
                                          uint32_t blockTimeMS )
 {
@@ -1268,7 +1268,7 @@ static void resubscribeCallback( void * pResubscribeContext,
 MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             PublishCallback_t unknownIncomingPublishCallback,
+                             IncomingPublishCallback_t unknownIncomingPublishCallback,
                              void * pDefaultPublishContext )
 {
     MQTTStatus_t returnStatus;
@@ -1546,7 +1546,7 @@ MQTTStatus_t MQTTAgent_Connect( MQTTContextHandle_t mqttContextHandle,
 /*_RB_ Should return MQTTStatus_t. */
 MQTTStatus_t MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
                                   MQTTSubscribeInfo_t * pSubscriptionInfo,
-                                  PublishCallback_t incomingPublishCallback,
+                                  IncomingPublishCallback_t incomingPublishCallback,
                                   void * incomingPublishCallbackContext,
                                   CommandCallback_t commandCompleteCallback,
                                   void * commandCompleteCallbackContext,
