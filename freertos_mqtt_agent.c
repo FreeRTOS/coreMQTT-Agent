@@ -957,7 +957,7 @@ static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
     {
         LogWarn( ( "Publish received on topic %.*s with no subscription.\n",
                    pPublishInfo->topicNameLength,
-                   pPublishInfo->pTopicName ) );
+                   pPublishInfo->pTopicName ) );/*_RB_ Remove these non portable format specifiers. */
 
         if( pAgentContext->pUnsolicitedPublishCallback != NULL )
         {
