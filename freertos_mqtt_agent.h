@@ -122,7 +122,7 @@ typedef void (* CommandCallback_t )( void *,
 /**
  * @brief Callback function called when a publish is received.
  */
-typedef void (* PublishCallback_t )( MQTTPublishInfo_t * pxPublishInfo,
+typedef void (* IncomingPublishCallback_t )( MQTTPublishInfo_t * pxPublishInfo,
                                      void * pxSubscriptionContext );
 
 /**
@@ -176,7 +176,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
  */
 MQTTStatus_t MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
                                   MQTTSubscribeInfo_t * pSubscriptionInfo,
-                                  PublishCallback_t incomingPublishCallback,
+                                  IncomingPublishCallback_t incomingPublishCallback,
                                   void * incomingPublishCallbackContext,
                                   CommandCallback_t commandCompleteCallback,
                                   void * commandCompleteCallbackContext,
@@ -333,7 +333,7 @@ uint32_t MQTTAgent_GetNumWaiting( void );
 MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             PublishCallback_t unknownIncomingPublishCallback,
+                             IncomingPublishCallback_t unknownIncomingPublishCallback,
                              void * pDefaultPublishContext );
 
 /**
