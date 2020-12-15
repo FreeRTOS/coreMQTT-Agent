@@ -706,7 +706,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
                                    CommandContext_t * pCommandCompleteCallbackContext,
                                    Command_t * pCommand )
 {
-    bool isValid, isSpace;
+    bool isValid, isSpace = true;
     MQTTStatus_t statusReturn;
     MQTTSubscribeInfo_t * pSubscribeInfo;
     MQTTPublishInfo_t * pPublishInfo;
@@ -715,25 +715,29 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
     memset( pCommand, 0x00, sizeof( Command_t ) );
 
-    /* Many message types result in the broker returning an ACK.  The agent
-     * maintains an array of outstanding ACK messages.  See if the array
-     * contains space for another outstanding ack. */
-    isSpace = isSpaceInPendingAckList( pMqttContext );
-
     /* Determine if required parameters are present in context. */
     switch( commandType )
     {
         case SUBSCRIBE:
+            /* This message type results in the broker returning an ACK.  The 
+             * agent maintains an array of outstanding ACK messages.  See if 
+             * the array contains space for another outstanding ack. */
+            isSpace = isSpaceInPendingAckList( pMqttContext );
+
             pSubscribeInfo = ( MQTTSubscribeInfo_t * ) pMqttInfoParam;
             isValid = ( pSubscribeInfo != NULL ) &&
                       ( pMqttContext != NULL ) &&
-                      ( pMqttInfoParam != NULL ) &&
                       ( pSubscribeInfo->topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH ) &&
                       ( isSpace == true );
             
             break;
 
         case UNSUBSCRIBE:
+            /* This message type results in the broker returning an ACK.  The 
+             * agent maintains an array of outstanding ACK messages.  See if 
+             * the array contains space for another outstanding ack. */
+            isSpace = isSpaceInPendingAckList( pMqttContext );
+
             isValid = ( pMqttContext != NULL ) && 
                       ( pMqttInfoParam != NULL ) &&
                       ( isSpace == true );
@@ -747,21 +751,20 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             if( pPublishInfo == NULL )
             {
                 isValid = false;
-
-                /* To ensure the return code prioritises the bad parameter
-                 * before lack of space in the ack list. */
-                isSpace = true;
             }
             else
             {
                 uxHeaderBytes = uxControlAndLengthBytes;
                 uxHeaderBytes += pPublishInfo->topicNameLength;
 
-                if( pPublishInfo->qos == MQTTQoS0 )
+                /* This message type results in the broker returning an ACK. The 
+                 * agent maintains an array of outstanding ACK messages.  See if 
+                 * the array contains space for another outstanding ack.  QoS0 
+                 * publish does not result in an ack so it doesn't matter if 
+                 * there is no space in the ACK array. */
+                if( pPublishInfo->qos != MQTTQoS0 )
                 {
-                    /* QoS0 publish does not result in an ack so it doesn't matter
-                     * if there is no space in the ACK array. */
-                    isSpace = true;
+                    isSpace = isSpaceInPendingAckList( pMqttContext );
                 }
 
                 isValid = ( pMqttContext != NULL ) && 
@@ -792,18 +795,22 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
         {
             pCommand->mqttOperationInfo.subscribeInfo = *( ( MQTTSubscribeInfo_t * ) pMqttInfoParam );
 
-            /* A subscription without a callback is not valid, but create the command
-             * anyway in case of a resubscribe. */
+            /* A subscription without a callback is not valid, but create the 
+             * command anyway in case of a resubscribe. */
             isValid = ( incomingPublishCallback != NULL );
         }
 
         if( commandType == UNSUBSCRIBE )
         {
-            pCommand->mqttOperationInfo.subscribeInfo = *((MQTTSubscribeInfo_t*)pMqttInfoParam);
+            /* Copy subscribe details into command structure for future 
+             * reference. */
+            pCommand->mqttOperationInfo.subscribeInfo = *( ( MQTTSubscribeInfo_t * ) pMqttInfoParam );
         }
 
         if( commandType == PUBLISH )
         {
+            /* Copy publish details into command structure for future 
+             * reference. */
             pCommand->mqttOperationInfo.publishInfo = *( ( MQTTPublishInfo_t * ) pMqttInfoParam );
         }
 
