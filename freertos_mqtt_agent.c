@@ -309,7 +309,7 @@ static MQTTContext_t * getContextForProcessLoop( void );
  *
  * @return Pointer to agent context, or NULL.
  */
-static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext );
+static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext );
 
 /**
  * @brief Helper function for creating a command and adding it to the command
@@ -391,6 +391,24 @@ static bool releaseCommandStructureToPool( Command_t * pxCommandToRelease );
 static void resubscribeCallback( void * pResubscribeContext,
                                  MQTTStatus_t subscribeStatus );
 
+/**
+ * @brief Called before accepting any PUBLISH or SUBSCRIBE messages to check
+ * there is space in the pending ACK list for the outgoing PUBLISH or SUBSCRIBE.
+ * 
+ * @note Because the MQTT agent is inherently multi threaded, and this function
+ * is called from the context of the application task and not the MQTT agent
+ * task, this function can only return a best effort result.  It can definitely
+ * say if there is space for a new pending ACK when the function is called, but
+ * the case of space being exhausted when the agent executes the PUBLISH or
+ * SUBSCRIBE operation must still be handled.
+ *
+ * @param[in] pMQTTContext Pointer to the context for the MQTT connection to
+ * which the PUBLISH or SUBSCRIBE message is to be sent.
+ *
+ * @return true if there is space in that MQTT connection's ACK list, otherwise
+ * false;
+ */
+static bool isSpaceInPendingAckList( MQTTContext_t * pMQTTContext );
 /*-----------------------------------------------------------*/
 
 /**
@@ -403,7 +421,7 @@ static QueueHandle_t commandQueue = NULL;
 /**
  * @brief Arrays of agent and MQTT contexts, one for each potential MQTT connection.
  */
-static MQTTAgentContext_t agentContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ] = { 0 }; /*_RB_ Change name of constant. */
+static MQTTAgentContext_t agentContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ] = { 0 };
 static MQTTContext_t mqttContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ] = { 0 };
 
 /**
@@ -506,6 +524,37 @@ static Command_t * getCommandStructureFromPool( TickType_t blockTimeMs )
     }
 
     return structToUse;
+}
+
+/*-----------------------------------------------------------*/
+
+static bool isSpaceInPendingAckList( MQTTContext_t * pMQTTContext )
+{
+    AckInfo_t * pendingAcks;
+    bool spaceFound = false;
+    MQTTAgentContext_t *pAgentContext;
+    size_t i;
+
+    pAgentContext = getAgentFromMQTTContext( pMQTTContext );
+    
+    if( pAgentContext != NULL )
+    {
+        pendingAcks = pAgentContext->pPendingAcks;
+
+        /* Are there any open slots? */
+        for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+        {
+            /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is 
+             * not in use. */
+            if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
+            {
+                spaceFound = true;
+                break;
+            }
+        }
+    }
+
+    return spaceFound;
 }
 
 /*-----------------------------------------------------------*/
@@ -657,28 +706,48 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
                                    CommandContext_t * pCommandCompleteCallbackContext,
                                    Command_t * pCommand )
 {
-    bool isValid;
+    bool isValid, isSpace = true;
     MQTTStatus_t statusReturn;
     MQTTSubscribeInfo_t * pSubscribeInfo;
+    MQTTPublishInfo_t * pPublishInfo;
+    size_t uxHeaderBytes;
+    const size_t uxControlAndLengthBytes = ( size_t ) 4;  /* Control, remaining length and length bytes. */
+
+    configASSERT( pMqttInfoParam );
 
     memset( pCommand, 0x00, sizeof( Command_t ) );
 
     /* Determine if required parameters are present in context. */
     switch( commandType )
     {
-        case SUBSCRIBE: /*_RB_ Should not be accepted if MQTT_AGENT_MAX_OUTSTANDING_ACKS has been reached. */
+        case SUBSCRIBE:
             pSubscribeInfo = ( MQTTSubscribeInfo_t * ) pMqttInfoParam;
+            isSpace = isSpaceInPendingAckList( pMqttContext );
             isValid = ( pMqttContext != NULL ) &&
                       ( pMqttInfoParam != NULL ) &&
-                      ( pSubscribeInfo->topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH );
+                      ( pSubscribeInfo->topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH ) &&
+                      ( isSpace == true );
+            
             break;
 
         case UNSUBSCRIBE:
             isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
             break;
 
-        case PUBLISH: /*_RB_ Should not be accepted if MQTT_AGENT_MAX_OUTSTANDING_ACKS has been reached or if the payload length is greater than MQTT_AGENT_NETWORK_BUFFER_SIZE. */
-            isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
+        case PUBLISH:
+            pPublishInfo = ( MQTTPublishInfo_t * ) pMqttInfoParam;
+
+            /* Calculate the space consumed by everything other than the
+            payload. */
+            uxHeaderBytes = uxControlAndLengthBytes;
+            uxHeaderBytes += pPublishInfo->topicNameLength;
+
+            /* Does the array of outstanding Acks contain any space? */
+            isSpace = isSpaceInPendingAckList( pMqttContext ); 
+            isValid = ( pMqttContext != NULL ) && 
+                      /* Will the message fit in the defined buffer? */
+                      ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < MQTT_AGENT_NETWORK_BUFFER_SIZE ) && 
+                      ( isSpace == true );
             break;
 
         case PROCESSLOOP:
@@ -727,6 +796,14 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
     /* Calculate here in case of a SUBSCRIBE. */
     statusReturn = ( isValid ) ? MQTTSuccess : MQTTBadParameter;
+
+    if( ( statusReturn == MQTTBadParameter ) && ( isSpace == false ) )
+    {
+        /* The error was caused not by a bad parameter, but because there was
+         * no room in the pending Ack list for the Ack response to an outgoing
+         * PUBLISH or SUBSCRIBE message. */
+        statusReturn = MQTTNoMemory;
+    }
 
     return statusReturn;
 }
@@ -860,7 +937,7 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
 
         if( addAckToList )
         {
-            pAgentContext = getAgentFromContext( pCommand->pMqttContext );
+            pAgentContext = getAgentFromMQTTContext( pCommand->pMqttContext );
             ackAdded = addAwaitingOperation( pAgentContext, packetId, pCommand );
 
             /* Set the return status if no memory was available to store the operation
@@ -869,9 +946,9 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
             {
                 LogError( ( "No memory to wait for acknowledgment for packet %u\n", packetId ) );
 
-                /* All operations that can wait for acks (publish, subscribe, unsubscribe)
-                 * require a context. */
-                operationStatus = MQTTNoMemory;//_RB_ Should the command structure be returned here?
+                /* All operations that can wait for acks (publish, subscribe, 
+                 * unsubscribe) require a context. */
+                operationStatus = MQTTNoMemory;
             }
         }
 
@@ -1067,7 +1144,7 @@ static MQTTContext_t * getContextForProcessLoop( void )
 
 /*-----------------------------------------------------------*/
 
-static MQTTAgentContext_t * getAgentFromContext( MQTTContext_t * pMQTTContext )
+static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext )
 {
     MQTTAgentContext_t * ret = NULL;
     int i = 0;
@@ -1101,7 +1178,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
     configASSERT( pMqttContext != NULL );
     configASSERT( pPacketInfo != NULL );
 
-    pAgentContext = getAgentFromContext( pMqttContext );
+    pAgentContext = getAgentFromMQTTContext( pMqttContext );
     configASSERT( pAgentContext != NULL );
 
     /* This callback executes from within MQTT_ProcessLoop().  Setting this flag
@@ -1383,7 +1460,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
     if( ( mqttContextHandle < MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ) && ( mqttContexts[ mqttContextHandle ].nextPacketId != 0 ) )
     {
         pMqttContext = &( mqttContexts[ mqttContextHandle ] );
-        pAgentContext = getAgentFromContext( pMqttContext );
+        pAgentContext = getAgentFromMQTTContext( pMqttContext );
         pendingAcks = pAgentContext->pPendingAcks;
         pSubscriptions = pAgentContext->pSubscriptionList;
 
