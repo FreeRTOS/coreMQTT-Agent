@@ -399,8 +399,8 @@ static void resubscribeCallback( void * pResubscribeContext,
  * is called from the context of the application task and not the MQTT agent
  * task, this function can only return a best effort result.  It can definitely
  * say if there is space for a new pending ACK when the function is called, but
- * the case of space being exhausted when the agent executes the PUBLISH or
- * SUBSCRIBE operation must still be handled.
+ * the case of space being exhausted when the agent executes a command that
+ * results in an ACK must still be handled.
  *
  * @param[in] pMQTTContext Pointer to the context for the MQTT connection to
  * which the PUBLISH or SUBSCRIBE message is to be sent.
@@ -696,7 +696,7 @@ static void removeSubscription( MQTTAgentContext_t * pAgentContext,
 }
 
 /*-----------------------------------------------------------*/
-
+/*_RB_ Requires refactoring to reduce complexity. */
 static MQTTStatus_t createCommand( CommandType_t commandType,
                                    MQTTContext_t * pMqttContext,
                                    void * pMqttInfoParam,
@@ -706,24 +706,27 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
                                    CommandContext_t * pCommandCompleteCallbackContext,
                                    Command_t * pCommand )
 {
-    bool isValid, isSpace = true;
+    bool isValid, isSpace;
     MQTTStatus_t statusReturn;
     MQTTSubscribeInfo_t * pSubscribeInfo;
     MQTTPublishInfo_t * pPublishInfo;
     size_t uxHeaderBytes;
     const size_t uxControlAndLengthBytes = ( size_t ) 4;  /* Control, remaining length and length bytes. */
 
-    configASSERT( pMqttInfoParam );
-
     memset( pCommand, 0x00, sizeof( Command_t ) );
+
+    /* Many message types result in the broker returning an ACK.  The agent
+     * maintains an array of outstanding ACK messages.  See if the array
+     * contains space for another outstanding ack. */
+    isSpace = isSpaceInPendingAckList( pMqttContext );
 
     /* Determine if required parameters are present in context. */
     switch( commandType )
     {
         case SUBSCRIBE:
             pSubscribeInfo = ( MQTTSubscribeInfo_t * ) pMqttInfoParam;
-            isSpace = isSpaceInPendingAckList( pMqttContext );
-            isValid = ( pMqttContext != NULL ) &&
+            isValid = ( pSubscribeInfo != NULL ) &&
+                      ( pMqttContext != NULL ) &&
                       ( pMqttInfoParam != NULL ) &&
                       ( pSubscribeInfo->topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH ) &&
                       ( isSpace == true );
@@ -731,7 +734,9 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             break;
 
         case UNSUBSCRIBE:
-            isValid = ( pMqttContext != NULL ) && ( pMqttInfoParam != NULL );
+            isValid = ( pMqttContext != NULL ) && 
+                      ( pMqttInfoParam != NULL ) &&
+                      ( isSpace == true );
             break;
 
         case PUBLISH:
@@ -739,15 +744,31 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
             /* Calculate the space consumed by everything other than the
             payload. */
-            uxHeaderBytes = uxControlAndLengthBytes;
-            uxHeaderBytes += pPublishInfo->topicNameLength;
+            if( pPublishInfo == NULL )
+            {
+                isValid = false;
 
-            /* Does the array of outstanding Acks contain any space? */
-            isSpace = isSpaceInPendingAckList( pMqttContext ); 
-            isValid = ( pMqttContext != NULL ) && 
-                      /* Will the message fit in the defined buffer? */
-                      ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < MQTT_AGENT_NETWORK_BUFFER_SIZE ) && 
-                      ( isSpace == true );
+                /* To ensure the return code prioritises the bad parameter
+                 * before lack of space in the ack list. */
+                isSpace = true;
+            }
+            else
+            {
+                uxHeaderBytes = uxControlAndLengthBytes;
+                uxHeaderBytes += pPublishInfo->topicNameLength;
+
+                if( pPublishInfo->qos == MQTTQoS0 )
+                {
+                    /* QoS0 publish does not result in an ack so it doesn't matter
+                     * if there is no space in the ACK array. */
+                    isSpace = true;
+                }
+
+                isValid = ( pMqttContext != NULL ) && 
+                          /* Will the message fit in the defined buffer? */
+                          ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < MQTT_AGENT_NETWORK_BUFFER_SIZE ) && 
+                          ( isSpace == true );
+            }
             break;
 
         case PROCESSLOOP:
