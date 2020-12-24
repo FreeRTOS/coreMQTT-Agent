@@ -99,7 +99,7 @@ typedef struct Command
 } Command_t;
 
 /**
- * @brief Information for a pending MQTT ack packet expected by the demo.
+ * @brief Information for a pending MQTT ack packet expected by the agent.
  */
 typedef struct ackInfo
 {
@@ -108,11 +108,11 @@ typedef struct ackInfo
 } AckInfo_t;
 
 /**
- * @brief An element in the list of subscriptions maintained in the demo.
+ * @brief An element in the list of subscriptions maintained by the agent.
  *
- * @note This demo allows multiple tasks to subscribe to the same topic.
+ * @note The agent allows multiple tasks to subscribe to the same topic.
  * In this case, another element is added to the subscription list, differing
- * in the destination response queue.
+ * in the intended publish callback.
  */
 typedef struct subscriptionElement
 {
@@ -421,14 +421,15 @@ static QueueHandle_t commandQueue = NULL;
 /**
  * @brief Arrays of agent and MQTT contexts, one for each potential MQTT connection.
  */
-static MQTTAgentContext_t agentContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ] = { 0 };
-static MQTTContext_t mqttContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ] = { 0 };
+static MQTTAgentContext_t agentContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ];
+static MQTTContext_t mqttContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ];
 
 /**
  * @brief MQTTSubscribeInfo_t to use when re-establishing subscriptions, if a broker starts a clean session.
  */
 static MQTTSubscribeInfo_t pResendSubscription;
 static MQTTStatus_t resubscribeStatuses[ MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS ];
+static Command_t xResubscribeCommand;
 
 /**
  * @brief The network buffer must remain valid for the lifetime of the MQTT context.
@@ -881,6 +882,7 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
     MQTTAgentContext_t * pAgentContext;
     MQTTContext_t * pMQTTContext;
     size_t i;
+    bool runProcessLoops = true;
     const uint32_t processLoopTimeoutMs = 0;
     const size_t maxNewSubscriptionsInOneGo = ( size_t ) 1; /* The agent interface only allows one subscription command at a time. */
 
@@ -940,6 +942,7 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
 
             case DISCONNECT:
                 operationStatus = MQTT_Disconnect( pMQTTContext );
+                runProcessLoops = false;
 
                 break;
 
@@ -958,6 +961,7 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
 
             case TERMINATE:
                 LogInfo( ( "Terminating command loop.\n" ) );
+                runProcessLoops = false;
 
             default:
                 break;
@@ -1001,9 +1005,12 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
 //        pCommand->pMqttContext = pMQTTContext;
 //    }
 
+    /* Don't run process loops if there was an error or disconnect. */
+    runProcessLoops = ( operationStatus != MQTTSuccess ) ? false : runProcessLoops;
+
     /* Run a single iteration of the process loop if there were no errors and
      * the MQTT connection still exists. */
-    for( i = 0; i < MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS; i++ )
+    for( i = 0; ( i < MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS ) && ( runProcessLoops ); i++ )
     {
         pAgentContext = &( agentContexts[ i ] );
 
@@ -1022,10 +1029,12 @@ static MQTTStatus_t processCommand( Command_t * pCommand,
                                                         processLoopTimeoutMs );
                 }
             } while( packetProcessedDuringLoop == true );
+
+            runProcessLoops = ( operationStatus == MQTTSuccess );
         }
     }
 
-    return operationStatus; /*_RB_ Need to determine which agent the status came from. */
+    return operationStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -1201,7 +1210,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
     uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
     CommandCallback_t ackCallback = NULL;
     MQTTAgentContext_t * pAgentContext;
-    const uint8_t uppderNibble = ( uint8_t ) 0xF0;
+    const uint8_t upperNibble = ( uint8_t ) 0xF0;
 
     configASSERT( pMqttContext != NULL );
     configASSERT( pPacketInfo != NULL );
@@ -1217,7 +1226,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
     /* Handle incoming publish. The lower 4 bits of the publish packet type is used
      * for the dup, QoS, and retain flags. Hence masking out the lower bits to check
      * if the packet is publish. */
-    if( ( pPacketInfo->type & uppderNibble ) == MQTT_PACKET_TYPE_PUBLISH )
+    if( ( pPacketInfo->type & upperNibble ) == MQTT_PACKET_TYPE_PUBLISH )
     {
         handleIncomingPublish( pAgentContext, pDeserializedInfo->pPublishInfo );
     }
@@ -1387,11 +1396,14 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
     static StaticQueue_t staticQueueStructure;
 
     /* The command queue should not have been created yet. */
-    configASSERT( commandQueue == NULL ); /*_RB_ Needs to change so two contexts can be used in the same agent. */
-    commandQueue = xQueueCreateStatic( MQTT_AGENT_COMMAND_QUEUE_LENGTH,
-                                       sizeof( Command_t * ),
-                                       staticQueueStorageArea,
-                                       &staticQueueStructure );
+    if( commandQueue == NULL )  /*_RB_ Needs to change so two contexts can be used in the same agent. */
+    {
+        LogDebug( ( "Creating command queue." ) );
+        commandQueue = xQueueCreateStatic( MQTT_AGENT_COMMAND_QUEUE_LENGTH,
+                                           sizeof( Command_t * ),
+                                           staticQueueStorageArea,
+                                           &staticQueueStructure );
+    }
 
     /*_RB_ Need to make singleton. */
 
@@ -1432,43 +1444,57 @@ MQTTStatus_t MQTTAgent_Init( MQTTContextHandle_t mqttContextHandle,
 
 /*-----------------------------------------------------------*/
 
-MQTTContext_t * MQTTAgent_CommandLoop( void )
+MQTTStatus_t MQTTAgent_CommandLoop( MQTTContextHandle_t * pOutContextHandle,
+                                    MQTTContext_t ** pOutContext )
 {
     Command_t * pCommand;
     MQTTStatus_t operationStatus = MQTTSuccess;
-    MQTTContext_t * ret = NULL;
     CommandType_t currentCommandType = NONE;
 
     /* The command queue should have been created before this task gets created. */
     configASSERT( commandQueue );
 
-    /* Loop until we receive a terminate command. */
-    for( ; ; )
+    if( ( pOutContextHandle == NULL ) || ( pOutContext == NULL ) )
+    {
+        operationStatus = MQTTBadParameter;
+    }
+
+    /* Loop until an error or we receive a terminate command. */
+    while( operationStatus == MQTTSuccess )
     {
         /* Wait for the next command, if any. */
         pCommand = NULL;
         xQueueReceive( commandQueue, &( pCommand ), pdMS_TO_TICKS( MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME ) );
         /* Set the command type in case the command is released while processing. */
         currentCommandType = ( pCommand ) ? pCommand->commandType : NONE;
-        operationStatus = processCommand( pCommand, &ret );
+        operationStatus = processCommand( pCommand, pOutContext );
 
-        /* Return the current MQTT context if status was not successful. */
-        if( operationStatus != MQTTSuccess )
+        /* Return the current MQTT context on disconnect or error. */
+        if( ( currentCommandType == DISCONNECT ) || ( operationStatus != MQTTSuccess ) )
         {
-            LogError( ( "MQTT operation failed with status %s\n",
-                        MQTT_Status_strerror( operationStatus ) ) );
+            /* Retrieve context handle from context. */
+            configASSERT( ( *pOutContext >= mqttContexts ) &&
+                          ( *pOutContext <= &mqttContexts[ MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS - 1 ] ) );
+            *pOutContextHandle = ( *pOutContext - mqttContexts );
+            configASSERT( *pOutContextHandle < MQTT_AGENT_MAX_SIMULTANEOUS_CONNECTIONS );
+
+            if( operationStatus != MQTTSuccess )
+            {
+                LogError( ( "MQTT operation failed with status %s\n",
+                            MQTT_Status_strerror( operationStatus ) ) );
+            }
             break;
         }
 
         /* Terminate the loop if we receive the termination command. */
         if( currentCommandType == TERMINATE )
         {
-            ret = NULL;
+            *pOutContext = NULL;
             break;
         }
     }
 
-    return ret;
+    return operationStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -1535,7 +1561,6 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
         else
         {
             size_t i = 0, j = 0;
-            static Command_t xNewCommand;
             MQTTContext_t * pErrMqttContext = NULL;
 
             /* We have a clean session, so clear all operations pending acknowledgments. */
@@ -1574,7 +1599,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
 
                     /* We cannot add the commmand to the queue since the command loop
                      * should not be running during a reconnect. */
-                    statusResult = createCommand( SUBSCRIBE, pMqttContext, &pResendSubscription, NULL, NULL, resubscribeCallback, NULL, &xNewCommand );
+                    statusResult = createCommand( SUBSCRIBE, pMqttContext, &pResendSubscription, NULL, NULL, resubscribeCallback, NULL, &xResubscribeCommand );
 
                     /* NOTE!! Since every iteration of the loop uses the same command struct,
                      * the subscribe info WILL be overwritten, and the call to addSubscription()
@@ -1587,7 +1612,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTContextHandle_t mqttContextHandle,
                      *    pIncomingPublishCallback is set to NULL. The only functionality
                      *    we require for the resubscription is that resubscribeCallback()
                      *    is invoked. */
-                    statusResult = processCommand( &xNewCommand, &pErrMqttContext );
+                    statusResult = processCommand( &xResubscribeCommand, &pErrMqttContext );
                     j++; /* Keep count of how many subscribes we have sent. */
                 }
             }
@@ -1653,7 +1678,7 @@ MQTTStatus_t MQTTAgent_Connect( MQTTContextHandle_t mqttContextHandle,
 }
 
 /*-----------------------------------------------------------*/
-/*_RB_ Should return MQTTStatus_t. */
+
 MQTTStatus_t MQTTAgent_Subscribe( MQTTContextHandle_t mqttContextHandle,
                                   MQTTSubscribeInfo_t * pSubscriptionInfo,
                                   IncomingPublishCallback_t incomingPublishCallback,

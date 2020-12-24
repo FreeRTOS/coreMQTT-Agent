@@ -123,7 +123,7 @@ typedef void (* CommandCallback_t )( void *,
  * @brief Callback function called when a publish is received.
  */
 typedef void (* IncomingPublishCallback_t )( MQTTPublishInfo_t * pxPublishInfo,
-                                     void * pxSubscriptionContext );
+                                             void * pxSubscriptionContext );
 
 /**
  * @brief MQTT contexts are owned by the MQTT agent and referenced using handles of
@@ -136,14 +136,16 @@ typedef int MQTTContextHandle_t;
 /**
  * @brief Process commands from the command queue in a loop.
  *
- * This demo requires a process loop command to be enqueued before calling this
- * function, and will re-add a process loop command every time one is processed.
- * This demo will exit the loop after receiving an unsubscribe operation.
+ * @param[out] pOutContextHandle Handle of the MQTT Context that disconnected
+ * or errored.
+ * @param[out] pOutContext MQTT Context that disconnected or errored. `NULL`
+ * if terminated gracefully.
  *
- * @return pointer to MQTT context that caused error, or `NULL` if terminated
- * gracefully.
+ * @return appropriate error code, or `MQTTSuccess` from a successful disconnect
+ * or termination.
  */
-MQTTContext_t * MQTTAgent_CommandLoop( void );
+MQTTStatus_t MQTTAgent_CommandLoop( MQTTContextHandle_t * pOutContextHandle,
+                                    MQTTContext_t ** pOutContext );
 
 /**
  * @brief Resume a session by resending publishes if a session is present in
