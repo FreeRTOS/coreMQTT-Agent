@@ -785,6 +785,8 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     const size_t maxNewSubscriptionsInOneGo = ( size_t ) 1; /* The agent interface only allows one subscription command at a time. */
     MQTTAgentReturnInfo_t returnInfo = { 0 };
 
+    configASSERT( pMqttAgentContext != NULL );
+
     pMQTTContext = &( pMqttAgentContext->mqttContext );
 
     if( pCommand != NULL )
