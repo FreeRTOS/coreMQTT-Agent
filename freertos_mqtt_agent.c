@@ -85,24 +85,6 @@ struct Command
     CommandContext_t * pCmdContext;
 };
 
-#if 0
-
-/**
- * @brief An element in the list of subscriptions maintained by the agent.
- *
- * @note The agent allows multiple tasks to subscribe to the same topic.
- * In this case, another element is added to the subscription list, differing
- * in the intended publish callback.
- */
-typedef struct subscriptionElement
-{
-    IncomingPublishCallback_t pIncomingPublishCallback;
-    void * pIncomingPublishCallbackContext;
-    uint16_t filterStringLength;
-    char pSubscriptionFilterString[ MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH ];
-} SubscriptionElement_t;
-#endif
-
 /*-----------------------------------------------------------*/
 
 /**
@@ -132,45 +114,6 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                        uint16_t incomingPacketId,
                                        bool remove );
-
-#if 0
-
-/**
- * @brief Add a subscription to the subscription list.
- *
- * @note Multiple tasks can be subscribed to the same topic with different
- * context-callback pairs. However, a single context-callback pair may only be
- * associated to the same topic filter once.
- *
- * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] topicFilterString Topic filter string of subscription.
- * @param[in] topicFilterLength Length of topic filter string.
- * @param[in] pIncomingPublishCallback Callback function for the subscription.
- * @param[in] pIncomingPublishCallbackContext Context for the subscription callback.
- *
- * @return `true` if subscription added or exists, `false` if insufficient memory.
- */
-static bool addSubscription( MQTTAgentContext_t * pAgentContext,
-                             const char * topicFilterString,
-                             uint16_t topicFilterLength,
-                             IncomingPublishCallback_t pIncomingPublishCallback,
-                             void * pIncomingPublishCallbackContext );
-
-/**
- * @brief Remove a subscription from the subscription list.
- *
- * @note If the topic filter exists multiple times in the subscription list,
- * then every instance of the subscription will be removed.
- *
- * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] topicFilterString Topic filter of subscription.
- * @param[in] topicFilterLength Length of topic filter.
- */
-static void removeSubscription( MQTTAgentContext_t * pAgentContext,
-                                const char * topicFilterString,
-                                uint16_t topicFilterLength );
-
-#endif
 
 /**
  * @brief Populate the parameters of a #Command_t
@@ -546,84 +489,6 @@ static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-#if 0
-
-static bool addSubscription( MQTTAgentContext_t * pAgentContext,
-                             const char * topicFilterString,
-                             uint16_t topicFilterLength,
-                             IncomingPublishCallback_t pIncomingPublishCallback,
-                             void * pIncomingPublishCallbackContext )
-{
-    int32_t i = 0;
-    size_t availableIndex = MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS;
-    SubscriptionElement_t * pSubscriptions = pAgentContext->pSubscriptionList;
-    bool ret = false;
-
-    /* The topic filter length was checked when the SUBSCRIBE command was created. */
-    configASSERT( topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH );
-
-    if( topicFilterLength < MQTT_AGENT_MAX_SUBSCRIPTION_FILTER_LENGTH )
-    {
-        /* Start at end of array, so that we will insert at the first available index.
-         * Scans backwards to find duplicates. */
-        for( i = ( int32_t ) MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS - 1; i >= 0; i-- )
-        {
-            if( pSubscriptions[ i ].filterStringLength == 0 )
-            {
-                availableIndex = i;
-            }
-            else if( ( pSubscriptions[ i ].filterStringLength == topicFilterLength ) &&
-                     ( strncmp( topicFilterString, pSubscriptions[ i ].pSubscriptionFilterString, topicFilterLength ) == 0 ) )
-            {
-                /* If a subscription already exists, don't do anything. */
-                if( ( pSubscriptions[ i ].pIncomingPublishCallback == pIncomingPublishCallback ) &&
-                    ( pSubscriptions[ i ].pIncomingPublishCallbackContext == pIncomingPublishCallbackContext ) )
-                {
-                    LogWarn( ( "Subscription already exists.\n" ) );
-                    availableIndex = MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS;
-                    ret = true;
-                    break;
-                }
-            }
-        }
-
-        if( ( availableIndex < MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS ) && ( pIncomingPublishCallback != NULL ) )
-        {
-            pSubscriptions[ availableIndex ].filterStringLength = topicFilterLength;
-            pSubscriptions[ availableIndex ].pIncomingPublishCallback = pIncomingPublishCallback;
-            pSubscriptions[ availableIndex ].pIncomingPublishCallbackContext = pIncomingPublishCallbackContext;
-            memcpy( pSubscriptions[ availableIndex ].pSubscriptionFilterString, topicFilterString, topicFilterLength );
-            ret = true;
-        }
-    }
-
-    return ret;
-}
-
-/*-----------------------------------------------------------*/
-
-static void removeSubscription( MQTTAgentContext_t * pAgentContext,
-                                const char * topicFilterString,
-                                uint16_t topicFilterLength )
-{
-    size_t i = 0;
-    SubscriptionElement_t * pSubscriptions = pAgentContext->pSubscriptionList;
-
-    for( i = 0; i < MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS; i++ )
-    {
-        if( pSubscriptions[ i ].filterStringLength == topicFilterLength )
-        {
-            if( strncmp( pSubscriptions[ i ].pSubscriptionFilterString, topicFilterString, topicFilterLength ) == 0 )
-            {
-                memset( &( pSubscriptions[ i ] ), 0x00, sizeof( SubscriptionElement_t ) );
-            }
-        }
-    }
-}
-
-#endif
-
-/*-----------------------------------------------------------*/
 /*_RB_ Requires refactoring to reduce complexity. */
 static MQTTStatus_t createCommand( CommandType_t commandType,
                                    MQTTAgentContext_t * pMqttAgentContext,
@@ -916,55 +781,6 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 }
 
 /*-----------------------------------------------------------*/
-#if 0
-static void handleIncomingPublish( MQTTAgentContext_t * pAgentContext,
-                                   MQTTPublishInfo_t * pPublishInfo )
-{
-    bool isMatched = false, relayedPublish = false;
-    size_t i;
-    SubscriptionElement_t * pSubscriptions = pAgentContext->pSubscriptionList;
-
-    for( i = 0; i < MQTT_AGENT_MAX_SIMULTANEOUS_SUBSCRIPTIONS; i++ )
-    {
-        if( pSubscriptions[ i ].filterStringLength > 0 )
-        {
-            MQTT_MatchTopic( pPublishInfo->pTopicName,
-                             pPublishInfo->topicNameLength,
-                             pSubscriptions[ i ].pSubscriptionFilterString,
-                             pSubscriptions[ i ].filterStringLength,
-                             &isMatched );
-
-            if( isMatched )
-            {
-                LogDebug( ( "Adding incoming publish callback %.*s\n",
-                            pSubscriptions[ i ].filterStringLength,
-                            pSubscriptions[ i ].pSubscriptionFilterString ) );
-                pSubscriptions[ i ].pIncomingPublishCallback( pPublishInfo,
-                                                              pSubscriptions[ i ].pIncomingPublishCallbackContext );
-                relayedPublish = true;
-            }
-        }
-    }
-
-    /* It is possible a publish was sent on an unsubscribed topic. This is
-     * possible on topics reserved by the broker, e.g. those beginning with
-     * '$'. In this case, we copy the publish to a queue we configured to
-     * receive these publishes. */
-    if( !relayedPublish )
-    {
-        LogWarn( ( "Publish received on topic %.*s with no subscription.\n",
-                   pPublishInfo->topicNameLength,
-                   pPublishInfo->pTopicName ) );/*_RB_ Remove these non portable format specifiers. */
-
-        if( pAgentContext->pUnsolicitedPublishCallback != NULL )
-        {
-            pAgentContext->pUnsolicitedPublishCallback( pPublishInfo,
-                                                        pAgentContext->pUnsolicitedPublishCallbackContext );
-        }
-    }
-}
-#endif
-/*-----------------------------------------------------------*/
 
 static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
                                     MQTTPacketInfo_t * pPacketInfo,
@@ -984,52 +800,6 @@ static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
     ackCallback = pAckInfo->pOriginalCommand->pCommandCompleteCallback;
     pSubackCodes = pPacketInfo->pRemainingData + 2U; /*_RB_ Where does 2 come from? */
     subscriptionAddStatus = pDeserializedInfo->deserializationResult;
-
-#if 0
-
-    bool subscriptionAdded = false;
-    MQTTSubscribeInfo_t * pSubscribeInfo = ( MQTTSubscribeInfo_t * ) ( pAckInfo->pOriginalCommand->pArgs );
-
-    if( packetType == MQTT_PACKET_TYPE_SUBACK )
-    {
-        if( *pSubackCodes != MQTTSubAckFailure )
-        {
-            LogInfo( ( "Adding subscription to %.*s\n",//_RB_ This format specifier is not portable.  Need to do something so topic filters are always terminated.
-                       pSubscribeInfo->topicFilterLength,
-                       pSubscribeInfo->pTopicFilter ) );
-            subscriptionAdded = addSubscription( pAgentContext,
-                                                 pSubscribeInfo->pTopicFilter,
-                                                 pSubscribeInfo->topicFilterLength,
-                                                 pAckInfo->pOriginalCommand->pIncomingPublishCallback,
-                                                 pAckInfo->pOriginalCommand->pIncomingPublishCallbackContext );
-
-            /* Not an error if we never asked to add a subscription. */
-            if( ( !subscriptionAdded ) && ( pAckInfo->pOriginalCommand->pIncomingPublishCallback != NULL ) )
-            {
-                /* Set to no memory if there is no space to store the subscription.
-                 * We do not break here since there may be existing subscriptions
-                 * that can have their QoS updated. */
-                subscriptionAddStatus = MQTTNoMemory;
-            }
-        }
-        else
-        {
-            LogError( ( "Subscription to %.*s failed.\n",
-                        pSubscribeInfo->topicFilterLength,
-                        pSubscribeInfo->pTopicFilter ) );
-        }
-    }
-    else
-    {
-        LogInfo( ( "Removing subscription to %.*s\n",
-                   pSubscribeInfo->topicFilterLength,
-                   pSubscribeInfo->pTopicFilter ) );
-        removeSubscription( pAgentContext,
-                            pSubscribeInfo->pTopicFilter,
-                            pSubscribeInfo->topicFilterLength );
-    }
-
-#endif
 
     if( ackCallback != NULL )
     {
