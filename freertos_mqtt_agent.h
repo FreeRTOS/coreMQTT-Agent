@@ -35,6 +35,8 @@
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
 
+/* Queue include. */
+#include "mqtt_agent_queue.h"
 
 /**
  * @brief The maximum number of pending acknowledgments to track for a single
@@ -59,10 +61,26 @@
  * lower priority tasks and waste CPU time and power.
  */
 #ifndef MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
-    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME    pdMS_TO_TICKS( 1000 )
+    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME    ( 1000 )
 #endif
 
 /*-----------------------------------------------------------*/
+
+/**
+ * @brief A type of command for interacting with the MQTT API.
+ */
+typedef enum CommandType
+{
+    NONE = 0,    /**< @brief No command received.  Must be zero (its memset() value). */
+    PROCESSLOOP, /**< @brief Call MQTT_ProcessLoop(). */
+    PUBLISH,     /**< @brief Call MQTT_Publish(). */
+    SUBSCRIBE,   /**< @brief Call MQTT_Subscribe(). */
+    UNSUBSCRIBE, /**< @brief Call MQTT_Unsubscribe(). */
+    PING,        /**< @brief Call MQTT_Ping(). */
+    CONNECT,     /**< @brief Call MQTT_Connect(). */
+    DISCONNECT,  /**< @brief Call MQTT_Disconnect(). */
+    TERMINATE    /**< @brief Exit the command loop and stop processing commands. */
+} CommandType_t;
 
 struct MQTTAgentContext;
 typedef struct MQTTAgentContext   MQTTAgentContext_t;
@@ -75,8 +93,8 @@ typedef struct Command            Command_t;
  */
 typedef struct MQTTAgentReturnInfo
 {
-    MQTTStatus_t returnCode; /*Return code of the MQTT command */
-    uint8_t * pSubackCodes;  /*Array of SUBACK statuses, for a SUBSCRIBE command. */
+    MQTTStatus_t returnCode; /**< Return code of the MQTT command. */
+    uint8_t * pSubackCodes;  /**< Array of SUBACK statuses, for a SUBSCRIBE command. */
 } MQTTAgentReturnInfo_t;
 
 /**
@@ -84,8 +102,8 @@ typedef struct MQTTAgentReturnInfo
  */
 typedef struct ackInfo
 {
-    uint16_t packetId;
-    Command_t * pOriginalCommand;
+    uint16_t packetId;            /**< Packet ID of the pending acknowledgment. */
+    Command_t * pOriginalCommand; /**< Command expecting acknowledgment. */
 } AckInfo_t;
 
 /**
@@ -100,28 +118,25 @@ typedef struct CommandContext CommandContext_t;
 /**
  * @brief Callback function called when a command completes.
  *
- * @param[in] The callback context passed to the original command.
- * @param[in] A struct of status codes and outputs from the command.
+ * @param[in] pCmdCallbackContext The callback context passed to the original command.
+ * @param[in] pReturnInfo A struct of status codes and outputs from the command.
  *
  * @note A command should not be considered complete until this callback is
  * called, and arguments the command needs MUST stay in scope until such happens.
  */
-typedef void (* CommandCallback_t )( void *,
-                                     MQTTAgentReturnInfo_t * );
+typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
+                                     MQTTAgentReturnInfo_t * pReturnInfo );
 
 /**
  * @brief Callback function called when receiving a publish.
  *
- * @param[in] The context of the MQTT agent.
- * @param[in] The packet ID of the received publish.
- * @param[in] Deserialized publish information.
+ * @param[in] pMqttAgentContext The context of the MQTT agent.
+ * @param[in] packetId The packet ID of the received publish.
+ * @param[in] pPublishInfo Deserialized publish information.
  */
 typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
                                              uint16_t packetId,
-                                             MQTTPublishInfo_t * pxPublishInfo );
-
-/* Temporary define before platform abstraction. */
-#define AgentQueue_t    void
+                                             MQTTPublishInfo_t * pPublishInfo );
 
 /**
  * @brief Information used by each MQTT agent. A context will be initialized by
@@ -131,7 +146,7 @@ typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentCont
 struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;
-    AgentQueue_t * commandQueue; /*Platform abstraction */
+    AgentQueue_t * commandQueue;
     AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
     IncomingPublishCallback_t pIncomingCallback;
     void * pIncomingCallbackContext;
@@ -166,6 +181,19 @@ typedef struct CommandInfo
     CommandContext_t * pCmdCompleteCallbackContext;
     uint32_t blockTimeMs;
 } CommandInfo_t;
+
+/**
+ * @brief The commands sent from the publish API to the MQTT agent.
+ *
+ * @note The structure used to pass information from the public facing API into the
+ * agent task. */
+struct Command
+{
+    CommandType_t commandType;
+    void * pArgs;
+    CommandCallback_t pCommandCompleteCallback;
+    CommandContext_t * pCmdContext;
+};
 
 /*-----------------------------------------------------------*/
 
