@@ -25,47 +25,56 @@
  */
 
 /**
- * @file mqtt_agent_queue.h
- * @brief Functions to interact with queues.
+ * @file agent_message.c
+ * @brief Implements functions to interact with queues.
  */
-#ifndef MQTT_AGENT_QUEUE_H
-#define MQTT_AGENT_QUEUE_H
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
+/* Standard includes. */
+#include <string.h>
+#include <stdio.h>
 
-struct AgentQueue;
-typedef struct AgentQueue AgentQueue_t;
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+/* Header include. */
+#include "agent_message.h"
 
 /*-----------------------------------------------------------*/
 
-/**
- * @brief Send a message to the back of the specified queue.
- * Must be thread safe.
- *
- * @param[in] pQueueHandle An #AgentQueue_t.
- * @param[in] data Pointer to element to send to queue.
- * @param[in] blockTimeMs Block time to wait for a send.
- *
- * @return `true` if send was successful, else `false`.
- */
-bool Agent_QueueSend( const AgentQueue_t * pQueueHandle,
-                      const void * pData,
-                      uint32_t blockTimeMs );
+struct AgentMessageContext
+{
+    QueueHandle_t queue;
+};
 
-/**
- * @brief Receive a message from the front of the specified queue.
- * Must be thread safe.
- *
- * @param[in] pQueueHandle An #AgentQueue_t.
- * @param[in] pBuffer Pointer to buffer to write received data.
- * @param[in] blockTimeMs Block time to wait for a receive.
- *
- * @return `true` if receive was successful, else `false`.
- */
-bool Agent_QueueReceive( const AgentQueue_t * pQueueHandle,
-                     	 void * pBuffer,
-                    	 uint32_t blockTimeMs );
+/*-----------------------------------------------------------*/
 
-#endif /* MQTT_AGENT_QUEUE_H */
+bool Agent_MessageSend( const AgentMessageContext_t * pMsgCtx,
+                        const void * pData,
+                        uint32_t blockTimeMs )
+{
+    BaseType_t queueStatus = pdFAIL;
+
+    if( ( pMsgCtx != NULL ) && ( pData != NULL ) )
+    {
+        queueStatus = xQueueSendToBack( pMsgCtx->queue, pData, pdMS_TO_TICKS( blockTimeMs ) );
+    }
+
+    return ( queueStatus == pdPASS ) ? true : false;
+}
+
+/*-----------------------------------------------------------*/
+
+bool Agent_MessageReceive( const AgentMessageContext_t * pMsgCtx,
+                           void * pBuffer,
+                           uint32_t blockTimeMs )
+{
+    BaseType_t queueStatus = pdFAIL;
+
+    if( ( pMsgCtx != NULL ) && ( pBuffer != NULL ) )
+    {
+        queueStatus = xQueueReceive( pMsgCtx->queue, pBuffer, pdMS_TO_TICKS( blockTimeMs ) );
+    }
+
+    return ( queueStatus == pdPASS ) ? true : false;
+}

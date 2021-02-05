@@ -36,7 +36,7 @@
 #include "core_mqtt_state.h"
 
 /* Queue include. */
-#include "mqtt_agent_queue.h"
+#include "agent_message.h"
 
 /**
  * @brief The maximum number of pending acknowledgments to track for a single
@@ -146,10 +146,11 @@ typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentCont
 struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;
-    AgentQueue_t * commandQueue;
+    AgentMessageContext_t * pMessageCtx;
     AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
     IncomingPublishCallback_t pIncomingCallback;
     void * pIncomingCallbackContext;
+    bool packetReceivedInLoop;
 };
 
 /**
@@ -157,7 +158,7 @@ struct MQTTAgentContext
  */
 typedef struct MQTTAgentSubscribeArgs
 {
-    MQTTSubscribeInfo_t subscribeInfo;
+    MQTTSubscribeInfo_t * pSubscribeInfo;
     size_t numSubscriptions;
 } MQTTAgentSubscribeArgs_t;
 
@@ -202,7 +203,7 @@ struct Command
  * be used. Must be called before any other function.
  *
  * @param[in] pMqttAgentContext Pointer to struct to initialize.
- * @param[in] pAgentQueue Queue handle to use in the command loop.
+ * @param[in] pMsgCtx Message context handle to use in the command loop.
  * @param[in] pNetworkBuffer Pointer to network buffer to use.
  * @param[in] pTransportInterface Transport interface to use with the MQTT
  * library.  See https://www.freertos.org/network-interface.html
@@ -215,7 +216,7 @@ struct Command
  * @return Appropriate status code from MQTT_Init().
  */
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             AgentQueue_t * pAgentQueue,
+                             AgentMessageContext_t * pMsgCtx,
                              MQTTFixedBuffer_t * pNetworkBuffer,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
