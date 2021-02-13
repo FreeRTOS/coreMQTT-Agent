@@ -122,7 +122,12 @@ typedef struct CommandContext CommandContext_t;
  * @param[in] pReturnInfo A struct of status codes and outputs from the command.
  *
  * @note A command should not be considered complete until this callback is
- * called, and arguments the command needs MUST stay in scope until such happens.
+ * called, and the arguments that the command uses MUST stay in scope until such happens.
+ *
+ * @note As this callback is run in the task context of the MQTT agent, a command
+ * SHOULD NOT be queued to the agent from within the callback. If the application
+ * sequence wants to queue a command as an effect of executing this callback, this
+ * callback should notify a different task to enqueue commands to the MQTT agent.
  */
 typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
@@ -133,6 +138,14 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
  * @param[in] pMqttAgentContext The context of the MQTT agent.
  * @param[in] packetId The packet ID of the received publish.
  * @param[in] pPublishInfo Deserialized publish information.
+ *
+ * @note As this callback is run in the task context of the MQTT agent, a command
+ * SHOULD NOT be queued to the agent from within the callback. If the application
+ * sequence wants to queue a command as an effect of executing this callback, this
+ * callback should notify a different task to enqueue commands to the MQTT agent.
+ *
+ * @note The context passed to the callback through the @p agentContext parameter
+ * MUST remain in scope throughtout the period that the agent task is running.
  */
 typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
                                              uint16_t packetId,
@@ -184,7 +197,7 @@ typedef struct CommandInfo
 } CommandInfo_t;
 
 /**
- * @brief The commands sent from the publish API to the MQTT agent.
+ * @brief The commands sent from the APIs to the MQTT agent task.
  *
  * @note The structure used to pass information from the public facing API into the
  * agent task. */
