@@ -60,7 +60,7 @@ static Command_t commandStructurePool[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
 static SemaphoreHandle_t commandSems[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
 
 /**
- * @brief Initialization status of the queue.
+ * @brief Initialization status of the command semaphore array.
  */
 static volatile uint8_t initStatus = SEMAPHORES_NOT_INITIALIZED;
 
