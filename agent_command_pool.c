@@ -39,20 +39,12 @@
 
 /* Header include. */
 #include "agent_command_pool.h"
-#include "agent_message.h"
 
 /*-----------------------------------------------------------*/
 
-struct AgentMessageContext
-{
-    QueueHandle_t queue;
-};
-
-/*-----------------------------------------------------------*/
-
-#define QUEUE_NOT_INITIALIZED    ( 0U )
-#define QUEUE_INIT_PENDING       ( 1U )
-#define QUEUE_INITIALIZED        ( 2U )
+#define SEMAPHORES_NOT_INITIALIZED    ( 0U )
+#define SEMAPHORES_INIT_PENDING       ( 1U )
+#define SEMAPHORES_INITIALIZED        ( 2U )
 
 /**
  * @brief The pool of command structures used to hold information on commands (such
@@ -62,33 +54,46 @@ struct AgentMessageContext
 static Command_t commandStructurePool[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
 
 /**
- * @brief A queue used to guard the pool of Command_t structures. Structures
- * may be obtained by receiving a pointer from the queue, and returned by
- * sending the pointer back into it.
+ * @brief An array of semaphores to guard each Command_t structure in the pool.
+ * Structures must be obtained by first obtaining its associated semaphore.
  */
-static AgentMessageContext_t commandStructQueue;
+static SemaphoreHandle_t commandSems[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
 
 /**
  * @brief Initialization status of the queue.
  */
-static volatile uint8_t initStatus = QUEUE_NOT_INITIALIZED;
+static volatile uint8_t initStatus = SEMAPHORES_NOT_INITIALIZED;
 
 /*-----------------------------------------------------------*/
 
-static void initializePool()
+/**
+ * @brief Initialize the pool of command structures.
+ */
+static void initializePool( void );
+
+/**
+ * @brief Iterate through the array of command structures until one is
+ * available or the end is reached.
+ *
+ * @return Pointer to available command structure, or NULL.
+ */
+static Command_t * getCommand( void );
+
+/*-----------------------------------------------------------*/
+
+static void initializePool( void )
 {
     bool owner = false;
     size_t i;
-    Command_t * pCommand;
-    static uint8_t staticQueueStorageArea[ MQTT_COMMAND_CONTEXTS_POOL_SIZE * sizeof( Command_t * ) ];
-    static StaticQueue_t staticQueueStructure;
+    static StaticSemaphore_t commandSemsStorage[ MQTT_COMMAND_CONTEXTS_POOL_SIZE ];
+    BaseType_t semaphoreCreated = pdFALSE;
 
     taskENTER_CRITICAL();
     {
-        if( initStatus == QUEUE_NOT_INITIALIZED )
+        if( initStatus == SEMAPHORES_NOT_INITIALIZED )
         {
             owner = true;
-            initStatus = QUEUE_INIT_PENDING;
+            initStatus = SEMAPHORES_INIT_PENDING;
         }
     }
     taskEXIT_CRITICAL();
@@ -96,23 +101,40 @@ static void initializePool()
     if( owner )
     {
         memset( ( void * ) commandStructurePool, 0x00, sizeof( commandStructurePool ) );
-        commandStructQueue.queue = xQueueCreateStatic( MQTT_COMMAND_CONTEXTS_POOL_SIZE,
-                                                       sizeof( Command_t * ),
-                                                       staticQueueStorageArea,
-                                                       &staticQueueStructure );
-        configASSERT( commandStructQueue.queue );
 
-        /* Populate the queue. */
+        /* Create a binary semaphore for each command. */
         for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
         {
-            /* Store the address as a variable. */
-            pCommand = &commandStructurePool[ i ];
-            /* Send the pointer to the queue. */
-            Agent_MessageSend( &commandStructQueue, &pCommand, 0U );
+            commandSems[ i ] = xSemaphoreCreateBinaryStatic( &commandSemsStorage[ i ] );
+            semaphoreCreated = xSemaphoreGive( commandSems[ i ] );
+            configASSERT( semaphoreCreated == pdTRUE );
         }
 
-        initStatus = QUEUE_INITIALIZED;
+        initStatus = SEMAPHORES_INITIALIZED;
     }
+}
+
+/*-----------------------------------------------------------*/
+
+static Command_t * getCommand( void )
+{
+    Command_t * structToUse = NULL;
+    size_t i;
+
+    for( i = 0; i < MQTT_COMMAND_CONTEXTS_POOL_SIZE; i++ )
+    {
+        if( xSemaphoreTake( commandSems[ i ], 0 ) == pdTRUE )
+        {
+            break;
+        }
+    }
+
+    if( i < MQTT_COMMAND_CONTEXTS_POOL_SIZE )
+    {
+        structToUse = &( commandStructurePool[ i ] );
+    }
+
+    return structToUse;
 }
 
 /*-----------------------------------------------------------*/
@@ -120,25 +142,32 @@ static void initializePool()
 Command_t * Agent_GetCommand( uint32_t blockTimeMs )
 {
     Command_t * structToUse = NULL;
-    size_t i;
-    bool structRetrieved = false;
+    uint32_t cumulativeDelayMs = 0U;
 
     /* Check here so we do not enter a critical section every time. */
-    if( initStatus == QUEUE_NOT_INITIALIZED )
+    if( initStatus == SEMAPHORES_NOT_INITIALIZED )
     {
         initializePool();
     }
 
-    /* Check queue has been created. */
-    if( initStatus == QUEUE_INITIALIZED )
+    /* Check semaphores have been created. */
+    if( initStatus == SEMAPHORES_INITIALIZED )
     {
-        /* Retrieve a struct from the queue. */
-        structRetrieved = Agent_MessageReceive( &commandStructQueue, &( structToUse ), blockTimeMs );
-
-        if( !structRetrieved )
+        do
         {
-            LogError( ( "No command structure available." ) );
-        }
+            structToUse = getCommand();
+
+            if( structToUse == NULL )
+            {
+                vTaskDelay( pdMS_TO_TICKS( 1 ) );
+                cumulativeDelayMs++;
+            }
+        } while( ( structToUse == NULL ) && ( cumulativeDelayMs < blockTimeMs ) );
+    }
+
+    if( structToUse == NULL )
+    {
+        LogError( ( "No command structure available." ) );
     }
 
     return structToUse;
@@ -148,20 +177,22 @@ Command_t * Agent_GetCommand( uint32_t blockTimeMs )
 
 bool Agent_ReleaseCommand( Command_t * pCommandToRelease )
 {
-    size_t i;
+    size_t commandIndex;
     bool structReturned = false;
 
-    /* See if the structure being returned is actually from the pool. */
-    if( ( pCommandToRelease >= commandStructurePool ) &&
-        ( pCommandToRelease < ( commandStructurePool + MQTT_COMMAND_CONTEXTS_POOL_SIZE ) ) )
+    /* Calculate the index of the struct. */
+    commandIndex = pCommandToRelease - commandStructurePool;
+
+    /* Ensure the structure being returned is actually from the pool. */
+    if( commandIndex < MQTT_COMMAND_CONTEXTS_POOL_SIZE )
     {
-        structReturned = Agent_MessageSend( &commandStructQueue, &pCommandToRelease, 0U );
+        structReturned = ( bool ) xSemaphoreGive( commandSems[ commandIndex ] );
     }
 
     if( structReturned )
     {
         LogDebug( ( "Returned Command Context %d to pool",
-                    ( int ) ( pCommandToRelease - commandStructurePool ) ) );
+                    ( int ) commandIndex ) );
     }
 
     return structReturned;
