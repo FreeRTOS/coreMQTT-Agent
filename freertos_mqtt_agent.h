@@ -144,8 +144,8 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
  * sequence wants to queue a command as an effect of executing this callback, this
  * callback should notify a different task to enqueue commands to the MQTT agent.
  *
- * @note The context passed to the callback through the @p agentContext parameter
- * MUST remain in scope throughtout the period that the agent task is running.
+ * @note The context passed to the callback through the @p pMqttAgentContext parameter
+ * MUST remain in scope throughout the period that the agent task is running.
  */
 typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
                                              uint16_t packetId,
