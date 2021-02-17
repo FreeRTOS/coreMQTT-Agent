@@ -148,9 +148,6 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
  * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
- *
- * @note The context passed to the callback through the @p pMqttAgentContext parameter
- * MUST remain in scope throughout the period that the agent task is running.
  */
 typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
                                              uint16_t packetId,
