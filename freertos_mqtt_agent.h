@@ -124,10 +124,14 @@ typedef struct CommandContext CommandContext_t;
  * @note A command should not be considered complete until this callback is
  * called, and the arguments that the command uses MUST stay in scope until such happens.
  *
- * @note As this callback is run in the task context of the MQTT agent, a command
- * SHOULD NOT be queued to the agent from within the callback. If the application
- * sequence wants to queue a command as an effect of executing this callback, this
- * callback should notify a different task to enqueue commands to the MQTT agent.
+ * @note The callback MUST NOT block as it runs in the context of the MQTT agent
+ * task. If the callback calls any MQTT Agent API to enqueue a command, the
+ * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
+ * application wants to enqueue command(s) with non-zero blocking time, the
+ * callback can notify a different task to enqueue command(s) to the MQTT agent.
+ *
+ * @note The context passed to the callback through the @p pCmdCallbackContext parameter
+ * MUST remain in scope at least until the callback has been executed by the agent task.
  */
 typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
@@ -139,10 +143,11 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
  * @param[in] packetId The packet ID of the received publish.
  * @param[in] pPublishInfo Deserialized publish information.
  *
- * @note As this callback is run in the task context of the MQTT agent, a command
- * SHOULD NOT be queued to the agent from within the callback. If the application
- * sequence wants to queue a command as an effect of executing this callback, this
- * callback should notify a different task to enqueue commands to the MQTT agent.
+ * @note The callback MUST NOT block as it runs in the context of the MQTT agent
+ * task. If the callback calls any MQTT Agent API to enqueue a command, the
+ * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
+ * application wants to enqueue command(s) with non-zero blocking time, the
+ * callback can notify a different task to enqueue command(s) to the MQTT agent.
  *
  * @note The context passed to the callback through the @p pMqttAgentContext parameter
  * MUST remain in scope throughout the period that the agent task is running.
@@ -225,6 +230,9 @@ struct Command
  * @param[in] incomingCallback The callback to execute when receiving publishes.
  * @param[in] pIncomingPacketContext A pointer to a context structure defined by
  * the application writer.
+ *
+ * @note The @p pIncomingPacketContext context provided for the incoming publish
+ * callback MUST remain in scope throughout the period that the agent task is running.
  *
  * @return Appropriate status code from MQTT_Init().
  */
