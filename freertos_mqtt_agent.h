@@ -129,9 +129,6 @@ typedef struct CommandContext CommandContext_t;
  * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
- *
- * @note The context passed to the callback through the @p pCmdCallbackContext parameter
- * MUST remain in scope at least until the callback has been executed by the agent task.
  */
 typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
@@ -276,6 +273,10 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
+ *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
  */
@@ -295,6 +296,10 @@ MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
+ *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
  */
@@ -313,6 +318,10 @@ MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
  *  - blockTimeMs The maximum amount of time in milliseconds to wait for the
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
+ *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
  *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
@@ -349,6 +358,10 @@ MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTAgentContext_t * pMqttAgentContex
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
+ *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
  */
@@ -368,6 +381,10 @@ MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
+ *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
  */
@@ -386,6 +403,10 @@ MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
+ *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
  */
@@ -402,6 +423,10 @@ MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
  *  - blockTimeMs The maximum amount of time in milliseconds to wait for the
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
+ *
+ * @note The context passed to the callback through pCmdContext member of
+ * @p pCommandInfo parameter MUST remain in scope at least until the callback
+ * has been executed by the agent task.
  *
  * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
  * Otherwise an enumerated error code.
