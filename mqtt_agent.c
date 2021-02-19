@@ -49,7 +49,7 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "freertos_mqtt_agent.h"
+#include "mqtt_agent.h"
 #include "agent_command_pool.h"
 
 /*-----------------------------------------------------------*/

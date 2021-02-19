@@ -32,7 +32,7 @@
 #define AGENT_COMMAND_POOL_H
 
 /* MQTT agent includes. */
-#include "freertos_mqtt_agent.h"
+#include "mqtt_agent.h"
 
 /**
  * @brief Obtain a Command_t structure from the pool of structures managed by the agent.
