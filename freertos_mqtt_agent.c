@@ -74,13 +74,12 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] packetId Packet ID of incoming ack.
- * @param[in] remove Flag indicating if the operation should be removed from the list.
  *
- * @return Stored information about the operation awaiting the ack.
+ * @return Pointer to stored information about the operation awaiting the ack.
+ * Returns NULL if the packet ID is zero or original command does not exist.
  */
-static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                       uint16_t incomingPacketId,
-                                       bool remove );
+static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                         uint16_t incomingPacketId );
 
 /**
  * @brief Populate the parameters of a #Command_t
@@ -147,21 +146,22 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
                                MQTTDeserializedInfo_t * pDeserializedInfo );
 
 /**
- * @brief Add or delete subscription information from a SUBACK or UNSUBACK.
+ * @brief Mark a command as complete after receiving an acknowledgment packet.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] pPacketInfo Pointer to incoming packet.
  * @param[in] pDeserializedInfo Pointer to deserialized information from
  * the incoming packet.
- * @param[in] pAckInfo Pointer to stored information for the original subscribe
- * or unsubscribe operation resulting in the received packet.
- * @param[in] packetType The type of the incoming packet, either SUBACK or UNSUBACK.
+ * @param[in] pAckInfo Pointer to stored information for the original operation
+ * resulting in the received packet.
+ * @param[in] packetType The type of the incoming packet, either SUBACK, UNSUBACK,
+ * PUBACK, or PUBCOMP.
  */
-static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
-                                    MQTTPacketInfo_t * pPacketInfo,
-                                    MQTTDeserializedInfo_t * pDeserializedInfo,
-                                    AckInfo_t * pAckInfo,
-                                    uint8_t packetType );
+static void handleAcks( MQTTAgentContext_t * pAgentContext,
+                        MQTTPacketInfo_t * pPacketInfo,
+                        MQTTDeserializedInfo_t * pDeserializedInfo,
+                        AckInfo_t * pAckInfo,
+                        uint8_t packetType );
 
 /**
  * @brief Retrieve a pointer to an agent context given an MQTT context.
@@ -281,37 +281,38 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static AckInfo_t getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                       uint16_t incomingPacketId,
-                                       bool remove )
+static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                         uint16_t incomingPacketId )
 {
     size_t i = 0;
-    AckInfo_t foundAck = { 0 };
-    AckInfo_t * pendingAcks = pAgentContext->pPendingAcks;
+    AckInfo_t * pFoundAck = NULL;
+
+    assert( pAgentContext != NULL );
 
     /* Look through the array of packet IDs that are still waiting to be acked to
      * find one with incomingPacketId. */
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
-        if( pendingAcks[ i ].packetId == incomingPacketId )
+        if( pAgentContext->pPendingAcks[ i ].packetId == incomingPacketId )
         {
-            foundAck = pendingAcks[ i ];
-
-            if( remove )
-            {
-                pendingAcks[ i ].packetId = MQTT_PACKET_ID_INVALID;
-            }
-
+            pFoundAck = &( pAgentContext->pPendingAcks[ i ] );
             break;
         }
     }
 
-    if( foundAck.packetId == MQTT_PACKET_ID_INVALID )
+    if( pFoundAck == NULL )
     {
         LogError( ( "No ack found for packet id %u.\n", incomingPacketId ) );
     }
+    else if( ( pFoundAck->pOriginalCommand == NULL ) || ( pFoundAck->packetId == 0U ) )
+    {
+        LogError( ( "Found ack had empty fields. PacketId=%hu, Original Command=%p",
+                    ( unsigned short ) pFoundAck->packetId,
+                    ( void * ) pFoundAck->pOriginalCommand ) );
+        pFoundAck = NULL;
+    }
 
-    return foundAck;
+    return pFoundAck;
 }
 
 /*-----------------------------------------------------------*/
@@ -599,11 +600,11 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
-                                    MQTTPacketInfo_t * pPacketInfo,
-                                    MQTTDeserializedInfo_t * pDeserializedInfo,
-                                    AckInfo_t * pAckInfo,
-                                    uint8_t packetType )
+static void handleAcks( MQTTAgentContext_t * pAgentContext,
+                        MQTTPacketInfo_t * pPacketInfo,
+                        MQTTDeserializedInfo_t * pDeserializedInfo,
+                        AckInfo_t * pAckInfo,
+                        uint8_t packetType )
 {
     CommandContext_t * pAckContext = NULL;
     CommandCallback_t ackCallback = NULL;
@@ -611,6 +612,7 @@ static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
     MQTTAgentReturnInfo_t returnInfo = { 0 };
 
     assert( pAckInfo != NULL );
+    assert( pAckInfo->pOriginalCommand != NULL );
 
     pAckContext = pAckInfo->pOriginalCommand->pCmdContext;
     ackCallback = pAckInfo->pOriginalCommand->pCommandCompleteCallback;
@@ -625,6 +627,8 @@ static void handleSubscriptionAcks( MQTTAgentContext_t * pAgentContext,
     }
 
     Agent_ReleaseCommand( pAckInfo->pOriginalCommand );
+    /* Clear the entry from the list. */
+    memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
 }
 
 /*-----------------------------------------------------------*/
@@ -642,11 +646,9 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
                                MQTTPacketInfo_t * pPacketInfo,
                                MQTTDeserializedInfo_t * pDeserializedInfo )
 {
-    AckInfo_t ackInfo;
+    AckInfo_t * pAckInfo;
     uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
-    CommandCallback_t ackCallback = NULL;
     MQTTAgentContext_t * pAgentContext;
-    MQTTAgentReturnInfo_t returnInfo = { 0 };
     const uint8_t upperNibble = ( uint8_t ) 0xF0;
 
     assert( pMqttContext != NULL );
@@ -673,39 +675,23 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
         {
             case MQTT_PACKET_TYPE_PUBACK:
             case MQTT_PACKET_TYPE_PUBCOMP:
-                ackInfo = getAwaitingOperation( pAgentContext, packetIdentifier, true );
-
-                if( ackInfo.packetId == packetIdentifier )
-                {
-                    ackCallback = ackInfo.pOriginalCommand->pCommandCompleteCallback;
-
-                    if( ackCallback != NULL )
-                    {
-                        returnInfo.returnCode = pDeserializedInfo->deserializationResult;
-                        ackCallback( ackInfo.pOriginalCommand->pCmdContext,
-                                     &returnInfo );
-                    }
-
-                    Agent_ReleaseCommand( ackInfo.pOriginalCommand );
-                }
-
-                break;
-
             case MQTT_PACKET_TYPE_SUBACK:
             case MQTT_PACKET_TYPE_UNSUBACK:
-                ackInfo = getAwaitingOperation( pAgentContext, packetIdentifier, true );
+                pAckInfo = getAwaitingOperation( pAgentContext, packetIdentifier );
 
-                if( ackInfo.packetId == packetIdentifier )
+                if( pAckInfo != NULL )
                 {
-                    handleSubscriptionAcks( pAgentContext,
-                                            pPacketInfo,
-                                            pDeserializedInfo,
-                                            &ackInfo,
-                                            pPacketInfo->type );
+                    /* This function will also clear the memory associated with
+                     * the ack list entry. */
+                    handleAcks( pAgentContext,
+                                pPacketInfo,
+                                pDeserializedInfo,
+                                pAckInfo,
+                                pPacketInfo->type );
                 }
                 else
                 {
-                    LogError( ( "No subscription or unsubscribe operation found matching packet id %u.\n", packetIdentifier ) );
+                    LogError( ( "No operation found matching packet id %u.\n", packetIdentifier ) );
                 }
 
                 break;
@@ -896,19 +882,19 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
         {
             MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
             uint16_t packetId = MQTT_PACKET_ID_INVALID;
-            AckInfo_t foundAck;
+            AckInfo_t * pFoundAck = NULL;
 
             packetId = MQTT_PublishToResend( pMqttContext, &cursor );
 
             while( packetId != MQTT_PACKET_ID_INVALID )
             {
                 /* Retrieve the operation but do not remove it from the list. */
-                foundAck = getAwaitingOperation( pMqttAgentContext, packetId, false );
+                pFoundAck = getAwaitingOperation( pMqttAgentContext, packetId );
 
-                if( foundAck.packetId == packetId )
+                if( pFoundAck != NULL )
                 {
                     /* Set the DUP flag. */
-                    originalPublish = ( MQTTPublishInfo_t * ) ( foundAck.pOriginalCommand->pArgs );
+                    originalPublish = ( MQTTPublishInfo_t * ) ( pFoundAck->pOriginalCommand->pArgs );
                     originalPublish->dup = true;
                     statusResult = MQTT_Publish( pMqttContext, originalPublish, packetId );
 
@@ -945,7 +931,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
                     }
 
                     /* Now remove it from the list. */
-                    getAwaitingOperation( pMqttAgentContext, pendingAcks[ i ].packetId, true );
+                    memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
                 }
             }
         }
