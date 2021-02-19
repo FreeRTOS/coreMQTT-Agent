@@ -468,6 +468,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     bool runProcessLoops = true;
     const uint32_t processLoopTimeoutMs = 0;
     MQTTAgentReturnInfo_t returnInfo = { 0 };
+    MQTTAgentConnectArgs_t * pConnectArgs = NULL;
 
     assert( pMqttAgentContext != NULL );
 
@@ -525,7 +526,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
                 break;
 
             case CONNECT:
-                MQTTAgentConnectArgs_t * pConnectArgs = ( MQTTAgentConnectArgs_t * ) ( pCommand->pArgs );
+                pConnectArgs = ( MQTTAgentConnectArgs_t * ) ( pCommand->pArgs );
                 operationStatus = MQTT_Connect( pMQTTContext,
                                                 pConnectArgs->pConnectInfo,
                                                 pConnectArgs->pWillInfo,
