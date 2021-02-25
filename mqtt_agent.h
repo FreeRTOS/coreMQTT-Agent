@@ -79,7 +79,8 @@ typedef enum CommandType
     PING,        /**< @brief Call MQTT_Ping(). */
     CONNECT,     /**< @brief Call MQTT_Connect(). */
     DISCONNECT,  /**< @brief Call MQTT_Disconnect(). */
-    TERMINATE    /**< @brief Exit the command loop and stop processing commands. */
+    TERMINATE,   /**< @brief Exit the command loop and stop processing commands. */
+    NUM_COMMANDS /**< @brief The number of command types handled by the agent. */
 } CommandType_t;
 
 struct MQTTAgentContext;

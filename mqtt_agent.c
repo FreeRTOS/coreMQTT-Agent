@@ -51,6 +51,11 @@
 /* MQTT agent include. */
 #include "mqtt_agent.h"
 #include "agent_command_pool.h"
+#include "mqtt_agent_command_functions.h"
+
+/*-----------------------------------------------------------*/
+
+const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
 
 /*-----------------------------------------------------------*/
 
@@ -127,11 +132,13 @@ static MQTTStatus_t addCommandToQueue( AgentMessageContext_t * pQueue,
  *
  * @param[in] pMqttAgentContext Agent context for MQTT connection.
  * @param[in] pCommand Pointer to command to process.
+ * @param[out] pEndLoop Whether the command loop should terminate.
  *
  * @return status of MQTT library API call.
  */
 static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
-                                    Command_t * pCommand );
+                                    Command_t * pCommand,
+                                    bool * pEndLoop );
 
 /**
  * @brief Dispatch incoming publishes and acks to their various handler functions.
@@ -457,144 +464,80 @@ static MQTTStatus_t addCommandToQueue( AgentMessageContext_t * pQueue,
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
-                                    Command_t * pCommand ) /*_RB_ Break up into sub-functions. */
+                                    Command_t * pCommand,
+                                    bool * pEndLoop )
 {
     MQTTStatus_t operationStatus = MQTTSuccess;
-    uint16_t packetId = MQTT_PACKET_ID_INVALID;
-    bool addAckToList = false, ackAdded = false;
-    MQTTPublishInfo_t * pPublishInfo;
-    MQTTAgentSubscribeArgs_t * pSubscribeArgs;
-    MQTTContext_t * pMQTTContext;
-    bool runProcessLoops = true;
-    const uint32_t processLoopTimeoutMs = 0;
+    bool ackAdded = false;
     MQTTAgentReturnInfo_t returnInfo = { 0 };
-    MQTTAgentConnectArgs_t * pConnectArgs = NULL;
+    MQTTAgentCommandFunc_t commandFunction = NULL;
+    void * pCommandArgs = NULL;
+    const uint32_t processLoopTimeoutMs = 0U;
+    uint8_t commandOutFlags = 0U;
+    MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
     assert( pMqttAgentContext != NULL );
-
-    pMQTTContext = &( pMqttAgentContext->mqttContext );
+    assert( pEndLoop != NULL );
 
     if( pCommand != NULL )
     {
-        switch( pCommand->commandType )
-        {
-            case PUBLISH:
-                pPublishInfo = ( MQTTPublishInfo_t * ) ( pCommand->pArgs );
+        assert( pCommand->commandType < NUM_COMMANDS );
+        commandFunction = pCommandFunctionTable[ pCommand->commandType ];
+        pCommandArgs = pCommand->pArgs;
+    }
+    else
+    {
+        commandFunction = pCommandFunctionTable[ NONE ];
+    }
 
-                if( pPublishInfo->qos != MQTTQoS0 )
-                {
-                    packetId = MQTT_GetPacketId( pMQTTContext );
-                }
+    operationStatus = commandFunction( pMqttAgentContext, pCommandArgs, &commandOutParams );
 
-                LogInfo( ( "Publishing message to %.*s.\n", ( int ) pPublishInfo->topicNameLength, pPublishInfo->pTopicName ) );
-                operationStatus = MQTT_Publish( pMQTTContext, pPublishInfo, packetId );
+    if( commandOutParams.addAcknowledgment )
+    {
+        ackAdded = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
 
-                /* Add to pending ack list, or call callback if QoS 0. */
-                addAckToList = ( pPublishInfo->qos != MQTTQoS0 ) && ( operationStatus == MQTTSuccess );
-
-                break;
-
-            case SUBSCRIBE:
-            case UNSUBSCRIBE:
-                pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) ( pCommand->pArgs );
-                packetId = MQTT_GetPacketId( pMQTTContext );
-
-                if( pCommand->commandType == SUBSCRIBE )
-                {
-                    /* Even if some subscriptions already exist in the subscription list,
-                     * it is fine to send another subscription request. A valid use case
-                     * for this is changing the maximum QoS of the subscription. */
-                    operationStatus = MQTT_Subscribe( pMQTTContext,
-                                                      pSubscribeArgs->pSubscribeInfo,
-                                                      pSubscribeArgs->numSubscriptions,
-                                                      packetId );
-                }
-                else
-                {
-                    operationStatus = MQTT_Unsubscribe( pMQTTContext,
-                                                        pSubscribeArgs->pSubscribeInfo,
-                                                        pSubscribeArgs->numSubscriptions,
-                                                        packetId );
-                }
-
-                addAckToList = ( operationStatus == MQTTSuccess );
-                break;
-
-            case PING:
-                operationStatus = MQTT_Ping( pMQTTContext );
-
-                break;
-
-            case CONNECT:
-                pConnectArgs = ( MQTTAgentConnectArgs_t * ) ( pCommand->pArgs );
-                operationStatus = MQTT_Connect( pMQTTContext,
-                                                pConnectArgs->pConnectInfo,
-                                                pConnectArgs->pWillInfo,
-                                                pConnectArgs->timeoutMs,
-                                                &( pConnectArgs->sessionPresent ) );
-                break;
-
-            case DISCONNECT:
-                operationStatus = MQTT_Disconnect( pMQTTContext );
-                runProcessLoops = false;
-
-                break;
-
-            case TERMINATE:
-                LogInfo( ( "Terminating command loop.\n" ) );
-                runProcessLoops = false;
-
-            default:
-                break;
-        }
-
-        if( addAckToList )
-        {
-            ackAdded = addAwaitingOperation( pMqttAgentContext, packetId, pCommand );
-
-            /* Set the return status if no memory was available to store the operation
-             * information. */
-            if( !ackAdded )
-            {
-                LogError( ( "No memory to wait for acknowledgment for packet %u\n", packetId ) );
-
-                /* All operations that can wait for acks (publish, subscribe,
-                 * unsubscribe) require a context. */
-                operationStatus = MQTTNoMemory;
-            }
-        }
-
+        /* Set the return status if no memory was available to store the operation
+         * information. */
         if( !ackAdded )
         {
-            /* The command is complete, call the callback. */
-            if( pCommand->pCommandCompleteCallback != NULL )
-            {
-                returnInfo.returnCode = operationStatus;
-                pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
-            }
+            LogError( ( "No memory to wait for acknowledgment for packet %u\n", commandOutParams.packetId ) );
 
-            Agent_ReleaseCommand( pCommand );
+            /* All operations that can wait for acks (publish, subscribe,
+             * unsubscribe) require a context. */
+            operationStatus = MQTTNoMemory;
         }
     }
 
-    /* Don't run process loops if there was an error or disconnect. */
-    runProcessLoops = ( operationStatus != MQTTSuccess ) ? false : runProcessLoops;
+    if( ( pCommand != NULL ) && ( ackAdded != true ) )
+    {
+        /* The command is complete, call the callback. */
+        if( pCommand->pCommandCompleteCallback != NULL )
+        {
+            returnInfo.returnCode = operationStatus;
+            pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
+        }
+
+        Agent_ReleaseCommand( pCommand );
+    }
 
     /* Run the process loop if there were no errors and the MQTT connection
      * still exists. */
-    if( runProcessLoops )
+    if( ( operationStatus == MQTTSuccess ) && commandOutParams.runProcessLoop )
     {
         do
         {
             pMqttAgentContext->packetReceivedInLoop = false;
 
             if( ( operationStatus == MQTTSuccess ) &&
-                ( pMQTTContext->connectStatus == MQTTConnected ) )
+                ( pMqttAgentContext->mqttContext.connectStatus == MQTTConnected ) )
             {
-                operationStatus = MQTT_ProcessLoop( pMQTTContext, processLoopTimeoutMs );
+                operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ), processLoopTimeoutMs );
             }
         } while( pMqttAgentContext->packetReceivedInLoop );
     }
+
+    /* Set the flag to break from the command loop. */
+    *pEndLoop = ( commandOutParams.endLoop || ( operationStatus != MQTTSuccess ) );
 
     return operationStatus;
 }
@@ -814,6 +757,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     Command_t * pCommand;
     MQTTStatus_t operationStatus = MQTTSuccess;
     CommandType_t currentCommandType = NONE;
+    bool endLoop = false;
 
     /* The command queue should have been created before this task gets created. */
     assert( pMqttAgentContext->pMessageCtx );
@@ -831,22 +775,16 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
         ( void ) Agent_MessageReceive( pMqttAgentContext->pMessageCtx, &( pCommand ), MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME );
         /* Set the command type in case the command is released while processing. */
         currentCommandType = ( pCommand ) ? pCommand->commandType : NONE;
-        operationStatus = processCommand( pMqttAgentContext, pCommand );
+        operationStatus = processCommand( pMqttAgentContext, pCommand, &endLoop );
 
-        /* Return the current MQTT context on disconnect or error. */
-        if( ( currentCommandType == DISCONNECT ) || ( operationStatus != MQTTSuccess ) )
+        if( operationStatus != MQTTSuccess )
         {
-            if( operationStatus != MQTTSuccess )
-            {
-                LogError( ( "MQTT operation failed with status %s\n",
-                            MQTT_Status_strerror( operationStatus ) ) );
-            }
-
-            break;
+            LogError( ( "MQTT operation failed with status %s\n",
+                        MQTT_Status_strerror( operationStatus ) ) );
         }
 
-        /* Terminate the loop if we receive the termination command. */
-        if( currentCommandType == TERMINATE )
+        /* Terminate the loop on disconnects, errors, or the termination command. */
+        if( endLoop )
         {
             break;
         }
