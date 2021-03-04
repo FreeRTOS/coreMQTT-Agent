@@ -35,6 +35,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/**
+ * @ingroup mqtt_agent_struct_types
+ * @brief Context with which tasks may deliver messages to the agent.
+ */
 struct AgentMessageContext;
 typedef struct AgentMessageContext AgentMessageContext_t;
 
@@ -45,7 +49,7 @@ typedef struct AgentMessageContext AgentMessageContext_t;
  * Must be thread safe.
  *
  * @param[in] pMsgCtx An #AgentMessageContext_t.
- * @param[in] data Pointer to element to send to queue.
+ * @param[in] pData Pointer to element to send to queue.
  * @param[in] blockTimeMs Block time to wait for a send.
  *
  * @return `true` if send was successful, else `false`.

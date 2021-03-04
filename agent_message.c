@@ -42,6 +42,10 @@
 
 /*-----------------------------------------------------------*/
 
+/**
+ * @ingroup mqtt_agent_struct_types
+ * @brief Context with which tasks may deliver messages to the agent.
+ */
 struct AgentMessageContext
 {
     QueueHandle_t queue;

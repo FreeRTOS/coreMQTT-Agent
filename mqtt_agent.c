@@ -39,8 +39,6 @@
  * APIs are prefixed "MQTT_", the agent APIs are prefixed "MQTTAgent_".  For example,
  * that agent's MQTTAgent_Publish() API is the thread safe equivalent to coreMQTT's
  * MQTT_Publish() API.
- *
- * See https://www.FreeRTOS.org/mqtt_agent for examples and usage information.
  */
 
 /* Standard includes. */
@@ -78,7 +76,7 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * remove it from the list.
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] packetId Packet ID of incoming ack.
+ * @param[in] incomingPacketId Packet ID of incoming ack.
  *
  * @return Pointer to stored information about the operation awaiting the ack.
  * Returns NULL if the packet ID is zero or original command does not exist.
@@ -220,15 +218,6 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
  * false;
  */
 static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext );
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Flag that is set to true in the application callback to let the agent know
- * that calling MQTT_ProcessLoop() resulted in events on the connected socket.  If
- * the flag gets set to true then MQTT_ProcessLoop() is called again as there may be
- * more received data waiting to be processed.
- */
-static bool packetProcessedDuringLoop = false;
 
 /*-----------------------------------------------------------*/
 

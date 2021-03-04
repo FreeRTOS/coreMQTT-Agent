@@ -67,6 +67,7 @@
 /*-----------------------------------------------------------*/
 
 /**
+ * @ingroup mqtt_agent_enum_types
  * @brief A type of command for interacting with the MQTT API.
  */
 typedef enum CommandType
@@ -90,6 +91,7 @@ struct Command;
 typedef struct Command            Command_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Struct holding return codes and outputs from a command
  */
 typedef struct MQTTAgentReturnInfo
@@ -99,6 +101,7 @@ typedef struct MQTTAgentReturnInfo
 } MQTTAgentReturnInfo_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Information for a pending MQTT ack packet expected by the agent.
  */
 typedef struct ackInfo
@@ -108,6 +111,7 @@ typedef struct ackInfo
 } AckInfo_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Struct containing context for a specific command.
  *
  * @note An instance of this struct and any variables it points to MUST stay
@@ -117,6 +121,7 @@ struct CommandContext;
 typedef struct CommandContext CommandContext_t;
 
 /**
+ * @ingroup mqtt_agent_callback_types
  * @brief Callback function called when a command completes.
  *
  * @param[in] pCmdCallbackContext The callback context passed to the original command.
@@ -135,6 +140,7 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
 
 /**
+ * @ingroup mqtt_agent_callback_types
  * @brief Callback function called when receiving a publish.
  *
  * @param[in] pMqttAgentContext The context of the MQTT agent.
@@ -152,67 +158,72 @@ typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentCont
                                              MQTTPublishInfo_t * pPublishInfo );
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Information used by each MQTT agent. A context will be initialized by
  * MQTTAgent_Init(), and every API function will accept a pointer to the
  * initalized struct.
  */
 struct MQTTAgentContext
 {
-    MQTTContext_t mqttContext;
-    AgentMessageContext_t * pMessageCtx;
-    AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-    IncomingPublishCallback_t pIncomingCallback;
-    void * pIncomingCallbackContext;
-    bool packetReceivedInLoop;
+    MQTTContext_t mqttContext;                                 /**< MQTT connection information used by coreMQTT. */
+    AgentMessageContext_t * pMessageCtx;                       /**< Context used to deliver messages to the agent. */
+    AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
+    IncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
+    void * pIncomingCallbackContext;                           /**< Context for incoming publish callback. */
+    bool packetReceivedInLoop;                                 /**< Whether a MQTT_ProcessLoop() call received a packet. */
 };
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Struct holding arguments for a SUBSCRIBE or UNSUBSCRIBE call.
  */
 typedef struct MQTTAgentSubscribeArgs
 {
-    MQTTSubscribeInfo_t * pSubscribeInfo;
-    size_t numSubscriptions;
+    MQTTSubscribeInfo_t * pSubscribeInfo; /**< @brief List of MQTT subscriptions. */
+    size_t numSubscriptions;              /**< @brief Number of elements in `pSubscribeInfo`. */
 } MQTTAgentSubscribeArgs_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Struct holding arguments for a CONNECT call.
  */
 typedef struct MQTTAgentConnectArgs
 {
-    MQTTConnectInfo_t * pConnectInfo;
-    MQTTPublishInfo_t * pWillInfo;
-    uint32_t timeoutMs;
-    bool sessionPresent;
+    MQTTConnectInfo_t * pConnectInfo; /**< @brief MQTT CONNECT packet information. */
+    MQTTPublishInfo_t * pWillInfo;    /**< @brief Optional Last Will and Testament. */
+    uint32_t timeoutMs;               /**< @brief Maximum timeout for a CONNACK packet. */
+    bool sessionPresent;              /**< @brief Output flag set if a previous session was present. */
 } MQTTAgentConnectArgs_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief Struct holding arguments that are common to every command.
  */
 typedef struct CommandInfo
 {
-    CommandCallback_t cmdCompleteCallback;
-    CommandContext_t * pCmdCompleteCallbackContext;
-    uint32_t blockTimeMs;
+    CommandCallback_t cmdCompleteCallback;          /**< @brief Callback to invoke upon completion. */
+    CommandContext_t * pCmdCompleteCallbackContext; /**< @brief Context for completion callback. */
+    uint32_t blockTimeMs;                           /**< @brief Maximum block time for enqueueing the command. */
 } CommandInfo_t;
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief The commands sent from the APIs to the MQTT agent task.
  *
  * @note The structure used to pass information from the public facing API into the
  * agent task. */
 struct Command
 {
-    CommandType_t commandType;
-    void * pArgs;
-    CommandCallback_t pCommandCompleteCallback;
-    CommandContext_t * pCmdContext;
+    CommandType_t commandType;                  /**< @brief Type of command. */
+    void * pArgs;                               /**< @brief Arguments of command. */
+    CommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
+    CommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
 };
 
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Perform any initialisation the MQTT agent requires before it can
+ * @brief Perform any initialization the MQTT agent requires before it can
  * be used. Must be called before any other function.
  *
  * @param[in] pMqttAgentContext Pointer to struct to initialize.
@@ -231,6 +242,7 @@ struct Command
  *
  * @return Appropriate status code from MQTT_Init().
  */
+/* @[declare_mqtt_agent_init] */
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              AgentMessageContext_t * pMsgCtx,
                              MQTTFixedBuffer_t * pNetworkBuffer,
@@ -238,6 +250,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
                              IncomingPublishCallback_t incomingCallback,
                              void * pIncomingPacketContext );
+/* @[declare_mqtt_agent_init] */
 
 /**
  * @brief Process commands from the command queue in a loop.
@@ -247,7 +260,9 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  * @return appropriate error code, or `MQTTSuccess` from a successful disconnect
  * or termination.
  */
+/* @[declare_mqtt_agent_commandloop] */
 MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
+/* @[declare_mqtt_agent_commandloop] */
 
 /**
  * @brief Resume a session by resending publishes if a session is present in
@@ -259,14 +274,16 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * @return `MQTTSuccess` if it succeeds in resending publishes, else an
  * appropriate error code from `MQTT_Publish()`
  */
+/* @[declare_mqtt_agent_resumesession] */
 MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
                                       bool sessionPresent );
+/* @[declare_mqtt_agent_resumesession] */
 
 /**
  * @brief Add a command to call MQTT_Subscribe() for an MQTT connection.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
- * @param[in] pSubscriptionInfo Struct describing topic to subscribe to.
+ * @param[in] pSubscriptionArgs Struct describing topic to subscribe to.
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
  *  - pCmdCompleteCallbackContext Optional completion callback context.
@@ -278,18 +295,20 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_subscribe] */
 MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
                                   CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_subscribe] */
 
 /**
  * @brief Add a command to call MQTT_Unsubscribe() for an MQTT connection.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
- * @param[in] pSubscriptionList List of topics to unsubscribe from.
+ * @param[in] pSubscriptionArgs List of topics to unsubscribe from.
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
  *  - pCmdCompleteCallbackContext Optional completion callback context.
@@ -301,12 +320,14 @@ MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_unsubscribe] */
 MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
                                     CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_unsubscribe] */
 
 /**
  * @brief Add a command to call MQTT_Publish() for an MQTT connection.
@@ -324,12 +345,14 @@ MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_publish] */
 MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
                                 CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_publish] */
 
 /**
  * @brief Send a message to the MQTT agent purely to trigger an iteration of its loop,
@@ -342,11 +365,13 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
  * command to be posted to the MQTT agent, should the agent's event queue be
  * full.  Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_processloop] */
 MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
                                            uint32_t blockTimeMs );
+/* @[declare_mqtt_agent_processloop] */
 
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
@@ -363,11 +388,13 @@ MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTAgentContext_t * pMqttAgentContex
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_ping] */
 MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
                              CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_ping] */
 
 /**
  * @brief Add a command to call MQTT_Connect() for an MQTT connection. If a session
@@ -386,12 +413,14 @@ MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_connect] */
 MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTAgentConnectArgs_t * pConnectArgs,
                                 CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_connect] */
 
 /**
  * @brief Add a command to disconnect an MQTT connection.
@@ -408,11 +437,13 @@ MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_disconnect] */
 MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
                                    CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_disconnect] */
 
 /**
  * @brief Add a termination command to the command queue.
@@ -429,10 +460,12 @@ MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agents event queue.
+ * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
+/* @[declare_mqtt_agent_terminate] */
 MQTTStatus_t MQTTAgent_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                   CommandInfo_t * pCommandInfo );
+/* @[declare_mqtt_agent_terminate] */
 
 #endif /* MQTT_AGENT_H */
