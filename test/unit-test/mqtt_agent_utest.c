@@ -55,8 +55,7 @@ static uint32_t globalEntryTime = 0;
 /* Called before each test method. */
 void setUp()
 {
-    memset( mqttBuffer, 0x0, sizeof( mqttBuffer ) );
-    MQTT_State_strerror_IgnoreAndReturn( "DUMMY_MQTT_STATE" );
+
 
     globalEntryTime = 0;
 }
