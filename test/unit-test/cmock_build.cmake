@@ -4,8 +4,8 @@ macro( clone_cmock )
         message( "Cloning submodule CMock." )
         execute_process( COMMAND rm -rf ${CMOCK_DIR}
                          COMMAND ${GIT_EXECUTABLE} submodule update --checkout --init --recursive ${CMOCK_DIR}
-                        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                        RESULT_VARIABLE CMOCK_CLONE_RESULT )
+                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                         RESULT_VARIABLE CMOCK_CLONE_RESULT )
 
         if( NOT ${CMOCK_CLONE_RESULT} STREQUAL "0" )
                 message( FATAL_ERROR "Failed to clone CMock submodule." )

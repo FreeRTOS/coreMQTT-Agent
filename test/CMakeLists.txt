@@ -36,13 +36,15 @@ include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/mqttFilePaths.cmake )
 include( ${MODULE_ROOT_DIR}/mqttAgentFilePaths.cmake )
 # Target for Coverity analysis that builds the library.
 add_library( coverity_analysis
-             ${MQTT_AGENT_SOURCES} )
+             ${MQTT_AGENT_SOURCES} 
+             ${MQTT_SOURCES} 
+             ${MQTT_SERIALIZER_SOURCES} )
 
 # Build MQTT library target without custom config dependency.
 target_compile_definitions( coverity_analysis PUBLIC MQTT_DO_NOT_USE_CUSTOM_CONFIG=1 )
 
 # MQTT AGENT public include path.
-target_include_directories( coverity_analysis PUBLIC ${MQTT_AGENT_INCLUDE_PUBLIC_DIRS} )
+target_include_directories( coverity_analysis PUBLIC ${MQTT_AGENT_INCLUDE_PUBLIC_DIRS} ${MQTT_INCLUDE_PUBLIC_DIRS} )
 
 #  ====================================  Test Configuration ========================================
 
