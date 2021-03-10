@@ -1,5 +1,5 @@
 # Include filepaths for source and include.
-include( ${MODULE_ROOT_DIR}/mqttFilePaths.cmake )
+include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/mqttFilePaths.cmake )
 include( ${MODULE_ROOT_DIR}/mqttAgentFilePaths.cmake )
 
 # ====================  Define your project name (edit) ========================
@@ -15,7 +15,9 @@ list(APPEND mock_list
 list(APPEND mock_include_list
             .
             ${CMAKE_CURRENT_LIST_DIR}/logging
+            ${CMAKE_CURRENT_LIST_DIR}/config
             ${MQTT_AGENT_INCLUDE_PUBLIC_DIRS}
+            ${MQTT_INCLUDE_PUBLIC_DIRS}
         )
 #list the definitions of your mocks to control what to be included
 list(APPEND mock_define_list
@@ -32,7 +34,9 @@ list(APPEND real_source_files
 list(APPEND real_include_directories
             .
             ${CMAKE_CURRENT_LIST_DIR}/logging
+            ${CMAKE_CURRENT_LIST_DIR}/config
             ${MQTT_AGENT_INCLUDE_PUBLIC_DIRS}
+            ${MQTT_INCLUDE_PUBLIC_DIRS}
         )
 
 # =====================  Create UnitTest Code here (edit)  =====================
@@ -50,7 +54,7 @@ set(real_name "${project_name}_real")
 
 create_mock_list(${mock_name}
                 "${mock_list}"
-                "${MODULE_ROOT_DIR}/coreMQTT/tools/cmock/project.yml"
+                "${MODULE_ROOT_DIR}/tools/cmock/project.yml"
                 "${mock_include_list}"
                 "${mock_define_list}"
         )

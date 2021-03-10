@@ -32,7 +32,7 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 # ===================================== Coverity Analysis Configuration =================================================
 
 # Include filepaths for source and include.
-include( ${MODULE_ROOT_DIR}/mqttFilePaths.cmake )
+include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/mqttFilePaths.cmake )
 
 # Target for Coverity analysis that builds the library.
 add_library( coverity_analysis
@@ -74,7 +74,7 @@ enable_testing()
 add_cmock_targets()
 
 # Add function to enable CMock based tests and coverage.
-include( ${MODULE_ROOT_DIR}/tools/cmock/create_test.cmake )
+include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/tools/cmock/create_test.cmake )
 
 # Include build configuration for unit tests.
 add_subdirectory( unit-test )

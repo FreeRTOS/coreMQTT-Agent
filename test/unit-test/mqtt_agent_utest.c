@@ -55,8 +55,6 @@ static uint32_t globalEntryTime = 0;
 /* Called before each test method. */
 void setUp()
 {
-
-
     globalEntryTime = 0;
 }
 
@@ -76,67 +74,6 @@ int suiteTearDown( int numFailures )
     return numFailures;
 }
 
-/* ========================================================================== */
-
-/**
- * @brief Mocked successful transport send.
- *
- * @param[in] tcpSocket TCP socket.
- * @param[in] pMessage Data to send.
- * @param[in] bytesToWrite Length of data to send.
- *
- * @return Number of bytes sent; negative value on error;
- * 0 for timeout or 0 bytes sent.
- */
-static int32_t transportSendSuccess( NetworkContext_t * pNetworkContext,
-                                     const void * pBuffer,
-                                     size_t bytesToWrite )
-{
-    TEST_ASSERT_EQUAL( MQTT_SAMPLE_NETWORK_CONTEXT, pNetworkContext );
-    ( void ) pBuffer;
-    return bytesToWrite;
-}
-
-/**
- * @brief Mocked successful transport read.
- *
- * @param[in] tcpSocket TCP socket.
- * @param[out] pBuffer Buffer for receiving data.
- * @param[in] bytesToRead Size of pBuffer.
- *
- * @return Number of bytes received; negative value on error.
- */
-static int32_t transportRecvSuccess( NetworkContext_t * pNetworkContext,
-                                     void * pBuffer,
-                                     size_t bytesToRead )
-{
-    TEST_ASSERT_EQUAL( MQTT_SAMPLE_NETWORK_CONTEXT, pNetworkContext );
-    ( void ) pBuffer;
-    return bytesToRead;
-}
-
-
-/**
- * @brief Initialize the transport interface with the mocked functions for
- * send and receive.
- *
- * @brief param[in] pTransport The transport interface to use with the context.
- */
-static void setupTransportInterface( TransportInterface_t * pTransport )
-{
-    pTransport->pNetworkContext = MQTT_SAMPLE_NETWORK_CONTEXT;
-    pTransport->send = transportSendSuccess;
-    pTransport->recv = transportRecvSuccess;
-}
-
-/**
- * @brief A mocked timer query function that increments on every call.
- */
-static uint32_t getTime( void )
-{
-    return globalEntryTime++;
-}
-/* ========================================================================== */
 
 /**
  * @brief Test that MQTTAgent_Init is able to update the context object correctly.
@@ -145,21 +82,6 @@ static uint32_t getTime( void )
 void test_MQTTAgent_Init_Happy_Path( void )
 {
 
-    MQTTAgentContext_t mqttAgentContext;
-    AgentMessageContext_t msgCtx;
-    MQTTFixedBuffer_t networkBuffer;
-    TransportInterface_t transportInterface;
-    IncomingPublishCallback_t incomingCallback;
-    void incomingPacketContext;
-    MQTTStatus_t mqttStatus;
-
-    //Mock MQtt_init
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
-    TEST_ASSERT_FALSE(NULL,mqttAgentContext);
-    TEST_ASSERT_EQUAL_PTR( &incomingCallback, mqttAgentContext.pIncomingCallback );
-    TEST_ASSERT_EQUAL_PTR( &incomingPacketContext, mqttAgentContext.pIncomingCallbackContext );
-    TEST_ASSERT_EQUAL_PTR( &msgCtx,  mqttAgentContext.pMessageCtx );
 
 }
 
@@ -168,36 +90,5 @@ void test_MQTTAgent_Init_Happy_Path( void )
  */
 void test_MQTT_Init_Invalid_Params( void )
 {
-    MQTTAgentContext_t mqttAgentContext;
-    AgentMessageContext_t msgCtx;
-    MQTTFixedBuffer_t networkBuffer;
-    TransportInterface_t transportInterface;
-    IncomingPublishCallback_t incomingCallback;
-    void incomingPacketContext;
-    MQTTStatus_t mqttStatus;
-
-    /* Check that MQTTBadParameter is returned if any NULL parameters are passed. */
-    //Mock MQtt_init
-    mqttStatus = MQTTAgent_Init( NULL, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, NULL, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , NULL, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, NULL , &transportInterface, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, NULL);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    /* Test if NULL is passed for any of the function pointers. */
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, NULL, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, NULL, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
+    
 }
