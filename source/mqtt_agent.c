@@ -983,17 +983,17 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
 
 /*-----------------------------------------------------------*/
 
-MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
-                                           uint32_t blockTimeMs )
+MQTTStatus_t MQTTAgent_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
+                                    CommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn;
 
-    statusReturn = createAndAddCommand( PROCESSLOOP,       /* commandType */
-                                        pMqttAgentContext, /* mqttContextHandle */
-                                        NULL,              /* pMqttInfoParam */
-                                        NULL,              /* commandCompleteCallback */
-                                        NULL,              /* pCommandCompleteCallbackContext */
-                                        blockTimeMs );
+    statusReturn = createAndAddCommand( PROCESSLOOP,                               /* commandType */
+                                        pMqttAgentContext,                         /* mqttContextHandle */
+                                        NULL,                                      /* pMqttInfoParam */
+                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                        pCommandInfo->blockTimeMs );
 
     return statusReturn;
 }
