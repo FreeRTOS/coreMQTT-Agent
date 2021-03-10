@@ -8,10 +8,10 @@
 
 # MQTT Agent library Public Include directories.
 set( MQTT_AGENT_INCLUDE_PUBLIC_DIRS
-     "${CMAKE_CURRENT_LIST_DIR}/source/include"
-     "${CMAKE_CURRENT_LIST_DIR}/source/interface" )
+     "${CMAKE_CURRENT_LIST_DIR}/source/include" )
 
 # MQTT Agent library source files.
 set( MQTT_AGENT_SOURCES
-     "${MODULE_ROOT_DIR}/source/mqtt_agent.c" )
+     "${MODULE_ROOT_DIR}/source/mqtt_agent.c"
+     "${MODULE_ROOT_DIR}/source/mqtt_agent_command_functions.c" )
 
