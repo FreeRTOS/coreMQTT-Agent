@@ -48,7 +48,6 @@
 
 /* MQTT agent include. */
 #include "mqtt_agent.h"
-#include "agent_command_pool.h"
 #include "mqtt_agent_command_functions.h"
 
 /*-----------------------------------------------------------*/
@@ -107,7 +106,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 /**
  * @brief Add a command to the global command queue.
  *
- * @param[in] pQueue Queue to which to add command.
+ * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] pCommand Pointer to command to copy to queue.
  * @param[in] blockTimeMs The maximum amount of time to milliseconds to wait in the
  * Blocked state (so not consuming any CPU time) for the command to be posted to the
@@ -116,7 +115,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
  * @return MQTTSuccess if the command was added to the queue, else an enumerated
  * error code.
  */
-static MQTTStatus_t addCommandToQueue( AgentMessageContext_t * pQueue,
+static MQTTStatus_t addCommandToQueue( MQTTAgentContext_t * pAgentContext,
                                        Command_t * pCommand,
                                        uint32_t blockTimeMs );
 
@@ -430,7 +429,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t addCommandToQueue( AgentMessageContext_t * pQueue,
+static MQTTStatus_t addCommandToQueue( MQTTAgentContext_t * pAgentContext,
                                        Command_t * pCommand,
                                        uint32_t blockTimeMs )
 {
@@ -440,9 +439,13 @@ static MQTTStatus_t addCommandToQueue( AgentMessageContext_t * pQueue,
     /* The application called an API function.  The API function was validated and
      * packed into a Command_t structure.  Now post a reference to the Command_t
      * structure to the MQTT agent for processing. */
-    if( pQueue != NULL )
+    if( pAgentContext != NULL )
     {
-        queueStatus = Agent_MessageSend( pQueue, &pCommand, blockTimeMs );
+        queueStatus = pAgentContext->agentInterface.send(
+            pAgentContext->agentInterface.pMsgCtx,
+            &pCommand,
+            blockTimeMs
+            );
 
         statusReturn = ( queueStatus ) ? MQTTSuccess : MQTTSendFailed;
     }
@@ -506,7 +509,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
             pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
         }
 
-        Agent_ReleaseCommand( pCommand );
+        pMqttAgentContext->agentInterface.releaseCommand( pCommand );
     }
 
     /* Run the process loop if there were no errors and the MQTT connection
@@ -559,7 +562,7 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
         ackCallback( pAckContext, &returnInfo );
     }
 
-    Agent_ReleaseCommand( pAckInfo->pOriginalCommand );
+    pAgentContext->agentInterface.releaseCommand( pAckInfo->pOriginalCommand );
     /* Clear the entry from the list. */
     memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
 }
@@ -666,7 +669,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
      * is the initial value but not a valid packet ID. */
     if( pMqttAgentContext->mqttContext.nextPacketId != 0 )
     {
-        pCommand = Agent_GetCommand( blockTimeMs );
+        pCommand = pMqttAgentContext->agentInterface.getCommand( blockTimeMs );
 
         if( pCommand != NULL )
         {
@@ -679,14 +682,14 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 
             if( statusReturn == MQTTSuccess )
             {
-                statusReturn = addCommandToQueue( pMqttAgentContext->pMessageCtx, pCommand, blockTimeMs );
+                statusReturn = addCommandToQueue( pMqttAgentContext, pCommand, blockTimeMs );
             }
 
             if( statusReturn != MQTTSuccess )
             {
                 /* Could not send the command to the queue so release the command
                  * structure again. */
-                Agent_ReleaseCommand( pCommand );
+                pMqttAgentContext->agentInterface.releaseCommand( pCommand );
             }
         }
         else
@@ -702,7 +705,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             AgentMessageContext_t * pMsgCtx,
+                             AgentMessageInterface_t * pMsgInterface,
                              MQTTFixedBuffer_t * pNetworkBuffer,
                              TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
@@ -712,7 +715,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
     MQTTStatus_t returnStatus;
 
     if( ( pMqttAgentContext == NULL ) ||
-        ( pMsgCtx == NULL ) ||
+        ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
         ( getCurrentTimeMs == NULL ) )
     {
@@ -732,7 +735,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
         {
             pMqttAgentContext->pIncomingCallback = incomingCallback;
             pMqttAgentContext->pIncomingCallbackContext = pIncomingPacketContext;
-            pMqttAgentContext->pMessageCtx = pMsgCtx;
+            pMqttAgentContext->agentInterface = *pMsgInterface;
         }
     }
 
@@ -749,7 +752,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     bool endLoop = false;
 
     /* The command queue should have been created before this task gets created. */
-    assert( pMqttAgentContext->pMessageCtx );
+    assert( pMqttAgentContext->agentInterface.pMsgCtx );
 
     if( pMqttAgentContext == NULL )
     {
@@ -761,7 +764,11 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     {
         /* Wait for the next command, if any. */
         pCommand = NULL;
-        ( void ) Agent_MessageReceive( pMqttAgentContext->pMessageCtx, &( pCommand ), MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME );
+        ( void ) pMqttAgentContext->agentInterface.recv(
+            pMqttAgentContext->agentInterface.pMsgCtx,
+            &( pCommand ),
+            MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
+            );
         /* Set the command type in case the command is released while processing. */
         currentCommandType = ( pCommand ) ? pCommand->commandType : NONE;
         operationStatus = processCommand( pMqttAgentContext, pCommand, &endLoop );
