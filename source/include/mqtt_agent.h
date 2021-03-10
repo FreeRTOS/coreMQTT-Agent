@@ -214,7 +214,6 @@ struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;                                 /**< MQTT connection information used by coreMQTT. */
     AgentMessageInterface_t agentInterface;                    /**< Struct of function pointers for agent messaging. */
-    AgentMessageContext_t * pMessageCtx;                       /**< Context used to deliver messages to the agent. */
     AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
     IncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
     void * pIncomingCallbackContext;                           /**< Context for incoming publish callback. */
