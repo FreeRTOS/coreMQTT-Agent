@@ -238,9 +238,11 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
     /* Cancel all operations waiting in the queue. */
     do
     {
-        commandWasReceived = Agent_MessageReceive( pMqttAgentContext->pMessageCtx,
-                                                   &( pReceivedCommand ),
-                                                   0U );
+        pReceivedCommand = NULL;
+        commandWasReceived = pMqttAgentContext->agentInterface.recv(
+            pMqttAgentContext->agentInterface.pMsgCtx,
+            &( pReceivedCommand ),
+            0U );
 
         if( ( pReceivedCommand != NULL ) &&
             ( pReceivedCommand->pCommandCompleteCallback != NULL ) )
