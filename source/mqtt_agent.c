@@ -200,6 +200,24 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          uint32_t blockTimeMs );
 
 /**
+ * @brief Resend QoS 1 and 2 publishes after resuming a session.
+ *
+ * @param[in] pMqttAgentContext Agent context for the MQTT connection.
+ *
+ * @return MQTTSuccess if all publishes resent successfully, else error code
+ * from #MQTT_Publish.
+ */
+static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
+
+/**
+ * @brief Clear the list of pending acknowledgments by invoking each callback
+ * with #MQTTBadParameter.
+ *
+ * @param[in] pMqttAgentContext Agent context of the MQTT connection.
+ */
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext );
+
+/**
  * @brief Called before accepting any PUBLISH or SUBSCRIBE messages to check
  * there is space in the pending ACK list for the outgoing PUBLISH or SUBSCRIBE.
  *
@@ -704,6 +722,80 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 
 /*-----------------------------------------------------------*/
 
+static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
+{
+    MQTTStatus_t statusResult = MQTTSuccess;
+    MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
+    uint16_t packetId = MQTT_PACKET_ID_INVALID;
+    AckInfo_t * pFoundAck = NULL;
+    MQTTPublishInfo_t * pOriginalPublish = NULL;
+    MQTTContext_t * pMqttContext;
+
+    assert( pMqttAgentContext != NULL );
+    pMqttContext = &( pMqttAgentContext->mqttContext );
+
+    packetId = MQTT_PublishToResend( pMqttContext, &cursor );
+
+    while( packetId != MQTT_PACKET_ID_INVALID )
+    {
+        /* Retrieve the operation but do not remove it from the list. */
+        pFoundAck = getAwaitingOperation( pMqttAgentContext, packetId );
+
+        if( pFoundAck != NULL )
+        {
+            /* Set the DUP flag. */
+            pOriginalPublish = ( MQTTPublishInfo_t * ) ( pFoundAck->pOriginalCommand->pArgs );
+            pOriginalPublish->dup = true;
+            statusResult = MQTT_Publish( pMqttContext, pOriginalPublish, packetId );
+
+            if( statusResult != MQTTSuccess )
+            {
+                LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
+                break;
+            }
+        }
+
+        packetId = MQTT_PublishToResend( pMqttContext, &cursor );
+    }
+
+    return statusResult;
+}
+
+/*-----------------------------------------------------------*/
+
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
+{
+    size_t i = 0;
+    MQTTAgentReturnInfo_t returnInfo = { 0 };
+    AckInfo_t * pendingAcks;
+
+    returnInfo.returnCode = MQTTBadResponse;
+
+    assert( pMqttAgentContext != NULL );
+
+    pendingAcks = pMqttAgentContext->pPendingAcks;
+
+    /* Clear all operations pending acknowledgments. */
+    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    {
+        if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
+        {
+            if( pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback != NULL )
+            {
+                /* Bad response to indicate network error. */
+                pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback(
+                    pendingAcks[ i ].pOriginalCommand->pCmdContext,
+                    &returnInfo );
+            }
+
+            /* Now remove it from the list. */
+            memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+        }
+    }
+}
+
+/*-----------------------------------------------------------*/
+
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              AgentMessageInterface_t * pMsgInterface,
                              MQTTFixedBuffer_t * pNetworkBuffer,
@@ -804,19 +896,11 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
                                       bool sessionPresent )
 {
     MQTTStatus_t statusResult = MQTTSuccess;
-    MQTTContext_t * pMqttContext;
-    MQTTAgentContext_t * pAgentContext;
-    AckInfo_t * pendingAcks;
-    MQTTPublishInfo_t * originalPublish = NULL;
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
      * is the initial value but not a valid packet ID. */
     if( ( pMqttAgentContext != NULL ) && ( pMqttAgentContext->mqttContext.nextPacketId != 0 ) )
     {
-        pMqttContext = &( pMqttAgentContext->mqttContext );
-        pAgentContext = pMqttAgentContext;
-        pendingAcks = pAgentContext->pPendingAcks;
-
         /* Resend publishes if session is present. NOTE: It's possible that some
          * of the operations that were in progress during the network interruption
          * were subscribes. In that case, we would want to mark those operations
@@ -824,60 +908,16 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
          * that the calling task can try subscribing again. */
         if( sessionPresent )
         {
-            MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
-            uint16_t packetId = MQTT_PACKET_ID_INVALID;
-            AckInfo_t * pFoundAck = NULL;
-
-            packetId = MQTT_PublishToResend( pMqttContext, &cursor );
-
-            while( packetId != MQTT_PACKET_ID_INVALID )
-            {
-                /* Retrieve the operation but do not remove it from the list. */
-                pFoundAck = getAwaitingOperation( pMqttAgentContext, packetId );
-
-                if( pFoundAck != NULL )
-                {
-                    /* Set the DUP flag. */
-                    originalPublish = ( MQTTPublishInfo_t * ) ( pFoundAck->pOriginalCommand->pArgs );
-                    originalPublish->dup = true;
-                    statusResult = MQTT_Publish( pMqttContext, originalPublish, packetId );
-
-                    if( statusResult != MQTTSuccess )
-                    {
-                        LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
-                        break;
-                    }
-                }
-
-                packetId = MQTT_PublishToResend( pMqttContext, &cursor );
-            }
+            statusResult = resendPublishes( pMqttAgentContext );
         }
 
         /* If we wanted to resume a session but none existed with the broker, we
          * should mark all in progress operations as errors so that the tasks that
-         * created them can try again. Also, we will resubscribe to the filters in
-         * the subscription list, so tasks do not unexpectedly lose their subscriptions. */
+         * created them can try again. */
         else
         {
-            size_t i = 0;
-            MQTTAgentReturnInfo_t returnInfo = { 0 };
-            returnInfo.returnCode = MQTTBadResponse;
-
             /* We have a clean session, so clear all operations pending acknowledgments. */
-            for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
-            {
-                if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
-                {
-                    if( pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback != NULL )
-                    {
-                        /* Bad response to indicate network error. */
-                        pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback( pendingAcks[ i ].pOriginalCommand->pCmdContext, &returnInfo );
-                    }
-
-                    /* Now remove it from the list. */
-                    memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
-                }
-            }
+            clearPendingAcknowledgments( pMqttAgentContext );
         }
     }
     else
