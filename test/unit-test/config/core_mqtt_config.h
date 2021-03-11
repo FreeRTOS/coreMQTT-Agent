@@ -32,8 +32,8 @@
  * macro SHOULD NOT be set.
  */
 
-#ifndef CORE_MQTT_CONFIG_DEFAULTS_H_
-#define CORE_MQTT_CONFIG_DEFAULTS_H_
+#ifndef CORE_MQTT_CONFIG_H_
+#define CORE_MQTT_CONFIG_H_
 
 /* The macro definition for MQTT_DO_NOT_USE_CUSTOM_CONFIG is for Doxygen
  * documentation only. */
@@ -71,10 +71,9 @@
  * <b>Possible values:</b> Any positive 32 bit integer. <br>
  * <b>Default value:</b> `10`
  */
-#ifndef MQTT_STATE_ARRAY_MAX_COUNT
-    /* Default value for the maximum acknowledgment pending PUBLISH messages. */
-    #define MQTT_STATE_ARRAY_MAX_COUNT    ( 10U )
-#endif
+/* Default value for the maximum acknowledgment pending PUBLISH messages. */
+#define MQTT_STATE_ARRAY_MAX_COUNT    ( 10U )
+
 
 /**
  * @brief The number of retries for receiving CONNACK.
@@ -88,10 +87,10 @@
  * <b>Possible values:</b> Any positive 16 bit integer. <br>
  * <b>Default value:</b> `5`
  */
-#ifndef MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT
-    /* Default value for the CONNACK receive retries. */
-    #define MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT    ( 5U )
-#endif
+
+/* Default value for the CONNACK receive retries. */
+#define MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT    ( 5U )
+
 
 /**
  * @brief Number of milliseconds to wait for a ping response to a ping
@@ -108,10 +107,10 @@
  * <b>Possible values:</b> Any positive integer up to SIZE_MAX. <br>
  * <b>Default value:</b> `500`
  */
-#ifndef MQTT_PINGRESP_TIMEOUT_MS
-    /* Wait 0.5 seconds by default for a ping response. */
-    #define MQTT_PINGRESP_TIMEOUT_MS    ( 500U )
-#endif
+
+/* Wait 0.5 seconds by default for a ping response. */
+#define MQTT_PINGRESP_TIMEOUT_MS    ( 500U )
+
 
 /**
  * @brief The maximum duration between non-empty network reads while
@@ -134,9 +133,8 @@
  * <b>Default value:</b> `10`
  *
  */
-#ifndef MQTT_RECV_POLLING_TIMEOUT_MS
-    #define MQTT_RECV_POLLING_TIMEOUT_MS    ( 10U )
-#endif
+#define MQTT_RECV_POLLING_TIMEOUT_MS    ( 10U )
+
 
 /**
  * @brief The maximum duration between non-empty network transmissions while
@@ -159,9 +157,9 @@
  * <b>Default value:</b> `10`
  *
  */
-#ifndef MQTT_SEND_RETRY_TIMEOUT_MS
-    #define MQTT_SEND_RETRY_TIMEOUT_MS    ( 10U )
-#endif
+
+#define MQTT_SEND_RETRY_TIMEOUT_MS    ( 10U )
+
 
 /**
  * @brief Macro that is called in the MQTT library for logging "Error" level
@@ -179,9 +177,8 @@
  * <b>Default value</b>: Error logging is turned off, and no code is generated for calls
  * to the macro in the MQTT library on compilation.
  */
-#ifndef LogError
-    #define LogError( message )
-#endif
+#define LogError( message )
+
 
 /**
  * @brief Macro that is called in the MQTT library for logging "Warning" level
@@ -199,9 +196,8 @@
  * <b>Default value</b>: Warning logs are turned off, and no code is generated for calls
  * to the macro in the MQTT library on compilation.
  */
-#ifndef LogWarn
-    #define LogWarn( message )
-#endif
+#define LogWarn( message )
+
 
 /**
  * @brief Macro that is called in the MQTT library for logging "Info" level
@@ -219,9 +215,7 @@
  * <b>Default value</b>: Info logging is turned off, and no code is generated for calls
  * to the macro in the MQTT library on compilation.
  */
-#ifndef LogInfo
-    #define LogInfo( message )
-#endif
+#define LogInfo( message )
 
 /**
  * @brief Macro that is called in the MQTT library for logging "Debug" level
@@ -239,8 +233,8 @@
  * <b>Default value</b>: Debug logging is turned off, and no code is generated for calls
  * to the macro in the MQTT library on compilation.
  */
-#ifndef LogDebug
-    #define LogDebug( message )
-#endif
+
+#define LogDebug( message )
+
 
 #endif /* ifndef CORE_MQTT_CONFIG_DEFAULTS_H_ */
