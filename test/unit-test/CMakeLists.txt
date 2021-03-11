@@ -71,8 +71,20 @@ list(APPEND utest_dep_list
             ${real_name}
         )
 
+
+# mqtt_agent_utest
 set(utest_name "${project_name}_utest")
 set(utest_source "${project_name}_utest.c")
+create_test(${utest_name}
+            ${utest_source}
+            "${utest_link_list}"
+            "${utest_dep_list}"
+            "${test_include_directories}"
+        )
+
+# mqtt_agent_command_functions_utest
+set(utest_name "${project_name}_command_functions_utest")
+set(utest_source "${project_name}_command_functions_utest.c")
 create_test(${utest_name}
             ${utest_source}
             "${utest_link_list}"
