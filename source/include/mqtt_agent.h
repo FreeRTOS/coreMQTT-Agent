@@ -408,16 +408,19 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
  * socket.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
- * @param[in] blockTimeMs The maximum amount of time in milliseconds to wait for the
- * command to be posted to the MQTT agent, should the agent's event queue be
- * full.  Tasks wait in the Blocked state so don't use any CPU time.
+ * @param[in] pCommandInfo The information pertaining to the command, including:
+ *  - cmdCompleteCallback Optional callback to invoke when the command completes.
+ *  - pCmdCompleteCallbackContext Optional completion callback context.
+ *  - blockTimeMs The maximum amount of time in milliseconds to wait for the
+ *    command to be posted to the MQTT agent, should the agent's event queue
+ *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
  * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_processloop] */
-MQTTStatus_t MQTTAgent_TriggerProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
-                                           uint32_t blockTimeMs );
+MQTTStatus_t MQTTAgent_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
+                                    CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_processloop] */
 
 /**
