@@ -42,8 +42,6 @@
 struct AgentMessageContext;
 typedef struct AgentMessageContext AgentMessageContext_t;
 
-/*-----------------------------------------------------------*/
-
 /**
  * @brief Send a message to the specified context.
  * Must be thread safe.
@@ -54,9 +52,9 @@ typedef struct AgentMessageContext AgentMessageContext_t;
  *
  * @return `true` if send was successful, else `false`.
  */
-bool Agent_MessageSend( const AgentMessageContext_t * pMsgCtx,
-                        const void * pData,
-                        uint32_t blockTimeMs );
+typedef bool ( * AgentMessageSend_t )( AgentMessageContext_t * pMsgCtx,
+                                       const void * pData,
+                                       uint32_t blockTimeMs );
 
 /**
  * @brief Receive a message from the specified context.
@@ -68,8 +66,8 @@ bool Agent_MessageSend( const AgentMessageContext_t * pMsgCtx,
  *
  * @return `true` if receive was successful, else `false`.
  */
-bool Agent_MessageReceive( const AgentMessageContext_t * pMsgCtx,
-                           void * pBuffer,
-                           uint32_t blockTimeMs );
+typedef bool ( * AgentMessageRecv_t )( AgentMessageContext_t * pMsgCtx,
+                                       void * pBuffer,
+                                       uint32_t blockTimeMs );
 
 #endif /* AGENT_MESSAGE_H */
