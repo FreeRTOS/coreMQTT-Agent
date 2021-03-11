@@ -21,7 +21,7 @@
  */
 
 /**
- * @file core_mqtt_config_defaults.h
+ * @file core_mqtt_config.h
  * @brief This represents the default values for the configuration macros
  * for the MQTT library.
  *
