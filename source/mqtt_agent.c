@@ -211,7 +211,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
 
 /**
  * @brief Clear the list of pending acknowledgments by invoking each callback
- * with #MQTTBadParameter.
+ * with #MQTTRecvFailed.
  *
  * @param[in] pMqttAgentContext Agent context of the MQTT connection.
  */
@@ -769,7 +769,7 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
     MQTTAgentReturnInfo_t returnInfo = { 0 };
     AckInfo_t * pendingAcks;
 
-    returnInfo.returnCode = MQTTBadResponse;
+    returnInfo.returnCode = MQTTRecvFailed;
 
     assert( pMqttAgentContext != NULL );
 
@@ -817,7 +817,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
              ( pMsgInterface->send == NULL ) ||
              ( pMsgInterface->recv == NULL ) ||
              ( pMsgInterface->getCommand == NULL ) ||
-             ( pMsgInterface->receiveCommand == NULL ) )
+             ( pMsgInterface->releaseCommand == NULL ) )
     {
         LogError( ( "Invalid parameter: pMsgInterface must set all members." ) );
         returnStatus = MQTTBadParameter;
