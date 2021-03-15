@@ -30,7 +30,7 @@
 #include "unity.h"
 
 /* Include paths for public enums, structures, and macros. */
-
+#include "mqtt_agent.h"
 #include "mock_core_mqtt.h"
 
 /**
@@ -49,6 +49,41 @@
  */
 static uint32_t globalEntryTime = 0;
 
+/* ========================================================================== */
+
+/**
+ * @brief A mocked timer query function that increments on every call.
+ */
+static uint32_t getTime( void )
+{
+    return globalEntryTime++;
+}
+/* ========================================================================== */
+
+bool ( send )( AgentMessageContext_t * pMsgCtx,
+                const void * pData,
+                uint32_t blockTimeMs )
+{
+    return true;
+}
+
+bool ( receive )( AgentMessageContext_t * pMsgCtx,
+                  void * pBuffer,
+                  uint32_t blockTimeMs )
+{
+    return true;
+}
+
+bool ( commandRelease )( Command_t * pCommandToRelease )
+{
+    return true;
+}
+
+Command_t * ( getCommand )( uint32_t blockTimeMs )
+{
+    Command_t * command;
+    return command;
+}
 
 /* ============================   UNITY FIXTURES ============================ */
 
@@ -81,6 +116,27 @@ int suiteTearDown( int numFailures )
 
 void test_MQTTAgent_Init_Happy_Path( void )
 {
+    MQTTAgentContext_t mqttAgentContext;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+    MQTTStatus_t mqttStatus;
+
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    TEST_ASSERT_EQUAL_PTR( incomingCallback, mqttAgentContext.pIncomingCallback );
+    TEST_ASSERT_EQUAL_PTR( incomingPacketContext, mqttAgentContext.pIncomingCallbackContext );
+    TEST_ASSERT_EQUAL_MEMORY( &msgCtx, &mqttAgentContext.agentInterface, sizeof( msgCtx ) );
 
 
 }
@@ -88,7 +144,74 @@ void test_MQTTAgent_Init_Happy_Path( void )
 /**
  * @brief Test that any NULL parameter causes MQTTAgent_Init to return MQTTBadParameter.
  */
-void test_MQTT_Init_Invalid_Params( void )
+void test_MQTTAgent_Init_Invalid_Params( void )
 {
+    MQTTAgentContext_t mqttAgentContext;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+    MQTTStatus_t mqttStatus;
+
+    /* Check that MQTTBadParameter is returned if any NULL parameters are passed. */
+    mqttStatus = MQTTAgent_Init( NULL, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, NULL, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , NULL, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /* Test if NULL is passed for any of the function pointers. */
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, NULL, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgCtx.pMsgCtx=msg;
     
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgCtx.send=send;
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgCtx.recv=receive;
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgCtx.releaseCommand=commandRelease;
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgCtx.getCommand= NULL;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+}
+
+/**
+ * @brief Test that any NULL parameter causes MQTTAgent_ResumeSession to return MQTTIllegalState.
+ */
+void test_MQTTAgent_ResumeSession_Invalid_Params( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+
+    mqttStatus = MQTTAgent_ResumeSession( NULL,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTIllegalState, mqttStatus );
+
+    mqttAgentContext.mqttContext.nextPacketId=0;
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTIllegalState, mqttStatus );
+
 }
