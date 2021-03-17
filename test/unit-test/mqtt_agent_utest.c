@@ -32,16 +32,7 @@
 /* Include paths for public enums, structures, and macros. */
 #include "mqtt_agent.h"
 #include "mock_core_mqtt.h"
-
-/**
- * @brief MQTT client identifier.
- */
-#define MQTT_CLIENT_IDENTIFIER                 "testclient"
-
-/**
- * @brief A sample network context that we set to NULL.
- */
-#define MQTT_SAMPLE_NETWORK_CONTEXT            ( NULL )
+#include "mock_core_mqtt_state.h"
 
 /**
  * @brief Time at the beginning of each test. Note that this is not updated with
@@ -85,6 +76,10 @@ Command_t * ( getCommand )( uint32_t blockTimeMs )
     return command;
 }
 
+void (CommandCallback )( void * pCmdCallbackContext,
+                                     MQTTAgentReturnInfo_t * pReturnInfo ){
+                                         return;
+                                     }
 /* ============================   UNITY FIXTURES ============================ */
 
 /* Called before each test method. */
@@ -192,10 +187,6 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
-    msgCtx.getCommand= NULL;
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
 }
 
 /**
@@ -207,11 +198,246 @@ void test_MQTTAgent_ResumeSession_Invalid_Params( void )
     bool sessionPresent=true;
     MQTTStatus_t mqttStatus;
 
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+
+    /* Check that MQTTIllegalState is returned if any NULL parameters are passed. */
     mqttStatus = MQTTAgent_ResumeSession( NULL,sessionPresent);
     TEST_ASSERT_EQUAL( MQTTIllegalState, mqttStatus );
 
-    mqttAgentContext.mqttContext.nextPacketId=0;
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    MQTTContext_t mqttContext;    
+    mqttContext.nextPacketId=0;
+    mqttAgentContext.mqttContext=mqttContext;
+    
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
     TEST_ASSERT_EQUAL( MQTTIllegalState, mqttStatus );
+
+}
+
+
+void test_MQTTAgent_ResumeSession_session_present_with_packetId_invalid( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+
+    // MQTTContext_t mqttContext;                                 
+    Command_t command;
+    void * args;
+    command.pArgs=args;
+    // mqttAgentContext.mqttContext=mqttContext;
+    mqttAgentContext.mqttContext.nextPacketId = 1;
+    MQTT_PublishToResend_IgnoreAndReturn(MQTT_PACKET_ID_INVALID);
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+}
+
+
+void test_MQTTAgent_ResumeSession_failed_publish( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+    // MQTTContext_t mqttContext;                                 
+    Command_t command;
+    MQTTPublishInfo_t args;
+    command.pArgs=&args;
+    // mqttAgentContext.mqttContext=mqttContext;
+    mqttAgentContext.mqttContext.nextPacketId = 1;
+    AckInfo_t ackInfo;
+    ackInfo.packetId=1;
+    ackInfo.pOriginalCommand=&command;
+    mqttAgentContext.pPendingAcks[ 0 ]=ackInfo;
+    MQTT_PublishToResend_IgnoreAndReturn(1);
+    MQTT_Publish_IgnoreAndReturn(MQTTBadParameter);
+    
+    //MQTT_Publish_IgnoreAndReturn(MQTTSuccess);
+    //MQTT_PublishToResend_IgnoreAndReturn(MQTT_PACKET_ID_INVALID);
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+}
+
+
+
+void test_MQTTAgent_ResumeSession_ack_packetid_not_match( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+    // MQTTContext_t mqttContext;                                 
+    Command_t command;
+    MQTTPublishInfo_t args;
+    command.pArgs=&args;
+    // mqttAgentContext.mqttContext=mqttContext;
+    mqttAgentContext.mqttContext.nextPacketId = 1;
+    AckInfo_t ackInfo;
+    ackInfo.packetId=1;
+    ackInfo.pOriginalCommand=&command;
+    mqttAgentContext.pPendingAcks[ 0 ]=ackInfo;
+    MQTT_PublishToResend_IgnoreAndReturn(2);
+    //MQTT_Publish_IgnoreAndReturn(MQTTBadParameter);
+    
+    //MQTT_Publish_IgnoreAndReturn(MQTTSuccess);
+    MQTT_PublishToResend_IgnoreAndReturn(MQTT_PACKET_ID_INVALID);
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+}
+
+
+
+void test_MQTTAgent_ResumeSession_publish_ack_success( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+    // MQTTContext_t mqttContext;                                 
+    Command_t command;
+    MQTTPublishInfo_t args;
+    command.pArgs=&args;
+    // mqttAgentContext.mqttContext=mqttContext;
+    mqttAgentContext.mqttContext.nextPacketId = 1;
+    AckInfo_t ackInfo;
+    ackInfo.packetId=0;
+    ackInfo.pOriginalCommand=&command;
+    mqttAgentContext.pPendingAcks[ 0 ]=ackInfo;
+    MQTT_PublishToResend_IgnoreAndReturn(0);
+
+    MQTT_PublishToResend_IgnoreAndReturn(MQTT_PACKET_ID_INVALID);
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,sessionPresent);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+}
+
+
+void test_MQTTAgent_ResumeSession_no_session_present( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    bool sessionPresent=true;
+    MQTTStatus_t mqttStatus;
+    AgentMessageInterface_t msgCtx;
+    MQTTFixedBuffer_t networkBuffer;
+    TransportInterface_t transportInterface;
+    IncomingPublishCallback_t incomingCallback;
+    void *incomingPacketContext;
+    AgentMessageContext_t *msg;
+
+    MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    msgCtx.pMsgCtx=msg;
+    msgCtx.send=send;
+    msgCtx.recv=receive;
+    msgCtx.releaseCommand=commandRelease;
+    msgCtx.getCommand=getCommand;
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+
+
+    // MQTTContext_t mqttContext;                                 
+    Command_t command;
+    command.pCommandCompleteCallback=NULL;
+    // mqttAgentContext.mqttContext=mqttContext;
+    mqttAgentContext.mqttContext.nextPacketId = 1;
+    mqttAgentContext.pPendingAcks[ 0 ].packetId=MQTT_PACKET_ID_INVALID;
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,false);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    
+    // MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    // mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    // mqttAgentContext.mqttContext=mqttContext;
+    // mqttAgentContext.mqttContext.nextPacketId = 1;
+    AckInfo_t ackInfo;
+    ackInfo.packetId=1;
+    ackInfo.pOriginalCommand=&command;
+    mqttAgentContext.pPendingAcks[ 0 ]=ackInfo; 
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,false);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    command.pCommandCompleteCallback=CommandCallback;
+    //  MQTT_Init_ExpectAnyArgsAndReturn(MQTTSuccess);
+    // mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgCtx, &networkBuffer , &transportInterface, getTime, incomingCallback, incomingPacketContext);
+    // mqttAgentContext.mqttContext=mqttContext;
+    // mqttAgentContext.mqttContext.nextPacketId = 1;
+    mqttAgentContext.pPendingAcks[ 0 ]=ackInfo; 
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,false);
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
 
 }
