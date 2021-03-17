@@ -55,7 +55,7 @@ static uint32_t getTime( void )
  * @brief A mocked send function to send command to agent.
  */
 static bool ( send )( AgentMessageContext_t * pMsgCtx,
-                const void * pData,
+                    const void * pData,
                 uint32_t blockTimeMs )
 {
     return true;
@@ -322,7 +322,7 @@ void test_MQTTAgent_ResumeSession_failed_publish( void )
 
 
 
-void test_MQTTAgent_ResumeSession_ack_packetid_not_match( void )
+void test_MQTTAgent_ResumeSession_ack_packetId_not_match( void )
 {
     MQTTAgentContext_t mqttAgentContext;
     bool sessionPresent=true;
@@ -442,5 +442,4 @@ void test_MQTTAgent_ResumeSession_no_session_present_with_broker( void )
     /* Check that command callback is called if it is specified to indicate network error. */
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext,false);
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
-    
 }
