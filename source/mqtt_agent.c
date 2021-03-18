@@ -218,6 +218,30 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
 static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext );
 
 /**
+ * @brief Validate an #MQTTAgentContext_t and a #CommandInfo_t from API
+ * functions.
+ *
+ * @param[in] pMqttAgentContext #MQTTAgentContext_t to validate.
+ * @param[in] pCommandInfo #CommandInfo_t to validate.
+ *
+ * @return `true` if parameters are valid, else `false`.
+ */
+static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
+                            CommandInfo_t * pCommandInfo );
+
+/**
+ * @brief Validate the parameters for a CONNECT, SUBSCRIBE, UNSUBSCRIBE
+ * or PUBLISH.
+ *
+ * @param[in] commandType CONNECT, SUBSCRIBE, UNSUBSCRIBE, or PUBLISH.
+ * @param[in] pParams Parameter structure to validate.
+ *
+ * @return `true` if parameter structure is valid, else `false`.
+ */
+static bool validateParams( CommandType_t commandType,
+                            void * pParams );
+
+/**
  * @brief Called before accepting any PUBLISH or SUBSCRIBE messages to check
  * there is space in the pending ACK list for the outgoing PUBLISH or SUBSCRIBE.
  *
@@ -244,20 +268,19 @@ static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext )
     bool spaceFound = false;
     size_t i;
 
-    if( pAgentContext != NULL )
-    {
-        pendingAcks = pAgentContext->pPendingAcks;
+    assert( pAgentContext != NULL );
 
-        /* Are there any open slots? */
-        for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    pendingAcks = pAgentContext->pPendingAcks;
+
+    /* Are there any open slots? */
+    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    {
+        /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is
+         * not in use. */
+        if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
         {
-            /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is
-             * not in use. */
-            if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
-            {
-                spaceFound = true;
-                break;
-            }
+            spaceFound = true;
+            break;
         }
     }
 
@@ -344,27 +367,17 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
     size_t uxHeaderBytes;
     const size_t uxControlAndLengthBytes = ( size_t ) 4; /* Control, remaining length and length bytes. */
 
+    assert( pMqttAgentContext != NULL );
+    assert( pCommand != NULL );
+
     memset( pCommand, 0x00, sizeof( Command_t ) );
 
     /* Determine if required parameters are present in context. */
     switch( commandType )
     {
         case SUBSCRIBE:
-
-            /* This message type results in the broker returning an ACK.  The
-             * agent maintains an array of outstanding ACK messages.  See if
-             * the array contains space for another outstanding ack. */
-            isSpace = isSpaceInPendingAckList( pMqttAgentContext );
-
-            pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) pMqttInfoParam;
-            isValid = ( pSubscribeArgs != NULL ) &&
-                      ( pSubscribeArgs->pSubscribeInfo != NULL ) &&
-                      ( pMqttAgentContext != NULL ) &&
-                      ( isSpace == true );
-
-            break;
-
         case UNSUBSCRIBE:
+            assert( pMqttInfoParam != NULL );
 
             /* This message type results in the broker returning an ACK.  The
              * agent maintains an array of outstanding ACK messages.  See if
@@ -372,10 +385,8 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             isSpace = isSpaceInPendingAckList( pMqttAgentContext );
 
             pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) pMqttInfoParam;
-            isValid = ( pMqttAgentContext != NULL ) &&
-                      ( pSubscribeArgs != NULL ) &&
-                      ( pSubscribeArgs->pSubscribeInfo != NULL ) &&
-                      ( isSpace == true );
+            isValid = isSpace;
+
             break;
 
         case PUBLISH:
@@ -383,30 +394,22 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
             /* Calculate the space consumed by everything other than the
              * payload. */
-            if( pPublishInfo == NULL )
-            {
-                isValid = false;
-            }
-            else
-            {
-                uxHeaderBytes = uxControlAndLengthBytes;
-                uxHeaderBytes += pPublishInfo->topicNameLength;
+            uxHeaderBytes = uxControlAndLengthBytes;
+            uxHeaderBytes += pPublishInfo->topicNameLength;
 
-                /* This message type results in the broker returning an ACK. The
-                 * agent maintains an array of outstanding ACK messages.  See if
-                 * the array contains space for another outstanding ack.  QoS0
-                 * publish does not result in an ack so it doesn't matter if
-                 * there is no space in the ACK array. */
-                if( pPublishInfo->qos != MQTTQoS0 )
-                {
-                    isSpace = isSpaceInPendingAckList( pMqttAgentContext );
-                }
-
-                isValid = ( pMqttAgentContext != NULL ) &&
-                          /* Will the message fit in the defined buffer? */
-                          ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < pMqttAgentContext->mqttContext.networkBuffer.size ) &&
-                          ( isSpace == true );
+            /* This message type results in the broker returning an ACK. The
+             * agent maintains an array of outstanding ACK messages.  See if
+             * the array contains space for another outstanding ack.  QoS0
+             * publish does not result in an ack so it doesn't matter if
+             * there is no space in the ACK array. */
+            if( pPublishInfo->qos != MQTTQoS0 )
+            {
+                isSpace = isSpaceInPendingAckList( pMqttAgentContext );
             }
+
+            /* Will the message fit in the defined buffer? */
+            isValid = ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < pMqttAgentContext->mqttContext.networkBuffer.size ) &&
+                      ( isSpace == true );
 
             break;
 
@@ -414,11 +417,8 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
         case PING:
         case CONNECT:
         case DISCONNECT:
-            isValid = ( pMqttAgentContext != NULL );
-            break;
-
         default:
-            /* Other operations don't need the MQTT context. */
+            /* Other operations don't need to store ACKs. */
             isValid = true;
             break;
     }
@@ -431,7 +431,6 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
         pCommand->pCommandCompleteCallback = commandCompleteCallback;
     }
 
-    /* Calculate here in case of a SUBSCRIBE. */
     statusReturn = ( isValid ) ? MQTTSuccess : MQTTBadParameter;
 
     if( ( statusReturn == MQTTBadParameter ) && ( isSpace == false ) )
@@ -451,24 +450,21 @@ static MQTTStatus_t addCommandToQueue( MQTTAgentContext_t * pAgentContext,
                                        Command_t * pCommand,
                                        uint32_t blockTimeMs )
 {
-    MQTTStatus_t statusReturn = MQTTIllegalState;
     bool queueStatus;
+
+    assert( pAgentContext != NULL );
+    assert( pCommand != NULL );
 
     /* The application called an API function.  The API function was validated and
      * packed into a Command_t structure.  Now post a reference to the Command_t
      * structure to the MQTT agent for processing. */
-    if( pAgentContext != NULL )
-    {
-        queueStatus = pAgentContext->agentInterface.send(
-            pAgentContext->agentInterface.pMsgCtx,
-            &pCommand,
-            blockTimeMs
-            );
+    queueStatus = pAgentContext->agentInterface.send(
+        pAgentContext->agentInterface.pMsgCtx,
+        &pCommand,
+        blockTimeMs
+        );
 
-        statusReturn = ( queueStatus ) ? MQTTSuccess : MQTTSendFailed;
-    }
-
-    return statusReturn;
+    return ( queueStatus ) ? MQTTSuccess : MQTTSendFailed;
 }
 
 /*-----------------------------------------------------------*/
@@ -680,7 +676,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          CommandContext_t * pCommandCompleteCallbackContext,
                                          uint32_t blockTimeMs )
 {
-    MQTTStatus_t statusReturn = MQTTSuccess;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
     Command_t * pCommand;
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
@@ -715,6 +711,10 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
             /* Ran out of Command_t structures - pool is empty. */
             statusReturn = MQTTNoMemory;
         }
+    }
+    else
+    {
+        LogError( ( "MQTT context must be initialized." ) );
     }
 
     return statusReturn;
@@ -796,6 +796,76 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
 
 /*-----------------------------------------------------------*/
 
+static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
+                            CommandInfo_t * pCommandInfo )
+{
+    bool ret = false;
+
+    if( ( pMqttAgentContext == NULL ) ||
+        ( pCommandInfo == NULL ) )
+    {
+        LogError( ( "Pointer cannot be NULL. pMqttAgentContext=%p, pCommandInfo=%p.",
+                    ( void * ) pMqttAgentContext,
+                    ( void * ) pCommandInfo ) );
+        ret = false;
+    }
+    else if( ( pMqttAgentContext->agentInterface.send == NULL ) ||
+             ( pMqttAgentContext->agentInterface.recv == NULL ) ||
+             ( pMqttAgentContext->agentInterface.getCommand == NULL ) ||
+             ( pMqttAgentContext->agentInterface.releaseCommand == NULL ) ||
+             ( pMqttAgentContext->agentInterface.pMsgCtx == NULL ) )
+    {
+        LogError( ( "pMqttAgentContext must have initialized its messaging interface." ) );
+        ret = false;
+    }
+    else
+    {
+        ret = true;
+    }
+
+    return ret;
+}
+
+/*-----------------------------------------------------------*/
+
+static bool validateParams( CommandType_t commandType,
+                            void * pParams )
+{
+    bool ret = false;
+    MQTTAgentConnectArgs_t * pConnectArgs = NULL;
+    MQTTAgentSubscribeArgs_t * pSubscribeArgs = NULL;
+
+    assert( ( commandType == CONNECT ) || ( commandType == PUBLISH ) ||
+            ( commandType == SUBSCRIBE ) || ( commandType == UNSUBSCRIBE ) );
+
+    switch( commandType )
+    {
+        case CONNECT:
+            pConnectArgs = ( MQTTAgentConnectArgs_t * ) pParams;
+            ret = ( ( pConnectArgs != NULL ) &&
+                    ( pConnectArgs->pConnectInfo != NULL ) );
+            break;
+
+        case SUBSCRIBE:
+        case UNSUBSCRIBE:
+            pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) pParams;
+            ret = ( ( pSubscribeArgs != NULL ) &&
+                    ( pSubscribeArgs->pSubscribeInfo != NULL ) &&
+                    ( pSubscribeArgs->numSubscriptions != 0U ) );
+            break;
+
+        case PUBLISH:
+        default:
+            /* Publish, does not need to be cast since we do not check it. */
+            ret = ( pParams != NULL );
+            break;
+    }
+
+    return ret;
+}
+
+/*-----------------------------------------------------------*/
+
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              AgentMessageInterface_t * pMsgInterface,
                              MQTTFixedBuffer_t * pNetworkBuffer,
@@ -809,7 +879,8 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
     if( ( pMqttAgentContext == NULL ) ||
         ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
-        ( getCurrentTimeMs == NULL ) )
+        ( getCurrentTimeMs == NULL ) ||
+        ( incomingCallback == NULL ) )
     {
         returnStatus = MQTTBadParameter;
     }
@@ -922,7 +993,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
     }
     else
     {
-        statusResult = MQTTIllegalState;
+        statusResult = MQTTBadParameter;
     }
 
     return statusResult;
@@ -934,14 +1005,22 @@ MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
                                   CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( SUBSCRIBE,                                 /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        pSubscriptionArgs,                         /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
+                  validateParams( SUBSCRIBE, pSubscriptionArgs );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( SUBSCRIBE,                                 /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            pSubscriptionArgs,                         /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
+
     return statusReturn;
 }
 
@@ -951,14 +1030,21 @@ MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
                                     CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( UNSUBSCRIBE,                               /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        pSubscriptionArgs,                         /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
+                  validateParams( UNSUBSCRIBE, pSubscriptionArgs );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( UNSUBSCRIBE,                               /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            pSubscriptionArgs,                         /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -969,14 +1055,21 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
                                 CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( PUBLISH,                                   /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        pPublishInfo,                              /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
+                  validateParams( PUBLISH, pPublishInfo );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( PUBLISH,                                   /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            pPublishInfo,                              /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -986,14 +1079,20 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
                                     CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( PROCESSLOOP,                               /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        NULL,                                      /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( PROCESSLOOP,                               /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            NULL,                                      /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -1004,14 +1103,21 @@ MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTAgentConnectArgs_t * pConnectArgs,
                                 CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( CONNECT,
-                                        pMqttAgentContext,
-                                        pConnectArgs,
-                                        pCommandInfo->cmdCompleteCallback,
-                                        pCommandInfo->pCmdCompleteCallbackContext,
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
+                  validateParams( CONNECT, pConnectArgs );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( CONNECT,
+                                            pMqttAgentContext,
+                                            pConnectArgs,
+                                            pCommandInfo->cmdCompleteCallback,
+                                            pCommandInfo->pCmdCompleteCallbackContext,
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -1021,14 +1127,20 @@ MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
                                    CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( DISCONNECT,                                /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        NULL,                                      /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( DISCONNECT,                                /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            NULL,                                      /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -1038,14 +1150,20 @@ MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
                              CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( PING,                                      /* commandType */
-                                        pMqttAgentContext,                         /* mqttContextHandle */
-                                        NULL,                                      /* pMqttInfoParam */
-                                        pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                        pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( PING,                                      /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            NULL,                                      /* pMqttInfoParam */
+                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
+                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }
@@ -1055,14 +1173,20 @@ MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                   CommandInfo_t * pCommandInfo )
 {
-    MQTTStatus_t statusReturn = MQTTSuccess;
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
 
-    statusReturn = createAndAddCommand( TERMINATE,
-                                        pMqttAgentContext,
-                                        NULL,
-                                        pCommandInfo->cmdCompleteCallback,
-                                        pCommandInfo->pCmdCompleteCallbackContext,
-                                        pCommandInfo->blockTimeMs );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo );
+
+    if( paramsValid )
+    {
+        statusReturn = createAndAddCommand( TERMINATE,
+                                            pMqttAgentContext,
+                                            NULL,
+                                            pCommandInfo->cmdCompleteCallback,
+                                            pCommandInfo->pCmdCompleteCallbackContext,
+                                            pCommandInfo->blockTimeMs );
+    }
 
     return statusReturn;
 }

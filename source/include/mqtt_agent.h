@@ -318,6 +318,9 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in] sessionPresent The session present flag from the broker.
  *
+ * @note This function is NOT thread-safe and should only be called
+ * from the context of the task responsible for #MQTTAgent_CommandLoop.
+ *
  * @return `MQTTSuccess` if it succeeds in resending publishes, else an
  * appropriate error code from `MQTT_Publish()`
  */
