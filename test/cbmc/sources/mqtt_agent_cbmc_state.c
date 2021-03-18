@@ -1,5 +1,5 @@
 /*
- * FreeRTOS V202011.00
+ * coreMQTT-Agent v1.0.0
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -18,41 +18,19 @@
  * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * https://www.FreeRTOS.org
- * https://aws.amazon.com/freertos
- *
  */
 
-/* MQTT agent include. */
-#include "mqtt_agent.h"
+/**
+ * @file mqtt_cbmc_state.c
+ * @brief Implements the functions defined in mqtt_agent_cbmc_state.h.
+ */
+#include <stdint.h>
+#include <stdlib.h>
 #include "mqtt_agent_cbmc_state.h"
 
-void harness()
+
+void * mallocCanFail( size_t size )
 {
-
-  MQTTAgentContext_t * pMqttAgentContext;
-  AgentMessageInterface_t * pMsgInterface;
-  MQTTFixedBuffer_t * pNetworkBuffer;
-  TransportInterface_t * pTransportInterface;
-  MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
-  IncomingPublishCallback_t incomingCallback;
-  void * pIncomingPacketContext;
-
-  pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );
-  pMsgInterface = mallocCanFail( sizeof( AgentMessageInterface_t ) );
-  pNetworkBuffer = malloc( sizeof( MQTTFixedBuffer_t ) );
-  pTransportInterface = malloc( sizeof( TransportInterface_t ) );
-  /* The incoming packet context can be a pointer to any type.
-   * In this harness, we are using int32_t as that will be good enough
-   * for memory safety proofs. */
-  pIncomingPacketContext = malloc( sizeof( int32_t ) );
-
-  MQTTAgent_Init( pMqttAgentContext,
-                  pMsgInterface,
-                  pNetworkBuffer,
-                  pTransportInterface,
-                  getCurrentTimeMs,
-                  incomingCallback,
-                  pIncomingPacketContext );
+    __CPROVER_assert( size < CBMC_MAX_OBJECT_SIZE, "mallocCanFail size is too big" );
+    return nondet_bool() ? NULL : malloc( size );
 }
