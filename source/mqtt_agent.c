@@ -809,15 +809,18 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
     if( ( pMqttAgentContext == NULL ) ||
         ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
-        ( getCurrentTimeMs == NULL ) )
+        ( getCurrentTimeMs == NULL ) ||
+        ( pNetworkBuffer == NULL ) ||
+        ( incomingCallback == NULL ) )
     {
         returnStatus = MQTTBadParameter;
     }
     else if( ( pMsgInterface->pMsgCtx == NULL ) ||
              ( pMsgInterface->send == NULL ) ||
              ( pMsgInterface->recv == NULL ) ||
-             ( pMsgInterface->getCommand == NULL ) ||
-             ( pMsgInterface->releaseCommand == NULL ) )
+             ( pMsgInterface->releaseCommand == NULL ) ||
+             ( pMsgInterface->getCommand == NULL ) )
+
     {
         LogError( ( "Invalid parameter: pMsgInterface must set all members." ) );
         returnStatus = MQTTBadParameter;
@@ -922,7 +925,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
     }
     else
     {
-        statusResult = MQTTIllegalState;
+        statusResult = MQTTBadParameter;
     }
 
     return statusResult;
