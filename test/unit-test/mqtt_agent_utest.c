@@ -54,6 +54,14 @@ struct AgentMessageContext
 };
 
 /**
+ * @brief Command callback context.
+ */
+struct CommandContext
+{
+    MQTTStatus_t returnStatus;
+};
+
+/**
  * @brief Time at the beginning of each test. Note that this is not updated with
  * a real clock. Instead, we simply increment this variable.
  */
@@ -105,7 +113,7 @@ int suiteTearDown( int numFailures )
 /* ========================================================================== */
 
 /**
- * @brief A mocked send function to send command to agent.
+ * @brief A mocked send function to send commands to the agent.
  */
 static bool mockSend( AgentMessageContext_t * pMsgCtx,
                       const void * pData,
@@ -117,6 +125,10 @@ static bool mockSend( AgentMessageContext_t * pMsgCtx,
     return true;
 }
 
+/**
+ * @brief A mocked send function to send commands to the agent.
+ * Returns failure.
+ */
 static bool mockSendFail( AgentMessageContext_t * pMsgCtx,
                           const void * pData,
                           uint32_t blockTimeMs )
@@ -168,6 +180,19 @@ static void mockPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
     ( void ) pMqttAgentContext;
     ( void ) packetId;
     ( void ) pPublishInfo;
+}
+
+static void mockCompletionCallback( void * pCommandCompletionContext,
+                                    MQTTAgentReturnInfo_t * pReturnInfo )
+{
+    CommandContext_t * pCastContext;
+
+    pCastContext = ( CommandContext_t * ) pCommandCompletionContext;
+
+    if( pCastContext != NULL )
+    {
+        pCastContext->returnStatus = pReturnInfo->returnCode;
+    }
 }
 
 /**
@@ -376,6 +401,7 @@ void test_MQTTAgent_Subscribe( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( SUBSCRIBE, command.commandType );
     TEST_ASSERT_EQUAL_PTR( &subscribeArgs, command.pArgs );
+    TEST_ASSERT_NULL( command.pCommandCompleteCallback );
 }
 
 /**
@@ -392,6 +418,7 @@ void test_MQTTAgent_Unsubscribe( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
     /* We have already tested the generic cases of NULL parameters above,
      * so here we only need to test one for coverage. */
@@ -418,6 +445,7 @@ void test_MQTTAgent_Unsubscribe( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( UNSUBSCRIBE, command.commandType );
     TEST_ASSERT_EQUAL_PTR( &subscribeArgs, command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
 }
 
 /* ========================================================================== */
@@ -446,6 +474,7 @@ void test_MQTTAgent_ProcessLoop( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( PROCESSLOOP, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
+    TEST_ASSERT_NULL( command.pCommandCompleteCallback );
 }
 
 /**
@@ -460,6 +489,7 @@ void test_MQTTAgent_Disconnect( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
     /* We have already tested generic cases of NULL parameters above,
      * so here we only need to test a few one for coverage. */
@@ -472,6 +502,7 @@ void test_MQTTAgent_Disconnect( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( DISCONNECT, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
 }
 
 /**
@@ -486,6 +517,7 @@ void test_MQTTAgent_Ping( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
     /* We have already tested generic cases of NULL parameters above,
      * so here we only need to test a few one for coverage. */
@@ -498,6 +530,7 @@ void test_MQTTAgent_Ping( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( PING, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
 }
 
 /**
@@ -512,6 +545,7 @@ void test_MQTTAgent_Terminate( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
     /* We have already tested cases of NULL parameters with Terminate,
      * so we only need to test the success case. */
@@ -520,4 +554,5 @@ void test_MQTTAgent_Terminate( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( TERMINATE, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
 }
