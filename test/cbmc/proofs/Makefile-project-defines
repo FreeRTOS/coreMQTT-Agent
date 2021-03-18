@@ -14,18 +14,17 @@
 ################################################################
 
 # Flags to pass to goto-cc for compilation (typically those passed to gcc -c)
-# COMPILE_FLAGS =
+COMPILE_FLAGS += -fPIC
+COMPILE_FLAGS += -std=gnu90
 
 # Flags to pass to goto-cc for linking (typically those passed to gcc)
 # LINK_FLAGS =
 
 # Preprocessor include paths -I...
-# Consider adding
-#     INCLUDES += -I$(CBMC_ROOT)/include
-# You will want to decide what order that comes in relative to the other
-# include directories in your project.
-#
-# INCLUDES =
+INCLUDES += -I$(SRCDIR)/test/cbmc/include
+INCLUDES += -I$(SRCDIR)/source/include
+INCLUDES += -I$(SRCDIR)/source/dependency/coreMQTT/source/include
+INCLUDES += -I$(SRCDIR)/source/dependency/coreMQTT/source/interface
 
 # Preprocessor definitions -D...
 # DEFINES =

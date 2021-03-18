@@ -42,7 +42,10 @@ void harness()
   pMsgInterface = mallocCanFail( sizeof( AgentMessageInterface_t ) );
   pNetworkBuffer = mallocCanFail( sizeof( MQTTFixedBuffer_t ) );
   pTransportInterface = mallocCanFail( sizeof( TransportInterface_t ) );
-  pIncomingPacketContext = mallocCanFail( sizeof( void * ) );
+  /* The incoming packet context can be a pointer to any type.
+   * In this harness, we are using int32_t as that will be good enough
+   * for memory safety proofs. */
+  pIncomingPacketContext = mallocCanFail( sizeof( int32_t ) );
 
   MQTTAgent_Init( pMqttAgentContext,
                   pMsgInterface,
