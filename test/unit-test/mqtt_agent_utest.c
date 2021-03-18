@@ -307,7 +307,7 @@ void test_MQTTAgent_API_Create_Command_Invalid_Params( void )
  * @brief Test error cases when a command cannot be obtained or sent
  * for API functions that create commands.
  */
-void test_MQTTAgent_API_Create_Command_Allocation_Error( void )
+void test_MQTTAgent_API_Create_Command_Creation_Error( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
@@ -376,8 +376,9 @@ void test_MQTTAgent_Subscribe( void )
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
 
-    /* We have already tested the generic cases of NULL parameters above,
-     * so here we only need to test one for coverage. */
+    /* We have already tested the generic cases of NULL parameters above in
+     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
+     * to test one for coverage. */
     mqttStatus = MQTTAgent_Subscribe( NULL, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -420,8 +421,9 @@ void test_MQTTAgent_Unsubscribe( void )
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
-    /* We have already tested the generic cases of NULL parameters above,
-     * so here we only need to test one for coverage. */
+    /* We have already tested the generic cases of NULL parameters above in
+     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
+     * to test one for coverage. */
     mqttStatus = MQTTAgent_Unsubscribe( NULL, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -463,8 +465,9 @@ void test_MQTTAgent_ProcessLoop( void )
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
 
-    /* We have already tested generic cases of NULL parameters above,
-     * so here we only need to test a few one for coverage. */
+    /* We have already tested the generic cases of NULL parameters above in
+     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
+     * to test one for coverage. */
     mqttStatus = MQTTAgent_ProcessLoop( NULL, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -491,8 +494,9 @@ void test_MQTTAgent_Disconnect( void )
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
-    /* We have already tested generic cases of NULL parameters above,
-     * so here we only need to test a few one for coverage. */
+    /* We have already tested the generic cases of NULL parameters above in
+     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
+     * to test one for coverage. */
     mqttStatus = MQTTAgent_Disconnect( NULL, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -519,8 +523,9 @@ void test_MQTTAgent_Ping( void )
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
-    /* We have already tested generic cases of NULL parameters above,
-     * so here we only need to test a few one for coverage. */
+    /* We have already tested the generic cases of NULL parameters above in
+     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
+     * to test one for coverage. */
     mqttStatus = MQTTAgent_Ping( NULL, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -547,8 +552,9 @@ void test_MQTTAgent_Terminate( void )
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
-    /* We have already tested cases of NULL parameters with Terminate,
-     * so we only need to test the success case. */
+    /* We have already tested cases of NULL parameters with Terminate in
+     * test_MQTTAgent_API_Create_Command_Invalid_Params,so we only need to
+     * test the success case. */
     mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );

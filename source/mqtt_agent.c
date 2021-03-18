@@ -408,7 +408,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             }
 
             /* Will the message fit in the defined buffer? */
-            isValid = ( ( pPublishInfo->payloadLength + uxHeaderBytes ) < pMqttAgentContext->mqttContext.networkBuffer.size ) &&
+            isValid = ( uxHeaderBytes < pMqttAgentContext->mqttContext.networkBuffer.size ) &&
                       ( isSpace == true );
 
             break;
@@ -807,7 +807,6 @@ static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
         LogError( ( "Pointer cannot be NULL. pMqttAgentContext=%p, pCommandInfo=%p.",
                     ( void * ) pMqttAgentContext,
                     ( void * ) pCommandInfo ) );
-        ret = false;
     }
     else if( ( pMqttAgentContext->agentInterface.send == NULL ) ||
              ( pMqttAgentContext->agentInterface.recv == NULL ) ||
@@ -816,7 +815,6 @@ static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
              ( pMqttAgentContext->agentInterface.pMsgCtx == NULL ) )
     {
         LogError( ( "pMqttAgentContext must have initialized its messaging interface." ) );
-        ret = false;
     }
     else
     {
