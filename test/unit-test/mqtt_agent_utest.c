@@ -201,8 +201,6 @@ void test_MQTTAgent_Init_Happy_Path( void )
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
-
-
     msgInterface.pMsgCtx = &msg;
     msgInterface.send = mockSend;
     msgInterface.recv = mockReceive;
