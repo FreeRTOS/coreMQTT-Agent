@@ -208,9 +208,9 @@ void test_MQTTAgent_Init_Happy_Path( void )
     msgInterface.getCommand = mockGetCommand;
 
     MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
-    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, getTime, incomingCallback, incomingPacketContext );
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, getTime, mockPublishCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
-    TEST_ASSERT_EQUAL_PTR( incomingCallback, mqttAgentContext.pIncomingCallback );
+    TEST_ASSERT_EQUAL_PTR( mockPublishCallback, mqttAgentContext.pIncomingCallback );
     TEST_ASSERT_EQUAL_PTR( incomingPacketContext, mqttAgentContext.pIncomingCallbackContext );
     TEST_ASSERT_EQUAL_MEMORY( &msgInterface, &mqttAgentContext.agentInterface, sizeof( msgInterface ) );
 }
@@ -239,6 +239,7 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, NULL, getTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTBadParameter );
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, NULL, &transportInterface, getTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -350,9 +351,9 @@ void test_MQTTAgent_ResumeSession_publish_resend_success( void )
     mqttAgentContext.pPendingAcks[ 0 ] = ackInfo;
 
     /* Check that publish ack is resent successfully when session resumes. */
-    MQTT_PublishToResend_IgnoreAndReturn( 1 );
+    MQTT_PublishToResend_ExpectAnyArgsAndReturn( 1 );
     MQTT_Publish_IgnoreAndReturn( MQTTSuccess );
-    MQTT_PublishToResend_IgnoreAndReturn( MQTT_PACKET_ID_INVALID );
+    MQTT_PublishToResend_ExpectAnyArgsAndReturn( MQTT_PACKET_ID_INVALID );
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
