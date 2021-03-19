@@ -115,7 +115,7 @@ int suiteTearDown( int numFailures )
 /**
  * @brief A mocked send function to send commands to the agent.
  */
-static bool mockSend( AgentMessageContext_t * pMsgCtx,
+static bool stubSend( AgentMessageContext_t * pMsgCtx,
                       const void * pData,
                       uint32_t blockTimeMs )
 {
@@ -129,7 +129,7 @@ static bool mockSend( AgentMessageContext_t * pMsgCtx,
  * @brief A mocked send function to send commands to the agent.
  * Returns failure.
  */
-static bool mockSendFail( AgentMessageContext_t * pMsgCtx,
+static bool stubSendFail( AgentMessageContext_t * pMsgCtx,
                           const void * pData,
                           uint32_t blockTimeMs )
 {
@@ -142,7 +142,7 @@ static bool mockSendFail( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked receive function for the agent to receive commands.
  */
-static bool mockReceive( AgentMessageContext_t * pMsgCtx,
+static bool stubReceive( AgentMessageContext_t * pMsgCtx,
                          void * pBuffer,
                          uint32_t blockTimeMs )
 {
@@ -155,7 +155,7 @@ static bool mockReceive( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked function to obtain an allocated command.
  */
-static Command_t * mockGetCommand( uint32_t blockTimeMs )
+static Command_t * stubGetCommand( uint32_t blockTimeMs )
 {
     return pCommandToReturn;
 }
@@ -163,7 +163,7 @@ static Command_t * mockGetCommand( uint32_t blockTimeMs )
 /**
  * @brief A mocked function to release an allocated command.
  */
-static bool mockReleaseCommand( Command_t * pCommandToRelease )
+static bool stubReleaseCommand( Command_t * pCommandToRelease )
 {
     ( void ) pCommandToRelease;
     commandReleaseCallCount++;
@@ -173,7 +173,7 @@ static bool mockReleaseCommand( Command_t * pCommandToRelease )
 /**
  * @brief A mock publish callback function.
  */
-static void mockPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
+static void stubPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
                                  uint16_t packetId,
                                  MQTTPublishInfo_t * pPublishInfo )
 {
@@ -182,7 +182,7 @@ static void mockPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
     ( void ) pPublishInfo;
 }
 
-static void mockCompletionCallback( void * pCommandCompletionContext,
+static void stubCompletionCallback( void * pCommandCompletionContext,
                                     MQTTAgentReturnInfo_t * pReturnInfo )
 {
     CommandContext_t * pCastContext;
@@ -198,7 +198,7 @@ static void mockCompletionCallback( void * pCommandCompletionContext,
 /**
  * @brief A mocked timer query function that increments on every call.
  */
-static uint32_t getTime( void )
+static uint32_t stubGetTime( void )
 {
     return globalEntryTime++;
 }
@@ -215,22 +215,78 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
     MQTTStatus_t mqttStatus;
 
     messageInterface.pMsgCtx = &globalMessageContext;
-    messageInterface.send = mockSend;
-    messageInterface.recv = mockReceive;
-    messageInterface.releaseCommand = mockReleaseCommand;
-    messageInterface.getCommand = mockGetCommand;
+    messageInterface.send = stubSend;
+    messageInterface.recv = stubReceive;
+    messageInterface.releaseCommand = stubReleaseCommand;
+    messageInterface.getCommand = stubGetCommand;
 
     MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
     mqttStatus = MQTTAgent_Init( pAgentContext,
                                  &messageInterface,
                                  &networkBuffer,
                                  &transportInterface,
-                                 getTime,
-                                 mockPublishCallback,
+                                 stubGetTime,
+                                 stubPublishCallback,
                                  incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Set packet ID nonzero to indicate initialization. */
     pAgentContext->mqttContext.nextPacketId = 1U;
+}
+
+/**
+ * @brief Helper function to test API functions of the form
+ * MQTTStatus_t func( MQTTAgentContext_t *, CommandInfo_t * )
+ * for invalid parameters.
+ *
+ * @param[in] FuncToTest Pointer to function to test.
+ * @param[in] pFuncName String of function name to print for error messages.
+ */
+static void invalidParamsTestFunc( MQTTStatus_t ( *FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
+                                   const char * pFuncName )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+
+    setupAgentContext( &agentContext );
+
+    /* Test for NULL parameters. */
+    mqttStatus = ( FuncToTest ) ( &agentContext, NULL );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    mqttStatus = ( FuncToTest ) ( NULL, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    /* Various NULL parameters for the agent interface. */
+    agentContext.agentInterface.send = NULL;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    agentContext.agentInterface.send = stubSend;
+    agentContext.agentInterface.recv = NULL;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    agentContext.agentInterface.recv = stubReceive;
+    agentContext.agentInterface.getCommand = NULL;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    agentContext.agentInterface.getCommand = stubGetCommand;
+    agentContext.agentInterface.releaseCommand = NULL;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    agentContext.agentInterface.releaseCommand = stubReleaseCommand;
+    agentContext.agentInterface.pMsgCtx = NULL;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
+
+    agentContext.agentInterface.pMsgCtx = &globalMessageContext;
+    /* Invalid packet ID to indicate uninitialized context. */
+    agentContext.mqttContext.nextPacketId = MQTT_PACKET_ID_INVALID;
+    mqttStatus = ( FuncToTest ) ( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL_MESSAGE( MQTTBadParameter, mqttStatus, pFuncName );
 }
 
 /* ========================================================================== */
@@ -253,57 +309,6 @@ void test_MQTT_Init_Invalid_Params( void )
 /* ========================================================================== */
 
 /**
- * @brief Test that the parameter validation for API functions that create
- * commands (publish, subscribe, connect, etc.) works as intended.
- */
-void test_MQTTAgent_API_Create_Command_Invalid_Params( void )
-{
-    MQTTAgentContext_t agentContext = { 0 };
-    MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-
-    setupAgentContext( &agentContext );
-
-    /* Use Terminate since it's one that doesn't have an additional pointer param. */
-    mqttStatus = MQTTAgent_Terminate( &agentContext, NULL );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    mqttStatus = MQTTAgent_Terminate( NULL, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    /* Various NULL parameters for the agent interface. */
-    agentContext.agentInterface.send = NULL;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    agentContext.agentInterface.send = mockSend;
-    agentContext.agentInterface.recv = NULL;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    agentContext.agentInterface.recv = mockReceive;
-    agentContext.agentInterface.getCommand = NULL;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    agentContext.agentInterface.getCommand = mockGetCommand;
-    agentContext.agentInterface.releaseCommand = NULL;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    agentContext.agentInterface.releaseCommand = mockReleaseCommand;
-    agentContext.agentInterface.pMsgCtx = NULL;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-    agentContext.agentInterface.pMsgCtx = &globalMessageContext;
-    /* Invalid packet ID to indicate uninitialized context. */
-    agentContext.mqttContext.nextPacketId = MQTT_PACKET_ID_INVALID;
-    mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-}
-
-/**
  * @brief Test error cases when a command cannot be obtained or sent
  * for API functions that create commands.
  */
@@ -322,7 +327,7 @@ void test_MQTTAgent_API_Create_Command_Creation_Error( void )
     TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
 
     pCommandToReturn = &command;
-    agentContext.agentInterface.send = mockSendFail;
+    agentContext.agentInterface.send = stubSendFail;
     mqttStatus = MQTTAgent_Ping( &agentContext, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
     /* Test that the command was released. */
@@ -362,9 +367,9 @@ void test_MQTTAgent_API_Create_Command_No_Ack_Space( void )
 }
 
 /**
- * @brief Test that MQTTAgent_Subscribe() works as intended.
+ * @brief Test MQTTAgent_Subscribe() with invalid parameters.
  */
-void test_MQTTAgent_Subscribe( void )
+void test_MQTTAgent_Subscribe_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -376,13 +381,14 @@ void test_MQTTAgent_Subscribe( void )
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
 
-    /* We have already tested the generic cases of NULL parameters above in
-     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
-     * to test one for coverage. */
+    /* NULL parameters. */
     mqttStatus = MQTTAgent_Subscribe( NULL, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     mqttStatus = MQTTAgent_Subscribe( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Subscribe( &agentContext, &subscribeArgs, NULL );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     /* Incorrect subscribe args. */
@@ -393,6 +399,22 @@ void test_MQTTAgent_Subscribe( void )
     subscribeArgs.numSubscriptions = 0U;
     mqttStatus = MQTTAgent_Subscribe( &agentContext, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Subscribe() works as intended.
+ */
+void test_MQTTAgent_Subscribe_success( void )
+{
+    MQTTAgentContext_t agentContext;
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTSubscribeInfo_t subscribeInfo = { 0 };
+    MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
 
     /* Success case. */
     subscribeArgs.pSubscribeInfo = &subscribeInfo;
@@ -406,9 +428,9 @@ void test_MQTTAgent_Subscribe( void )
 }
 
 /**
- * @brief Test that MQTTAgent_Unsubscribe() works as intended.
+ * @brief Test MQTTAgent_Unsubscribe() with invalid parameters.
  */
-void test_MQTTAgent_Unsubscribe( void )
+void test_MQTTAgent_Unsubscribe_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -419,15 +441,15 @@ void test_MQTTAgent_Unsubscribe( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
-    commandInfo.cmdCompleteCallback = mockCompletionCallback;
 
-    /* We have already tested the generic cases of NULL parameters above in
-     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
-     * to test one for coverage. */
+    /* NULL parameters. */
     mqttStatus = MQTTAgent_Unsubscribe( NULL, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     mqttStatus = MQTTAgent_Unsubscribe( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Unsubscribe( &agentContext, &subscribeArgs, NULL );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     /* Incorrect subscribe args. */
@@ -438,6 +460,23 @@ void test_MQTTAgent_Unsubscribe( void )
     subscribeArgs.numSubscriptions = 0U;
     mqttStatus = MQTTAgent_Unsubscribe( &agentContext, &subscribeArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Unsubscribe() works as intended.
+ */
+void test_MQTTAgent_Unsubscribe_success( void )
+{
+    MQTTAgentContext_t agentContext;
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTSubscribeInfo_t subscribeInfo = { 0 };
+    MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
 
     /* Success case. */
     subscribeArgs.pSubscribeInfo = &subscribeInfo;
@@ -447,15 +486,44 @@ void test_MQTTAgent_Unsubscribe( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( UNSUBSCRIBE, command.commandType );
     TEST_ASSERT_EQUAL_PTR( &subscribeArgs, command.pArgs );
-    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
 }
 
 /* ========================================================================== */
 
 /**
+ * @brief Test that MQTTAgent_Publish() works as intended.
+ */
+void test_MQTTAgent_Publish( void )
+{
+    MQTTAgentContext_t agentContext;
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTPublishInfo_t publishInfo = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+
+    /* TODO: Implement this. */
+}
+
+/* ========================================================================== */
+
+/**
+ * @brief Test MQTTAgent_ProcessLoop() with invalid parameters.
+ */
+void test_MQTTAgent_ProcessLoop_Invalid_Params( void )
+{
+    /* Call the common helper function with the function pointer and name. */
+    invalidParamsTestFunc( MQTTAgent_ProcessLoop, "Function=MQTTAgent_ProcessLoop" );
+}
+
+/**
  * @brief Test that MQTTAgent_ProcessLoop() works as intended.
  */
-void test_MQTTAgent_ProcessLoop( void )
+void test_MQTTAgent_ProcessLoop_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -464,12 +532,6 @@ void test_MQTTAgent_ProcessLoop( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
-
-    /* We have already tested the generic cases of NULL parameters above in
-     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
-     * to test one for coverage. */
-    mqttStatus = MQTTAgent_ProcessLoop( NULL, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     /* Success case. */
     mqttStatus = MQTTAgent_ProcessLoop( &agentContext, &commandInfo );
@@ -480,10 +542,21 @@ void test_MQTTAgent_ProcessLoop( void )
     TEST_ASSERT_NULL( command.pCommandCompleteCallback );
 }
 
+/* ========================================================================== */
+
+/**
+ * @brief Test MQTTAgent_Disconnect() with invalid parameters.
+ */
+void test_MQTTAgent_Disconnect_Invalid_Params( void )
+{
+    /* Call the common helper function with the function pointer and name. */
+    invalidParamsTestFunc( MQTTAgent_Disconnect, "Function=MQTTAgent_Disconnect" );
+}
+
 /**
  * @brief Test that MQTTAgent_Disconnect() works as intended.
  */
-void test_MQTTAgent_Disconnect( void )
+void test_MQTTAgent_Disconnect_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -492,13 +565,7 @@ void test_MQTTAgent_Disconnect( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
-    commandInfo.cmdCompleteCallback = mockCompletionCallback;
-
-    /* We have already tested the generic cases of NULL parameters above in
-     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
-     * to test one for coverage. */
-    mqttStatus = MQTTAgent_Disconnect( NULL, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
 
     /* Success case. */
     mqttStatus = MQTTAgent_Disconnect( &agentContext, &commandInfo );
@@ -506,13 +573,24 @@ void test_MQTTAgent_Disconnect( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( DISCONNECT, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
-    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
+}
+
+/* ========================================================================== */
+
+/**
+ * @brief Test MQTTAgent_Disconnect() with invalid parameters.
+ */
+void test_MQTTAgent_Ping_Invalid_Params( void )
+{
+    /* Call the common helper function with the function pointer and name. */
+    invalidParamsTestFunc( MQTTAgent_Ping, "Function=MQTTAgent_Ping" );
 }
 
 /**
  * @brief Test that MQTTAgent_Ping() works as intended.
  */
-void test_MQTTAgent_Ping( void )
+void test_MQTTAgent_Ping_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -521,13 +599,7 @@ void test_MQTTAgent_Ping( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
-    commandInfo.cmdCompleteCallback = mockCompletionCallback;
-
-    /* We have already tested the generic cases of NULL parameters above in
-     * #test_MQTTAgent_API_Create_Command_Invalid_Params, so here we only need
-     * to test one for coverage. */
-    mqttStatus = MQTTAgent_Ping( NULL, &commandInfo );
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
 
     /* Success case. */
     mqttStatus = MQTTAgent_Ping( &agentContext, &commandInfo );
@@ -535,13 +607,24 @@ void test_MQTTAgent_Ping( void )
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( PING, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
-    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
+}
+
+/* ========================================================================== */
+
+/**
+ * @brief Test MQTTAgent_Terminate() with invalid parameters.
+ */
+void test_MQTTAgent_Terminate_Invalid_Params( void )
+{
+    /* Call the common helper function with the function pointer and name. */
+    invalidParamsTestFunc( MQTTAgent_Terminate, "Function=MQTTAgent_Terminate" );
 }
 
 /**
  * @brief Test that MQTTAgent_Terminate() works as intended.
  */
-void test_MQTTAgent_Terminate( void )
+void test_MQTTAgent_Terminate_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
@@ -550,15 +633,13 @@ void test_MQTTAgent_Terminate( void )
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
-    commandInfo.cmdCompleteCallback = mockCompletionCallback;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
 
-    /* We have already tested cases of NULL parameters with Terminate in
-     * test_MQTTAgent_API_Create_Command_Invalid_Params,so we only need to
-     * test the success case. */
+    /* Success case. */
     mqttStatus = MQTTAgent_Terminate( &agentContext, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
     TEST_ASSERT_EQUAL( TERMINATE, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
-    TEST_ASSERT_EQUAL_PTR( mockCompletionCallback, command.pCommandCompleteCallback );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
 }
