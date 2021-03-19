@@ -267,6 +267,14 @@ void test_MQTTAgent_Init_Invalid_Params( void )
 
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, getTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    msgInterface.getCommand = mockGetCommand;
+
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTBadParameter );
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, NULL, &transportInterface, getTime, incomingCallback, incomingPacketContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+
 }
 
 /**
