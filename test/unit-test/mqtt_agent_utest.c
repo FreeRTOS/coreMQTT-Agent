@@ -313,6 +313,20 @@ void test_MQTTAgent_ResumeSession_session_present_no_resent_publishes( void )
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
+void test_MQTTAgent_ResumeSession_session_present_no_puback_found( void )
+{
+    bool sessionPresent = true;
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+
+    setupAgentContext( &mqttAgentContext );
+
+    MQTT_PublishToResend_ExpectAnyArgsAndReturn( 2 );
+    mqttAgentContext.pPendingAcks[ 0 ].packetId=1U;
+    MQTT_PublishToResend_ExpectAnyArgsAndReturn( MQTT_PACKET_ID_INVALID );
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
 
 void test_MQTTAgent_ResumeSession_failed_publish( void )
 {
@@ -368,7 +382,6 @@ void test_MQTTAgent_ResumeSession_no_session_present( void )
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
     Command_t command;
-    AckInfo_t ackInfo, ackInfoCallback;
 
     setupAgentContext( &mqttAgentContext );
 
