@@ -313,7 +313,7 @@ void test_MQTTAgent_ResumeSession_session_present_no_resent_publishes( void )
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
-void test_MQTTAgent_ResumeSession_puback_packetId_not_match( void )
+void test_MQTTAgent_ResumeSession_session_present_no_publish_found( void )
 {
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
