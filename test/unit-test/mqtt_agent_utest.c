@@ -327,7 +327,7 @@ void test_MQTTAgent_ResumeSession_failed_publish( void )
     ackInfo.packetId = 1U;
     ackInfo.pOriginalCommand = &command;
     mqttAgentContext.pPendingAcks[ 0 ] = ackInfo;
-    /* Check that failed resending publish return MQTTSendFailed */
+    /* Check that failed resending publish return MQTTSendFailed. */
     MQTT_PublishToResend_IgnoreAndReturn( 1 );
     MQTT_Publish_IgnoreAndReturn( MQTTSendFailed );
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
