@@ -381,7 +381,6 @@ void test_MQTTAgent_ResumeSession_no_session_present( void )
     TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 1 ].pOriginalCommand );
 
     command.pCommandCompleteCallback = mockCommandCallback;
-    ackInfoCallback.pOriginalCommand = &command;
     mqttAgentContext.pPendingAcks[ 1 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 1 ].pOriginalCommand = &command;
     /* Check that command callback is called if it is specified to indicate network error. */
