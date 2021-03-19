@@ -810,7 +810,6 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
         ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
         ( getCurrentTimeMs == NULL ) ||
-        ( pNetworkBuffer == NULL ) ||
         ( incomingCallback == NULL ) )
     {
         returnStatus = MQTTBadParameter;
