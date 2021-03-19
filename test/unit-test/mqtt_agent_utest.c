@@ -322,7 +322,7 @@ void test_MQTTAgent_ResumeSession_session_present_no_publish_found( void )
     setupAgentContext( &mqttAgentContext );
 
     MQTT_PublishToResend_ExpectAnyArgsAndReturn( 2 );
-    mqttAgentContext.pPendingAcks[ 0 ].packetId=1U;
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     MQTT_PublishToResend_ExpectAnyArgsAndReturn( MQTT_PACKET_ID_INVALID );
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
