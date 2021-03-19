@@ -196,7 +196,6 @@ void test_MQTTAgent_Init_Happy_Path( void )
     AgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
-    IncomingPublishCallback_t incomingCallback;
     void * incomingPacketContext;
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
@@ -224,7 +223,7 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     AgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
-    IncomingPublishCallback_t incomingCallback;
+    IncomingPublishCallback_t incomingCallback = mockPublishCallback;
     void * incomingPacketContext;
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
