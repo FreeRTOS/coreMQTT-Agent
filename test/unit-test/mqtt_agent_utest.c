@@ -313,7 +313,7 @@ void test_MQTTAgent_ResumeSession_session_present_no_resent_publishes( void )
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
-void test_MQTTAgent_ResumeSession_session_present_no_puback_found( void )
+void test_MQTTAgent_ResumeSession_puback_packetId_not_match( void )
 {
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
@@ -385,6 +385,7 @@ void test_MQTTAgent_ResumeSession_no_session_present( void )
 
     setupAgentContext( &mqttAgentContext );
 
+    command.pCommandCompleteCallback = NULL;
     mqttAgentContext.pPendingAcks[ 1 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 1 ].pOriginalCommand = &command;
     /* Check that only acknowledgments with valid packet IDs are cleared. */
