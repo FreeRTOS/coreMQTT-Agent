@@ -55,7 +55,6 @@ static uint32_t globalEntryTime = 0;
 /* Called before each test method. */
 void setUp()
 {
-
     globalEntryTime = 0;
 }
 
