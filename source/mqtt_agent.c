@@ -885,8 +885,8 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
     else if( ( pMsgInterface->pMsgCtx == NULL ) ||
              ( pMsgInterface->send == NULL ) ||
              ( pMsgInterface->recv == NULL ) ||
-             ( pMsgInterface->releaseCommand == NULL ) ||
-             ( pMsgInterface->getCommand == NULL ) )
+             ( pMsgInterface->getCommand == NULL ) ||
+             ( pMsgInterface->releaseCommand == NULL ) )
     {
         LogError( ( "Invalid parameter: pMsgInterface must set all members." ) );
         returnStatus = MQTTBadParameter;
