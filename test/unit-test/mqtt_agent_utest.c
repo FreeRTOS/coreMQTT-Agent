@@ -309,10 +309,9 @@ void test_MQTT_Init_Invalid_Params( void )
 /* ========================================================================== */
 
 /**
- * @brief Test error cases when a command cannot be obtained or sent
- * for API functions that create commands.
+ * @brief Test error cases when a command cannot be obtained.
  */
-void test_MQTTAgent_API_Create_Command_Creation_Error( void )
+void test_MQTTAgent_Ping_Command_Allocation_Failure( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
@@ -321,10 +320,22 @@ void test_MQTTAgent_API_Create_Command_Creation_Error( void )
 
     setupAgentContext( &agentContext );
 
-    /* Use Ping since it's one that doesn't have an additional pointer param. */
     pCommandToReturn = NULL;
     mqttStatus = MQTTAgent_Ping( &agentContext, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
+}
+
+/**
+ * @brief Test error case when a command cannot be enqueued.
+ */
+void test_MQTTAgent_Ping_Command_Send_Failure( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+
+    setupAgentContext( &agentContext );
 
     pCommandToReturn = &command;
     agentContext.agentInterface.send = stubSendFail;
@@ -341,7 +352,7 @@ void test_MQTTAgent_API_Create_Command_Creation_Error( void )
  * is no more space to store a pending acknowledgment for
  * a command that expects one.
  */
-void test_MQTTAgent_API_Create_Command_No_Ack_Space( void )
+void test_MQTTAgent_Subscribe_No_Ack_Space( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
