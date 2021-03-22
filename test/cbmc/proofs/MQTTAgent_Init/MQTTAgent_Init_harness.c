@@ -1,5 +1,5 @@
 /*
- * MQTTAgent v1.1.0
+ * coreMQTT-Agent v1.0.0
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -20,56 +20,30 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/**
- * @file mqtt_agent_command_functions_utest.c
- * @brief Unit tests for functions in mqtt_agent_utest.h
- */
-#include <string.h>
-#include <stdbool.h>
+/* MQTT agent include. */
+#include "mqtt_agent.h"
 
-#include "unity.h"
-
-/* Include paths for public enums, structures, and macros. */
-
-#include "mock_core_mqtt.h"
-
-/**
- * @brief MQTT client identifier.
- */
-#define MQTT_CLIENT_IDENTIFIER                 "testclient"
-
-/**
- * @brief A sample network context that we set to NULL.
- */
-#define MQTT_SAMPLE_NETWORK_CONTEXT            ( NULL )
-
-/**
- * @brief Time at the beginning of each test. Note that this is not updated with
- * a real clock. Instead, we simply increment this variable.
- */
-static uint32_t globalEntryTime = 0;
-
-
-/* ============================   UNITY FIXTURES ============================ */
-
-/* Called before each test method. */
-void setUp()
+void harness()
 {
-    globalEntryTime = 0;
-}
 
-/* Called after each test method. */
-void tearDown()
-{
-}
+  MQTTAgentContext_t * pMqttAgentContext;
+  AgentMessageInterface_t * pMsgInterface;
+  MQTTFixedBuffer_t * pNetworkBuffer;
+  TransportInterface_t * pTransportInterface;
+  MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
+  IncomingPublishCallback_t incomingCallback;
+  void * pIncomingPacketContext;
 
-/* Called at the beginning of the whole suite. */
-void suiteSetUp()
-{
-}
+  pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );
+  pMsgInterface = malloc( sizeof( AgentMessageInterface_t ) );
+  pNetworkBuffer = malloc( sizeof( MQTTFixedBuffer_t ) );
+  pTransportInterface = malloc( sizeof( TransportInterface_t ) );
 
-/* Called at the end of the whole suite. */
-int suiteTearDown( int numFailures )
-{
-    return numFailures;
+  MQTTAgent_Init( pMqttAgentContext,
+                  pMsgInterface,
+                  pNetworkBuffer,
+                  pTransportInterface,
+                  getCurrentTimeMs,
+                  incomingCallback,
+                  pIncomingPacketContext );
 }
