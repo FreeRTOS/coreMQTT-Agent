@@ -84,11 +84,9 @@ static uint32_t commandReleaseCallCount = 0;
  * @brief A mocked send function to send commands to the agent.
  */
 static bool stubSend( AgentMessageContext_t * pMsgCtx,
-                      const void * pData,
+                      Command_t * const * pCommandToSend,
                       uint32_t blockTimeMs )
 {
-    Command_t ** pCommandToSend = ( Command_t ** ) pData;
-
     ( void ) blockTimeMs;
     pMsgCtx->pSentCommand = *pCommandToSend;
     return true;
@@ -98,25 +96,17 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
  * @brief A mocked receive function for the agent to receive commands.
  */
 static bool stubReceive( AgentMessageContext_t * pMsgCtx,
-                         void * pBuffer,
+                         Command_t ** pReceivedCommand,
                          uint32_t blockTimeMs )
 {
-    Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
-
     ( void ) blockTimeMs;
 
     if( receiveCounter == 0 )
     {
-        *pCommandToReceive = pMsgCtx->pSentCommand;
-        receiveCounter++;
-        return true;
+        *pReceivedCommand = pMsgCtx->pSentCommand;
     }
-    else
-    {
-        *pCommandToReceive = NULL;
-        receiveCounter++;
-        return false;
-    }
+
+    return( receiveCounter++ == 0 );
 }
 
 /**
