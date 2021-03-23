@@ -163,6 +163,14 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
                         pConnectInfo->timeoutMs,
                         &( pConnectInfo->sessionPresent ) );
 
+    /* Resume a session if one existed, else clear the list of acknowledgments. */
+    if( ret == MQTTSuccess )
+    {
+        LogInfo( ( "Session present flag: %d", pConnectInfo->sessionPresent ) );
+        ret = MQTTAgent_ResumeSession( pMqttAgentContext,
+                                       pConnectInfo->sessionPresent );
+    }
+
     memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
 
     return ret;
