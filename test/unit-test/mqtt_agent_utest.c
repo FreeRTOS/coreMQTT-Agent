@@ -330,6 +330,12 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.getCommand = stubGetCommand;
+    msgInterface.releaseCommand = stubReleaseCommand;
+
     /* Check that MQTTBadParameter is returned if any NULL parameters are passed. */
     mqttStatus = MQTTAgent_Init( NULL, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
@@ -347,26 +353,27 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, NULL, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
+    msgInterface.pMsgCtx = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.pMsgCtx = &msg;
-
+    msgInterface.send = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.send = stubSend;
-
+    msgInterface.recv = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.recv = stubReceive;
-
+    msgInterface.releaseCommand = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.releaseCommand = stubReleaseCommand;
-
+    msgInterface.getCommand = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
