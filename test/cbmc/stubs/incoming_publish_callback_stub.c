@@ -20,21 +20,22 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* MQTT agent include. */
+/**
+ * @file incoming_publish_callback_stub.c
+ * @brief A stub for the incoming publish callback.
+ */
+
 #include "mqtt_agent.h"
+#include "incoming_publish_callback_stub.h"
 
-#include "mqtt_agent_cbmc_state.h"
-
-void harness()
+void IncomingPublishCallbackStub( MQTTAgentContext_t * pMqttAgentContext,
+                                  uint16_t packetId,
+                                  MQTTPublishInfo_t * pPublishInfo )
 {
-    MQTTAgentContext_t * pMqttAgentContext;
-    CommandInfo_t * pCommandInfo;
-
-    pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
-
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
-
-    MQTTAgent_Disconnect( pMqttAgentContext,
-                          pCommandInfo );
+    __CPROVER_assert( pMqttAgentContext != NULL,
+                      "IncomingPublishCallbackStub pMqttAgentContext is not NULL." );
+    __CPROVER_assert( packetId != 0U,
+                      "IncomingPublishCallbackStub packetId is not 0." );
+    __CPROVER_assert( pPublishInfo != NULL,
+                      "IncomingPublishCallbackStub pPublishInfo is not NULL" );
 }

@@ -20,21 +20,19 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* MQTT agent include. */
-#include "mqtt_agent.h"
+/**
+ * @file get_time_stub.h
+ * @brief Stub definition for the application defined callback to retrieve the
+ * current time in milliseconds.
+ */
+#ifndef GET_TIME_STUB_H_
+#define GET_TIME_STUB_H_
 
-#include "mqtt_agent_cbmc_state.h"
+/**
+ * Application defined callback to retrieve the current time in milliseconds.
+ *
+ * @return The current time in milliseconds.
+ */
+uint32_t GetCurrentTimeStub( void );
 
-void harness()
-{
-    MQTTAgentContext_t * pMqttAgentContext;
-    CommandInfo_t * pCommandInfo;
-
-    pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
-
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
-
-    MQTTAgent_Disconnect( pMqttAgentContext,
-                          pCommandInfo );
-}
+#endif /* ifndef GET_TIME_STUB_H_ */

@@ -15,6 +15,14 @@ REMOVE_FUNCTION_BODY +=
 UNWINDSET +=
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/sources/mqtt_agent_cbmc_state.c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/network_interface_stubs.c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/incoming_publish_callback_stub.c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/get_time_stub.c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_command_pool_stubs.c
+
 PROJECT_SOURCES += $(SRCDIR)/source/mqtt_agent.c
+PROJECT_SOURCES += $(SRCDIR)/source/dependency/coreMQTT/source/core_mqtt.c
+PROJECT_SOURCES += $(SRCDIR)/source/dependency/coreMQTT/source/core_mqtt_serializer.c
 
 include ../Makefile.common
