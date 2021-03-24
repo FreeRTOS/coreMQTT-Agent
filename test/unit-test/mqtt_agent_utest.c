@@ -553,7 +553,7 @@ void test_MQTTAgent_Ping_Command_Send_Failure( void )
 }
 
 /**
- * @brief Test that a bad parameter is returned when there
+ * @brief Test that an MQTTNoMemory error is returned when there
  * is no more space to store a pending acknowledgment for
  * a command that expects one.
  */
@@ -748,7 +748,7 @@ void test_MQTTAgent_Publish_Invalid_Parameters( void )
 }
 
 /**
- * @brief Test that a bad parameter is returned when there
+ * @brief Test that an MQTTNoMemory error is returned when there
  * is no more space to store a pending acknowledgment for
  * a command that expects one.
  */
