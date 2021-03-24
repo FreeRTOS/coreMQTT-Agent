@@ -130,9 +130,7 @@ bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext )
 
     if( pContext != NULL )
     {
-        isValid = true;
-        isValid = isValid && pContext->mqttContext.networkBuffer.size < CBMC_MAX_OBJECT_SIZE;
-        isValid = isValid && isValidMqttFixedBuffer( &( pContext->mqttContext.networkBuffer ) );
+        isValid = isValidMqttFixedBuffer( &( pContext->mqttContext.networkBuffer ) );
     }
 
     return isValid;
