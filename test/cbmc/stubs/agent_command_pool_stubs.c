@@ -20,24 +20,23 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* MQTT agent include. */
+/**
+ * @file agent_command_pool_stubs.h
+ * @brief Stub functions to get and release command structure from a command pool.
+ */
 #include "mqtt_agent.h"
+#include "agent_command_pool_stubs.h"
 
-#include "mqtt_agent_cbmc_state.h"
-
-void harness()
+Command_t * AgentGetCommandStub( uint32_t blockTimeMs )
 {
-    MQTTAgentContext_t * pMqttAgentContext;
-    MQTTAgentConnectArgs_t * pConnectArgs;
-    CommandInfo_t * pCommandInfo;
+    Command_t * pCommand;
 
-    pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
+    pCommand = malloc( sizeof( Command_t ) );
 
-    pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
+    return pCommand;
+}
 
-    MQTTAgent_Connect( pMqttAgentContext,
-                       pConnectArgs,
-                       pCommandInfo );
+bool Agent_ReleaseCommand( Command_t * pCommandToRelease )
+{
+    return ( pCommandToRelease != NULL ) ? true : false;
 }

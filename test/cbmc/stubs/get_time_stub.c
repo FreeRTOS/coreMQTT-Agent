@@ -20,24 +20,24 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* MQTT agent include. */
-#include "mqtt_agent.h"
+/**
+ * @file get_time_stub.c
+ * @brief A stub to mock the retrieval of current time.
+ */
 
-#include "mqtt_agent_cbmc_state.h"
+#include "core_mqtt.h"
+#include "get_time_stub.h"
 
-void harness()
+uint32_t GetCurrentTimeStub( void )
 {
-    MQTTAgentContext_t * pMqttAgentContext;
-    MQTTAgentConnectArgs_t * pConnectArgs;
-    CommandInfo_t * pCommandInfo;
+    /* There are loops in the MQTT library that rely on the timestamp being
+     * reasonable in order to complete. Returning an unbounded timestamp does
+     * not add value to the proofs as the MQTT library uses the timestamp for
+     * only arithmetic operations. In C arithmetic operations on unsigned
+     * integers are guaranteed to reliably wrap around with no adverse side
+     * effects. If the time returned was unbounded, the loops could be unwound
+     * a large number of times making the proof execution very long. */
+    static uint32_t globalEntryTime = 0;
 
-    pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
-
-    pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
-
-    MQTTAgent_Connect( pMqttAgentContext,
-                       pConnectArgs,
-                       pCommandInfo );
+    return ++globalEntryTime;
 }
