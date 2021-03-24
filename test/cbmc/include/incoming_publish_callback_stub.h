@@ -20,20 +20,25 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* MQTT agent include. */
-#include "mqtt_agent.h"
-#include "mqtt_agent_cbmc_state.h"
+/**
+ * @file incoming_publish_callback_stub.h
+ * @brief Stub definition for the application defined MQTT library incoming
+ * publish callback.
+ */
+#ifndef INCOMING_PUBLISH_CALLBACK_STUB_H_
+#define INCOMING_PUBLISH_CALLBACK_STUB_H_
 
-void harness()
-{
-    MQTTAgentContext_t * pMqttAgentContext;
-    CommandInfo_t * pCommandInfo;
+/* mqtt_agent.h must precede including this header. */
 
-    pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
+/**
+ * @brief Callback function called when receiving a publish.
+ *
+ * @param[in] pMqttAgentContext The context of the MQTT agent.
+ * @param[in] packetId The packet ID of the received publish.
+ * @param[in] pPublishInfo Deserialized publish information.
+ */
+void IncomingPublishCallbackStub( MQTTAgentContext_t * pContext,
+                                  uint16_t packetId,
+                                  MQTTPublishInfo_t * pPublishInfo );
 
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
-
-    MQTTAgent_Terminate( pMqttAgentContext,
-                         pCommandInfo );
-}
+#endif /* ifndef INCOMING_PUBLISH_CALLBACK_STUB_H_ */
