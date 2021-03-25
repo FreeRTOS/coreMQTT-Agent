@@ -3,6 +3,9 @@ MQTTAgent_Terminate proof
 
 This directory contains a memory safety proof for MQTTAgent_Terminate.
 
+This proof tests the MQTTAgent_Terminate implementation. However, proof uses stubs for the implementations
+of AgentMessageInterface_t, TransportInterface_t, MQTTGetCurrentTimeFunc_t and IncomingPublishCallback_t.
+
 To run the proof.
 -------------
 
