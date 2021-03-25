@@ -24,10 +24,28 @@
 #include "mqtt_agent.h"
 #include "mqtt_agent_cbmc_state.h"
 
+/**
+ * @brief Function to check if the status is a valid MQTTAgent_Terminate status.
+ *
+ * @param[in] mqttStatus MQTT status to check if it is a valid MQTTAgent_Terminate
+ * status.
+ *
+ * @return true if an MQTTAgent_Terminate status, false otherwise.
+ */
+static bool isMQTTAgent_TerminateStatus( MQTTStatus_t mqttStatus )
+{
+    return( ( mqttStatus == MQTTSuccess ) ||
+            ( mqttStatus == MQTTBadParameter ) ||
+            ( mqttStatus == MQTTNoMemory ) ||
+            ( mqttStatus == MQTTSendFailed ) );
+}
+
+/* Test harness entry function. */
 void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
     CommandInfo_t * pCommandInfo;
+    MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
@@ -37,6 +55,8 @@ void harness()
      * will be sufficient for this proof.*/
     pCommandInfo = malloc( sizeof( CommandInfo_t ) );
 
-    MQTTAgent_Terminate( pMqttAgentContext,
-                         pCommandInfo );
+    mqttStatus = MQTTAgent_Terminate( pMqttAgentContext,
+                                      pCommandInfo );
+
+    __CPROVER_assert( isMQTTAgent_TerminateStatus( mqttStatus ), "The return value is a MQTTStatus_t." );
 }
