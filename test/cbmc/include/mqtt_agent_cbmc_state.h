@@ -73,4 +73,23 @@ MQTTAgentContext_t* allocateMqttAgentContext( MQTTAgentContext_t * pContext );
  */
 bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext );
 
+/**
+ * @brief Function to check if the status is a valid status for the MQTT Agent
+ * functions that send a command to the queue. The functions are:
+ *  - MQTTAgent_Connect
+ *  - MQTTAgent_Disconnect
+ *  - MQTTAgent_Subscribe
+ *  - MQTTAgent_Unsubscribe
+ *  - MQTTAgent_Ping
+ *  - MQTTAgent_Publish
+ *  - MQTTAgent_ProcessLoop
+ *  - MQTTAgent_Terminate
+ *
+ * @param[in] mqttStatus MQTT status to check if it is a valid MQTTAgent_Connect
+ * status.
+ *
+ * @return true if an MQTTAgent_Connect status, false otherwise.
+ */
+bool isAgentSendCommandFunctionStatus( MQTTStatus_t mqttStatus );
+
 #endif /* ifndef MQTT_AGENT_CBMC_STATE_H_ */
