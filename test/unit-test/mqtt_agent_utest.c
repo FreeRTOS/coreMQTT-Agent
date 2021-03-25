@@ -330,6 +330,12 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.getCommand = stubGetCommand;
+    msgInterface.releaseCommand = stubReleaseCommand;
+
     /* Check that MQTTBadParameter is returned if any NULL parameters are passed. */
     mqttStatus = MQTTAgent_Init( NULL, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
@@ -347,26 +353,27 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, NULL, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
+    msgInterface.pMsgCtx = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.pMsgCtx = &msg;
-
+    msgInterface.send = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.send = stubSend;
-
+    msgInterface.recv = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.recv = stubReceive;
-
+    msgInterface.releaseCommand = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
     msgInterface.releaseCommand = stubReleaseCommand;
-
+    msgInterface.getCommand = NULL;
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
@@ -376,7 +383,6 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     MQTT_Init_ExpectAnyArgsAndReturn( MQTTBadParameter );
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, NULL, &transportInterface, stubGetTime, incomingCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
 }
 
 /**
@@ -547,7 +553,7 @@ void test_MQTTAgent_Ping_Command_Send_Failure( void )
 }
 
 /**
- * @brief Test that a bad parameter is returned when there
+ * @brief Test that an MQTTNoMemory error is returned when there
  * is no more space to store a pending acknowledgment for
  * a command that expects one.
  */
@@ -702,11 +708,11 @@ void test_MQTTAgent_Unsubscribe_success( void )
 /* ========================================================================== */
 
 /**
- * @brief Test that MQTTAgent_Publish() works as intended.
+ * @brief Test MQTTAgent_Publish() with invalid parameters.
  */
-void test_MQTTAgent_Publish( void )
+void test_MQTTAgent_Publish_Invalid_Parameters( void )
 {
-    MQTTAgentContext_t agentContext;
+    MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
     CommandInfo_t commandInfo = { 0 };
     Command_t command = { 0 };
@@ -715,8 +721,166 @@ void test_MQTTAgent_Publish( void )
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = stubCompletionCallback;
+    /* Test topic name. */
+    publishInfo.pTopicName = "test";
+    publishInfo.topicNameLength = 4;
 
-    /* TODO: Implement this. */
+    /* NULL parameters. */
+    mqttStatus = MQTTAgent_Publish( NULL, &publishInfo, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Publish( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Publish( &agentContext, &publishInfo, NULL );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /* This needs to be large enough to hold the PUBLISH:
+     * 1 byte: control header
+     * 1 byte: remaining length
+     * 2 bytes: topic name length
+     * 1+ bytes: topic name.
+     * For this test case, the buffer must have size at least
+     * 1+1+2+4=8. */
+    agentContext.mqttContext.networkBuffer.size = 6;
+    mqttStatus = MQTTAgent_Publish( &agentContext, &publishInfo, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that an MQTTNoMemory error is returned when there
+ * is no more space to store a pending acknowledgment for
+ * a command that expects one.
+ */
+void test_MQTTAgent_Publish_No_Ack_Space( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTPublishInfo_t publishInfo = { 0 };
+    int i;
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+    /* Test topic name. */
+    publishInfo.pTopicName = "test";
+    publishInfo.topicNameLength = 4;
+    /* Ack space is only necessary for QoS > 0. */
+    publishInfo.qos = MQTTQoS1;
+
+    /* No space in pending ack list. */
+    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    {
+        agentContext.pPendingAcks[ i ].packetId = ( i + 1 );
+    }
+
+    /* This needs to be large enough to hold the PUBLISH:
+     * 1 byte: control header
+     * 1 byte: remaining length
+     * 2 bytes: topic name length
+     * 1+ bytes: topic name.
+     * For this test case, the buffer must have size at least
+     * 1+1+2+4=8. */
+    agentContext.mqttContext.networkBuffer.size = 10;
+    mqttStatus = MQTTAgent_Publish( &agentContext, &publishInfo, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Publish() works as intended.
+ */
+void test_MQTTAgent_Publish_success( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTPublishInfo_t publishInfo = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+    /* Test topic name. */
+    publishInfo.pTopicName = "test";
+    publishInfo.topicNameLength = 4;
+
+    /* This needs to be large enough to hold the PUBLISH:
+     * 1 byte: control header
+     * 1 byte: remaining length
+     * 2 bytes: topic name length
+     * 1+ bytes: topic name.
+     * For this test case, the buffer must have size at least
+     * 1+1+2+4=8. */
+    agentContext.mqttContext.networkBuffer.size = 10;
+    mqttStatus = MQTTAgent_Publish( &agentContext, &publishInfo, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
+    TEST_ASSERT_EQUAL( PUBLISH, command.commandType );
+    TEST_ASSERT_EQUAL_PTR( &publishInfo, command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
+}
+
+/* ========================================================================== */
+
+/**
+ * @brief Test MQTTAgent_Connect() with invalid parameters.
+ */
+void test_MQTTAgent_Connect_Invalid_Parameters( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTAgentConnectArgs_t connectArgs = { 0 };
+    MQTTConnectInfo_t connectInfo = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+    connectArgs.pConnectInfo = &connectInfo;
+
+    /* NULL parameters. */
+    mqttStatus = MQTTAgent_Connect( NULL, &connectArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Connect( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, NULL );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /* Invalid argument. */
+    connectArgs.pConnectInfo = NULL;
+    mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Connect() works as intended.
+ */
+void test_MQTTAgent_Connect_success( void )
+{
+    MQTTAgentContext_t agentContext;
+    MQTTStatus_t mqttStatus;
+    CommandInfo_t commandInfo = { 0 };
+    Command_t command = { 0 };
+    MQTTAgentConnectArgs_t connectArgs = { 0 };
+    MQTTConnectInfo_t connectInfo = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+
+    /* Success case. */
+    connectArgs.pConnectInfo = &connectInfo;
+    mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    TEST_ASSERT_EQUAL_PTR( &command, globalMessageContext.pSentCommand );
+    TEST_ASSERT_EQUAL( CONNECT, command.commandType );
+    TEST_ASSERT_EQUAL_PTR( &connectArgs, command.pArgs );
+    TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
 }
 
 /* ========================================================================== */
