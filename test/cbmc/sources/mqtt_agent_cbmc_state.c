@@ -135,3 +135,11 @@ bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext )
 
     return isValid;
 }
+
+bool isAgentSendCommandFunctionStatus( MQTTStatus_t mqttStatus )
+{
+    return( ( mqttStatus == MQTTSuccess ) ||
+            ( mqttStatus == MQTTBadParameter ) ||
+            ( mqttStatus == MQTTNoMemory ) ||
+            ( mqttStatus == MQTTSendFailed ) );
+}

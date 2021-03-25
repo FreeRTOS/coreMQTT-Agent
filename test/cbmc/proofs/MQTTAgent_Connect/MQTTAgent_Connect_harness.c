@@ -22,26 +22,26 @@
 
 /* MQTT agent include. */
 #include "mqtt_agent.h"
+
 #include "mqtt_agent_cbmc_state.h"
 
 
-/* Test harness entry function. */
 void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
+    MQTTAgentConnectArgs_t * pConnectArgs;
     CommandInfo_t * pCommandInfo;
     MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
-    /* CommandInfo is only added to Queue in MQTTAgent_Terminate and
-     * non deterministic values for the members of CommandInfo_t type
-     * will be sufficient for this proof.*/
+    pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
     pCommandInfo = malloc( sizeof( CommandInfo_t ) );
 
-    mqttStatus = MQTTAgent_Terminate( pMqttAgentContext,
-                                      pCommandInfo );
-
+    mqttStatus = MQTTAgent_Connect( pMqttAgentContext,
+                                    pConnectArgs,
+                                    pCommandInfo );
+    
     __CPROVER_assert( isAgentSendCommandFunctionStatus( mqttStatus ), "The return value is a MQTTStatus_t." );
 }
