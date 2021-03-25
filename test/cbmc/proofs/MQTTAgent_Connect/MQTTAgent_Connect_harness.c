@@ -25,11 +25,13 @@
 
 #include "mqtt_agent_cbmc_state.h"
 
+
 void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
     MQTTAgentConnectArgs_t * pConnectArgs;
     CommandInfo_t * pCommandInfo;
+    MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
@@ -37,7 +39,9 @@ void harness()
     pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
     pCommandInfo = malloc( sizeof( CommandInfo_t ) );
 
-    MQTTAgent_Connect( pMqttAgentContext,
-                       pConnectArgs,
-                       pCommandInfo );
+    mqttStatus = MQTTAgent_Connect( pMqttAgentContext,
+                                    pConnectArgs,
+                                    pCommandInfo );
+    
+    __CPROVER_assert( isAgentSendCommandFunctionStatus( mqttStatus ), "The return value is a MQTTStatus_t." );
 }

@@ -3,6 +3,21 @@ MQTTAgent_Connect proof
 
 This directory contains a memory safety proof for MQTTAgent_Connect.
 
+The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
+ * MQTTAgent_Connect()
+ * MQTTAgent_Init()
+ * addCommandToQueue()
+ * createAndAddCommand()
+ * validateStruct()
+
+For this proof, stubs are used for the implementation of functions in the following interfaces and
+function types. Since the implementation for these functions will be provided by the applications,
+the proof only will require stubs.
+ * AgentMessageInterface_t
+ * TransportInterface_t
+ * MQTTGetCurrentTimeFunc_t
+ * IncomingPublishCallback_t
+
 To run the proof.
 -------------
 
