@@ -240,14 +240,14 @@ MQTTStatus_t MQTT_ProcessLoop_stub( MQTTContext_t * pContext,
 {
     MQTTPacketInfo_t packetInfo;
     MQTTDeserializedInfo_t deserializedInfo;
-    MQTTAgentContext_t * ret;
+    MQTTAgentContext_t * pMqttAgentContext;
 
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = 1U;
 
     pContext->appCallback( pContext, &packetInfo, &deserializedInfo );
-    ret = ( MQTTAgentContext_t * ) pContext;
-    ret->packetReceivedInLoop = false;
+    pMqttAgentContext = ( MQTTAgentContext_t * ) pContext;
+    pMqttAgentContext->packetReceivedInLoop = false;
 
     return MQTTSuccess;
 }
