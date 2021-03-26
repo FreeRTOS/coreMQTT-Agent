@@ -33,6 +33,8 @@
 #include "mqtt_agent.h"
 #include "mock_core_mqtt.h"
 #include "mock_core_mqtt_state.h"
+#include "mock_mqtt_agent_command_functions.h"
+
 
 /**
  * @brief The agent messaging context.
@@ -76,6 +78,15 @@ static Command_t * pCommandToReturn;
  */
 static uint32_t commandCompleteCallbackCount;
 
+/**
+ * @brief Mock Counter variable to check callback is called when incoming publish is received.
+ */
+static uint32_t publishCallbackCount;
+
+/**
+ * @brief Mock packet type to be used for testing all the received packet types via mqttEventcallback.
+ */
+static uint8_t packetType;
 
 /* ============================   UNITY FIXTURES ============================ */
 
@@ -84,6 +95,7 @@ void setUp()
 {
     globalEntryTime = 0;
     commandReleaseCallCount = 0;
+    publishCallbackCount = 0;
     globalMessageContext.pSentCommand = NULL;
     pCommandToReturn = NULL;
     commandCompleteCallbackCount = 0;
@@ -175,6 +187,8 @@ static void stubPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
     ( void ) pMqttAgentContext;
     ( void ) packetId;
     ( void ) pPublishInfo;
+
+    publishCallbackCount++;
 }
 
 static void stubCompletionCallback( void * pCommandCompletionContext,
@@ -201,6 +215,44 @@ static uint32_t stubGetTime( void )
 }
 
 /**
+ * @brief A stub for MQTT_Init function to be used to initialize the event callback.
+ */
+static MQTTStatus_t MQTT_Init_stub( MQTTContext_t * pContext,
+                                    const TransportInterface_t * pTransport,
+                                    MQTTGetCurrentTimeFunc_t getTimeFunc,
+                                    MQTTEventCallback_t userCallback,
+                                    const MQTTFixedBuffer_t * pNetworkBuffer )
+{
+    pContext->connectStatus = MQTTNotConnected;
+    pContext->transportInterface = *pTransport;
+    pContext->getTime = getTimeFunc;
+    pContext->appCallback = userCallback;
+    pContext->networkBuffer = *pNetworkBuffer;
+    pContext->nextPacketId = 1;
+    return MQTTSuccess;
+}
+
+/**
+ * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
+ */
+MQTTStatus_t MQTT_ProcessLoop_stub( MQTTContext_t * pContext,
+                                    uint32_t timeoutMs )
+{
+    MQTTPacketInfo_t packetInfo;
+    MQTTDeserializedInfo_t deserializedInfo;
+    MQTTAgentContext_t * pMqttAgentContext;
+
+    packetInfo.type = packetType;
+    deserializedInfo.packetIdentifier = 1U;
+
+    pContext->appCallback( pContext, &packetInfo, &deserializedInfo );
+    pMqttAgentContext = ( MQTTAgentContext_t * ) pContext;
+    pMqttAgentContext->packetReceivedInLoop = false;
+
+    return MQTTSuccess;
+}
+
+/**
  * @brief Function to initialize MQTT Agent Context to valid parameters.
  */
 static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
@@ -217,7 +269,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
     messageInterface.releaseCommand = stubReleaseCommand;
     messageInterface.getCommand = stubGetCommand;
 
-    MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTT_Init_StubWithCallback( MQTT_Init_stub );
     mqttStatus = MQTTAgent_Init( pAgentContext,
                                  &messageInterface,
                                  &networkBuffer,
@@ -238,7 +290,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
  * @param[in] FuncToTest Pointer to function to test.
  * @param[in] pFuncName String of function name to print for error messages.
  */
-static void invalidParamsTestFunc( MQTTStatus_t ( *FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
+static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
                                    const char * pFuncName )
 {
     MQTTAgentContext_t agentContext = { 0 };
@@ -1016,4 +1068,284 @@ void test_MQTTAgent_Terminate_success( void )
     TEST_ASSERT_EQUAL( TERMINATE, command.commandType );
     TEST_ASSERT_NULL( command.pArgs );
     TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
+}
+
+/**
+ * @brief Test MQTTAgent_CommandLoop behavior with invalid params.
+ */
+void test_MQTTAgent_CommandLoop_invalid_params( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+
+    mqttStatus = MQTTAgent_CommandLoop( NULL );
+
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.agentInterface.pMsgCtx = NULL;
+
+    mqttStatus = MQTTAgent_CommandLoop( NULL );
+
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgent_CommandLoop behavior when there is no command in the command Queue.
+ */
+void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommandFuncReturns_t pReturnFlags;
+
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    pReturnFlags.addAcknowledgment = false;
+    pReturnFlags.runProcessLoop = true;
+    pReturnFlags.endLoop = true;
+
+    MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgent_CommandLoop behavior when there is command to be processed in the command queue.
+ */
+void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommandFuncReturns_t pReturnFlags;
+    Command_t commandToSend;
+
+    setupAgentContext( &mqttAgentContext );
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    pReturnFlags.addAcknowledgment = false;
+    pReturnFlags.runProcessLoop = true;
+    pReturnFlags.endLoop = true;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = PUBLISH;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
+
+    /* Test case when processing a particular command fails. */
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTBadParameter );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+}
+
+/**
+ * @brief Test that MQTTAgent_CommandLoop adds acknowledgment in pendingAcks for the commands requiring
+ * acknowledgments.
+ */
+void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommandFuncReturns_t pReturnFlags;
+    Command_t commandToSend;
+
+    setupAgentContext( &mqttAgentContext );
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    pReturnFlags.addAcknowledgment = true;
+    pReturnFlags.runProcessLoop = true;
+    pReturnFlags.endLoop = true;
+    pReturnFlags.packetId = 1U;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = PUBLISH;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that acknowledgment is added. */
+    TEST_ASSERT_EQUAL( 1, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL_PTR( &commandToSend, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+    /* Ensure that callback is not invoked. */
+    TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
+}
+
+/**
+ * @brief Test that MQTTAgent_CommandLoop returns MQTTNoMemory if
+ * pPendingAcks array is full.
+ */
+void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommandFuncReturns_t pReturnFlags;
+    AckInfo_t * pendingAcks = mqttAgentContext.pPendingAcks;
+    size_t i = 0;
+    Command_t commandToSend;
+
+    setupAgentContext( &mqttAgentContext );
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    pReturnFlags.addAcknowledgment = true;
+    pReturnFlags.runProcessLoop = true;
+    pReturnFlags.endLoop = true;
+    pReturnFlags.packetId = 1U;
+
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = PUBLISH;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    {
+        /* Assigning valid packet ID to all array spaces to make no space for incoming acknowledgment. */
+        pendingAcks[ i ].packetId = i + 1;
+    }
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
+
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
+}
+
+/**
+ * @brief Test mqttEventCallback invocation via MQTT_ProcessLoop.
+ */
+void test_MQTTAgent_CommandLoop_with_eventCallback( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommandFuncReturns_t pReturnFlags;
+    Command_t command, commandToSend;
+
+    /* Setting up MQTT Agent Context. */
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    pReturnFlags.addAcknowledgment = false;
+    pReturnFlags.runProcessLoop = true;
+    pReturnFlags.endLoop = true;
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = PUBLISH;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBREL packet type.
+     * MQTT_PACKET_TYPE_PUBREC packet type code path will also be covered
+     * by this test case. */
+    packetType = MQTT_PACKET_TYPE_PUBREL;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
+
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PINGRESP packet type. */
+    packetType = MQTT_PACKET_TYPE_PINGRESP;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBACK packet type.
+     * MQTT_PACKET_TYPE_PUBCOMP, MQTT_PACKET_TYPE_SUBACK, MQTT_PACKET_TYPE_UNSUBACK
+     * packet types code path will also be covered by this test case. */
+    packetType = MQTT_PACKET_TYPE_PUBACK;
+
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    command.pCommandCompleteCallback = stubCompletionCallback;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 4, commandCompleteCallbackCount );
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+    /* Test case checking no corresponding ack exists for the PUBACK received in the pPendingAcks array. */
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 5, commandCompleteCallbackCount );
+
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBLISH packet type. */
+    packetType = MQTT_PACKET_TYPE_PUBLISH;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 6, commandCompleteCallbackCount );
+    TEST_ASSERT_EQUAL( 1, publishCallbackCount );
 }
