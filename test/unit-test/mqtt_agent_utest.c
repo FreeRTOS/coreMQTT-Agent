@@ -1377,7 +1377,6 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     command.pCommandCompleteCallback = NULL;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
-
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
     MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );

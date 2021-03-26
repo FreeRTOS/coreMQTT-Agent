@@ -922,7 +922,11 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     bool endLoop = false;
 
     /* The command queue should have been created before this task gets created. */
-    if( ( pMqttAgentContext == NULL ) || ( pMqttAgentContext->agentInterface.pMsgCtx == NULL ) )
+    if( ( pMqttAgentContext == NULL ) )
+    {
+        operationStatus = MQTTBadParameter;
+    }
+    else if( pMqttAgentContext->agentInterface.pMsgCtx == NULL )
     {
         operationStatus = MQTTBadParameter;
     }
