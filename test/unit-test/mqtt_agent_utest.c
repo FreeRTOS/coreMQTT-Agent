@@ -1092,9 +1092,9 @@ void test_MQTTAgent_CommandLoop_invalid_params( void )
 }
 
 /**
- * @brief Test MQTTAgent_CommandLoop behavior when there is no command to send.
+ * @brief Test MQTTAgent_CommandLoop behavior when there is no command in the command Queue.
  */
-void test_MQTTAgent_CommandLoop_sent_command_null( void )
+void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
@@ -1117,9 +1117,9 @@ void test_MQTTAgent_CommandLoop_sent_command_null( void )
 }
 
 /**
- * @brief Test MQTTAgent_CommandLoop behavior when there is command to be sent.
+ * @brief Test MQTTAgent_CommandLoop behavior when there is command to be processed in the command queue.
  */
-void test_MQTTAgent_CommandLoop_with_sent_command( void )
+void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
@@ -1271,7 +1271,9 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
 
-    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBREL packet type. */
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBREL packet type.
+     * MQTT_PACKET_TYPE_PUBREC packet type code path will also be covered
+     * by this test case. */
     packetType = MQTT_PACKET_TYPE_PUBREL;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
@@ -1299,7 +1301,9 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
 
 
-    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBACK packet type. */
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBACK packet type.
+     * MQTT_PACKET_TYPE_PUBCOMP, MQTT_PACKET_TYPE_SUBACK, MQTT_PACKET_TYPE_UNSUBACK
+     * packet types code path will also be covered by this test case. */
     packetType = MQTT_PACKET_TYPE_PUBACK;
 
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
