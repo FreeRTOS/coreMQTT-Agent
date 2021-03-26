@@ -498,7 +498,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
     operationStatus = commandFunction( pMqttAgentContext, pCommandArgs, &commandOutParams );
 
-    if( commandOutParams.addAcknowledgment )
+    if( ( operationStatus == MQTTSuccess ) && commandOutParams.addAcknowledgment )
     {
         ackAdded = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
 
@@ -922,9 +922,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     bool endLoop = false;
 
     /* The command queue should have been created before this task gets created. */
-    assert( pMqttAgentContext->agentInterface.pMsgCtx );
-
-    if( pMqttAgentContext == NULL )
+    if( ( pMqttAgentContext == NULL ) || ( pMqttAgentContext->agentInterface.pMsgCtx == NULL ) )
     {
         operationStatus = MQTTBadParameter;
     }
