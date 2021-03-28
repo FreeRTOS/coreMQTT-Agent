@@ -217,7 +217,7 @@ static uint32_t stubGetTime( void )
 /**
  * @brief A stub for MQTT_Init function to be used to initialize the event callback.
  */
-static MQTTStatus_t MQTT_Init_stub( MQTTContext_t * pContext,
+static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
                                     const TransportInterface_t * pTransport,
                                     MQTTGetCurrentTimeFunc_t getTimeFunc,
                                     MQTTEventCallback_t userCallback,
@@ -236,7 +236,7 @@ static MQTTStatus_t MQTT_Init_stub( MQTTContext_t * pContext,
 /**
  * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
  */
-MQTTStatus_t MQTT_ProcessLoop_stub( MQTTContext_t * pContext,
+MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
                                     uint32_t timeoutMs,
                                     int numCalls )
 {
@@ -271,7 +271,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
     messageInterface.releaseCommand = stubReleaseCommand;
     messageInterface.getCommand = stubGetCommand;
 
-    MQTT_Init_Stub( MQTT_Init_stub );
+    MQTT_Init_Stub( MQTT_Init_CustomStub );
     mqttStatus = MQTTAgent_Init( pAgentContext,
                                  &messageInterface,
                                  &networkBuffer,
@@ -1275,7 +1275,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1289,7 +1289,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1309,7 +1309,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1323,7 +1323,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     /* Test case checking no corresponding ack exists for the PUBACK received in the pPendingAcks array. */
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1337,7 +1337,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
