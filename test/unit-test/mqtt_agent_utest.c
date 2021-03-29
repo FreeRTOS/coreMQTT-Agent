@@ -218,11 +218,11 @@ static uint32_t stubGetTime( void )
  * @brief A stub for MQTT_Init function to be used to initialize the event callback.
  */
 static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
-                                    const TransportInterface_t * pTransport,
-                                    MQTTGetCurrentTimeFunc_t getTimeFunc,
-                                    MQTTEventCallback_t userCallback,
-                                    const MQTTFixedBuffer_t * pNetworkBuffer,
-                                    int numCalls )
+                                          const TransportInterface_t * pTransport,
+                                          MQTTGetCurrentTimeFunc_t getTimeFunc,
+                                          MQTTEventCallback_t userCallback,
+                                          const MQTTFixedBuffer_t * pNetworkBuffer,
+                                          int numCalls )
 {
     pContext->connectStatus = MQTTNotConnected;
     pContext->transportInterface = *pTransport;
@@ -237,8 +237,8 @@ static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
  * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
  */
 MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
-                                    uint32_t timeoutMs,
-                                    int numCalls )
+                                          uint32_t timeoutMs,
+                                          int numCalls )
 {
     MQTTPacketInfo_t packetInfo = { 0 };
     MQTTDeserializedInfo_t deserializedInfo = { 0 };
