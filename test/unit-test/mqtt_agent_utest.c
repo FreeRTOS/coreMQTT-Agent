@@ -1155,8 +1155,6 @@ void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
 
-    /*MQTTAgentCommandFuncReturns_t pReturnFlags; */
-
     setupAgentContext( &mqttAgentContext );
 
     mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
@@ -1184,7 +1182,6 @@ void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    /*MQTTAgentCommandFuncReturns_t pReturnFlags; */
     Command_t commandToSend;
 
     setupAgentContext( &mqttAgentContext );
@@ -1228,7 +1225,6 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    /*MQTTAgentCommandFuncReturns_t pReturnFlags; */
     Command_t commandToSend;
 
     setupAgentContext( &mqttAgentContext );
@@ -1267,7 +1263,6 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    /*MQTTAgentCommandFuncReturns_t pReturnFlags; */
     AckInfo_t * pendingAcks = mqttAgentContext.pPendingAcks;
     size_t i = 0;
     Command_t commandToSend;
@@ -1313,7 +1308,6 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    /*MQTTAgentCommandFuncReturns_t pReturnFlags; */
     Command_t command, commandToSend;
 
     /* Setting up MQTT Agent Context. */
