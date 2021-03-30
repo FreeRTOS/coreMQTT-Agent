@@ -1,7 +1,7 @@
 MQTTAgent_Publish proof
 ==============
 
-This directory contains a memory safety proof for MQTTAgent_Subscribe.
+This directory contains a memory safety proof for MQTTAgent_Publish.
 
 The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
  * MQTTAgent_Publish()
