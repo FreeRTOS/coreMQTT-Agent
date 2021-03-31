@@ -96,7 +96,7 @@ static uint16_t packetIdentifier;
 /**
  * @brief Return flags to use for test.
  */
-static MQTTAgentCommandFuncReturns_t pReturnFlags;
+static MQTTAgentCommandFuncReturns_t returnFlags;
 
 /* ============================   UNITY FIXTURES ============================ */
 
@@ -1143,12 +1143,12 @@ void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
     setupAgentContext( &mqttAgentContext );
 
     mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
-    pReturnFlags.addAcknowledgment = false;
-    pReturnFlags.runProcessLoop = true;
-    pReturnFlags.endLoop = true;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = true;
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1166,12 +1166,12 @@ void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
-    pReturnFlags.addAcknowledgment = false;
-    pReturnFlags.runProcessLoop = true;
-    pReturnFlags.endLoop = true;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = true;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
 
     /* Initializing command to be sent to the commandLoop. */
@@ -1189,7 +1189,7 @@ void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 
     /* Test case when processing a particular command fails. */
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTBadParameter );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1209,13 +1209,13 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
-    pReturnFlags.addAcknowledgment = true;
-    pReturnFlags.runProcessLoop = false;
-    pReturnFlags.endLoop = true;
-    pReturnFlags.packetId = 1U;
+    returnFlags.addAcknowledgment = true;
+    returnFlags.runProcessLoop = false;
+    returnFlags.endLoop = true;
+    returnFlags.packetId = 1U;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
 
     /* Initializing command to be sent to the commandLoop. */
     commandToSend.commandType = PUBLISH;
@@ -1248,14 +1248,14 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
-    pReturnFlags.addAcknowledgment = true;
-    pReturnFlags.runProcessLoop = false;
-    pReturnFlags.endLoop = false;
-    pReturnFlags.packetId = 1U;
+    returnFlags.addAcknowledgment = true;
+    returnFlags.runProcessLoop = false;
+    returnFlags.endLoop = false;
+    returnFlags.packetId = 1U;
 
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
 
     /* Initializing command to be sent to the commandLoop. */
@@ -1293,9 +1293,9 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     setupAgentContext( &mqttAgentContext );
 
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
-    pReturnFlags.addAcknowledgment = false;
-    pReturnFlags.runProcessLoop = true;
-    pReturnFlags.endLoop = true;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = true;
 
     /* Initializing command to be sent to the commandLoop. */
     commandToSend.commandType = PUBLISH;
@@ -1311,7 +1311,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     packetType = MQTT_PACKET_TYPE_PUBREL;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1325,7 +1325,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     packetType = MQTT_PACKET_TYPE_PINGRESP;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1345,7 +1345,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1362,7 +1362,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = NULL;
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1379,7 +1379,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1393,7 +1393,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     commandCompleteCallbackCount = 0;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1412,7 +1412,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1429,7 +1429,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     commandCompleteCallbackCount = 0;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1444,7 +1444,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     commandCompleteCallbackCount = 0;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1455,9 +1455,9 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 }
 
 /**
- * @brief Test MQTT_ProcessLoop failure case via calling it multiple times.
+ * @brief Test MQTTAgent_CommandLoop failure case via calling MQTT_ProcessLoop multiple times.
  */
-void test_MQTT_ProcessLoop_failure( void )
+void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
@@ -1465,12 +1465,12 @@ void test_MQTT_ProcessLoop_failure( void )
     setupAgentContext( &mqttAgentContext );
 
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
-    pReturnFlags.addAcknowledgment = false;
-    pReturnFlags.runProcessLoop = true;
-    pReturnFlags.endLoop = false;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = false;
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
-    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &pReturnFlags );
+    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
     /* Calling MQTT_ProcessLoop multiple times and returning failure second time. */
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub_multiple );
 
