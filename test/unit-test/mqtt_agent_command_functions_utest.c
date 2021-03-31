@@ -36,12 +36,12 @@
 /**
  * @brief MQTT client identifier.
  */
-#define MQTT_CLIENT_IDENTIFIER                 "testclient"
+#define MQTT_CLIENT_IDENTIFIER         "testclient"
 
 /**
  * @brief A sample network context that we set to NULL.
  */
-#define MQTT_SAMPLE_NETWORK_CONTEXT            ( NULL )
+#define MQTT_SAMPLE_NETWORK_CONTEXT    ( NULL )
 
 /**
  * @brief Time at the beginning of each test. Note that this is not updated with
