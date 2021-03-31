@@ -94,11 +94,6 @@ static uint8_t packetType;
 static uint16_t packetIdentifier;
 
 /**
- * @brief Mock Counter variable for multiple calls to processLoop.
- */
-static uint32_t processLoopCounter;
-
-/**
  * @brief Return flags to use for test.
  */
 static MQTTAgentCommandFuncReturns_t pReturnFlags;
@@ -115,7 +110,6 @@ void setUp()
     pCommandToReturn = NULL;
     commandCompleteCallbackCount = 0;
     packetIdentifier = 1U;
-    processLoopCounter = 0;
 }
 
 /* Called after each test method. */
@@ -285,18 +279,16 @@ MQTTStatus_t MQTT_ProcessLoop_stub_multiple( MQTTContext_t * pContext,
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
 
-    pContext->appCallback( pContext, &packetInfo, &deserializedInfo );
-
-    if( processLoopCounter == 0 )
+    if( NumCalls == 1 )
     {
+        pContext->appCallback( pContext, &packetInfo, &deserializedInfo );
         status = MQTTSuccess;
     }
     else
     {
+        /* MQTT_ProcessLoop returns failure second time. */
         status = MQTTRecvFailed;
     }
-
-    processLoopCounter++;
 
     return status;
 }
@@ -1153,17 +1145,14 @@ void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
     mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
     pReturnFlags.addAcknowledgment = false;
     pReturnFlags.runProcessLoop = true;
-    pReturnFlags.endLoop = false;
+    pReturnFlags.endLoop = true;
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub );
-
-    MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTBadParameter );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
-    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
 /**
@@ -1227,7 +1216,6 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
 
     /* Initializing command to be sent to the commandLoop. */
     commandToSend.commandType = PUBLISH;
