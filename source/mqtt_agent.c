@@ -657,7 +657,6 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
                  * PINGRESP with the use of MQTT_ProcessLoop API function. */
                 LogWarn( ( "PINGRESP should not be handled by the application "
                            "callback when using MQTT_ProcessLoop.\n" ) );
-                break;
 
             /* Any other packet type is invalid. */
             default:
