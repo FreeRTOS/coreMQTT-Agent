@@ -283,7 +283,7 @@ MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
  */
 MQTTStatus_t MQTT_ProcessLoop_stub_multiple( MQTTContext_t * pContext,
                                              uint32_t timeoutMs,
-                                             int NumCalls )
+                                             int numCalls )
 {
     MQTTPacketInfo_t packetInfo;
     MQTTDeserializedInfo_t deserializedInfo;
@@ -293,7 +293,7 @@ MQTTStatus_t MQTT_ProcessLoop_stub_multiple( MQTTContext_t * pContext,
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
 
-    if( NumCalls == 0 )
+    if( numCalls == 0 )
     {
         pContext->appCallback( pContext, &packetInfo, &deserializedInfo );
         status = MQTTSuccess;
@@ -1480,7 +1480,7 @@ void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
-    /* Calling MQTT_ProcessLoop multiple times and returning failure second time. */
+    /* MQTTAgent_CommandLoop calling MQTT_ProcessLoop multiple times and returning failure second time. */
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub_multiple );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
@@ -1489,9 +1489,9 @@ void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
 }
 
 /**
- * @brief Test MQTTAgent_CommandLoop behavior processing multiple commands in command queue.
+ * @brief Test MQTTAgent_CommandLoop failure while processing multiple commands in command queue.
  */
-void test_MQTTAgent_CommandLoop_with_multiple_commands( void )
+void test_MQTTAgent_CommandLoop_failure_processing_multiple_commands( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
