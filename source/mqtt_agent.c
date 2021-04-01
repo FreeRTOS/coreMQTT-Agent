@@ -47,6 +47,7 @@
 #include <assert.h>
 
 /* MQTT agent include. */
+#include "core_mqtt.h"
 #include "mqtt_agent.h"
 #include "mqtt_agent_command_functions.h"
 
@@ -559,7 +560,7 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
     CommandContext_t * pAckContext = NULL;
     CommandCallback_t ackCallback = NULL;
     uint8_t * pSubackCodes = NULL;
-    MQTTAgentReturnInfo_t returnInfo = { 0 };
+    MQTTAgentReturnInfo_t returnInfo = { 0U };
 
     assert( pAckInfo != NULL );
     assert( pAckInfo->pOriginalCommand != NULL );
@@ -567,7 +568,7 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
     pAckContext = pAckInfo->pOriginalCommand->pCmdContext;
     ackCallback = pAckInfo->pOriginalCommand->pCommandCompleteCallback;
     /* A SUBACK's status codes start 2 bytes after the variable header. */
-    pSubackCodes = ( packetType == MQTT_PACKET_TYPE_SUBACK ) ? pPacketInfo->pRemainingData + 2U : NULL;
+    pSubackCodes = ( packetType == MQTT_PACKET_TYPE_SUBACK ) ? ( pPacketInfo->pRemainingData + 2U ) : NULL;
 
     if( ackCallback != NULL )
     {
@@ -681,7 +682,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
      * is the initial value but not a valid packet ID. */
-    if( pMqttAgentContext->mqttContext.nextPacketId != 0 )
+    if( pMqttAgentContext->mqttContext.nextPacketId != MQTT_PACKET_ID_INVALID )
     {
         pCommand = pMqttAgentContext->agentInterface.getCommand( blockTimeMs );
 
@@ -766,7 +767,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
 {
     size_t i = 0;
-    MQTTAgentReturnInfo_t returnInfo = { 0 };
+    MQTTAgentReturnInfo_t returnInfo = { 0U };
     AckInfo_t * pendingAcks;
 
     returnInfo.returnCode = MQTTRecvFailed;
@@ -918,7 +919,6 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
 {
     Command_t * pCommand;
     MQTTStatus_t operationStatus = MQTTSuccess;
-    CommandType_t currentCommandType = NONE;
     bool endLoop = false;
 
     /* The command queue should have been created before this task gets created. */
@@ -937,8 +937,6 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
             &( pCommand ),
             MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
             );
-        /* Set the command type in case the command is released while processing. */
-        currentCommandType = ( pCommand ) ? pCommand->commandType : NONE;
         operationStatus = processCommand( pMqttAgentContext, pCommand, &endLoop );
 
         if( operationStatus != MQTTSuccess )
@@ -966,7 +964,8 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
      * is the initial value but not a valid packet ID. */
-    if( ( pMqttAgentContext != NULL ) && ( pMqttAgentContext->mqttContext.nextPacketId != 0 ) )
+    if( ( pMqttAgentContext != NULL ) &&
+        ( pMqttAgentContext->mqttContext.nextPacketId != MQTT_PACKET_ID_INVALID ) )
     {
         /* Resend publishes if session is present. NOTE: It's possible that some
          * of the operations that were in progress during the network interruption

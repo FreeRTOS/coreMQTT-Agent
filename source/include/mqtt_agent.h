@@ -48,7 +48,7 @@
  * The higher this number is the greater the agent's RAM consumption will be.
  */
 #ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
-    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20 )
+    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20U )
 #endif
 
 /**
