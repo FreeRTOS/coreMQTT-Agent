@@ -1490,14 +1490,14 @@ void test_MQTTAgent_CommandLoop_with_multiple_commands( void )
 
     setupAgentContext( &mqttAgentContext );
 
-    mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
     returnFlags.addAcknowledgment = false;
-    returnFlags.runProcessLoop = false;
+    returnFlags.runProcessLoop = true;
     returnFlags.endLoop = false;
 
     /* Initializing command to be sent to the commandLoop. */
     commandToSend.commandType = PUBLISH;
-    commandToSend.pCommandCompleteCallback = NULL;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
     commandToSend.pCmdContext = NULL;
     commandToSend.pArgs = NULL;
 
@@ -1505,10 +1505,13 @@ void test_MQTTAgent_CommandLoop_with_multiple_commands( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
+    MQTT_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
     /* PUBLISH failing while processing a second PUBLISH command. */
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSendFailed );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
     TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
 }
