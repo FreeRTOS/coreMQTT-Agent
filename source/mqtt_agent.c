@@ -53,7 +53,7 @@
 
 /*-----------------------------------------------------------*/
 
-const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
+static const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
 
 /*-----------------------------------------------------------*/
 
@@ -184,7 +184,7 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
  * @param[in] commandType Type of command.
  * @param[in] pMqttAgentContext Handle of the MQTT connection to use.
  * @param[in] pCommandCompleteCallbackContext Context and necessary structs for command.
- * @param[in] cmdCompleteCallback Callback for when command completes.
+ * @param[in] commandCompleteCallback Callback for when command completes.
  * @param[in] pMqttInfoParam Pointer to command argument.
  * @param[in] blockTimeMs Maximum amount of time in milliseconds to wait (in the
  * Blocked state, so not consuming any CPU time) for the command to be posted to the
@@ -196,7 +196,7 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
 static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          MQTTAgentContext_t * pMqttAgentContext,
                                          void * pMqttInfoParam,
-                                         CommandCallback_t cmdCompleteCallback,
+                                         CommandCallback_t commandCompleteCallback,
                                          CommandContext_t * pCommandCompleteCallbackContext,
                                          uint32_t blockTimeMs );
 
@@ -371,7 +371,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
     assert( pMqttAgentContext != NULL );
     assert( pCommand != NULL );
 
-    memset( pCommand, 0x00, sizeof( Command_t ) );
+    ( void ) memset( pCommand, 0x00, sizeof( Command_t ) );
 
     /* Determine if required parameters are present in context. */
     switch( commandType )
@@ -480,7 +480,6 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     MQTTAgentCommandFunc_t commandFunction = NULL;
     void * pCommandArgs = NULL;
     const uint32_t processLoopTimeoutMs = 0U;
-    uint8_t commandOutFlags = 0U;
     MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
     assert( pMqttAgentContext != NULL );
@@ -579,7 +578,7 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
 
     pAgentContext->agentInterface.releaseCommand( pAckInfo->pOriginalCommand );
     /* Clear the entry from the list. */
-    memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
+    ( void ) memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
 }
 
 /*-----------------------------------------------------------*/
@@ -652,18 +651,12 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
             case MQTT_PACKET_TYPE_PUBREL:
                 break;
 
-            case MQTT_PACKET_TYPE_PINGRESP:
-
-                /* Nothing to be done from application as library handles
-                 * PINGRESP with the use of MQTT_ProcessLoop API function. */
-                LogWarn( ( "PINGRESP should not be handled by the application "
-                           "callback when using MQTT_ProcessLoop.\n" ) );
-                break;
-
             /* Any other packet type is invalid. */
+            case MQTT_PACKET_TYPE_PINGRESP:
             default:
                 LogError( ( "Unknown packet type received:(%02x).\n",
                             pPacketInfo->type ) );
+                break;
         }
     }
 }
@@ -790,7 +783,7 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
             }
 
             /* Now remove it from the list. */
-            memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
         }
     }
 }
@@ -894,7 +887,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
     }
     else
     {
-        memset( pMqttAgentContext, 0x00, sizeof( MQTTAgentContext_t ) );
+        ( void ) memset( pMqttAgentContext, 0x00, sizeof( MQTTAgentContext_t ) );
 
         returnStatus = MQTT_Init( &( pMqttAgentContext->mqttContext ),
                                   pTransportInterface,
