@@ -1143,15 +1143,14 @@ void test_MQTTAgent_CommandLoop_with_empty_command_queue( void )
     mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
     returnFlags.addAcknowledgment = false;
     returnFlags.runProcessLoop = true;
-    returnFlags.endLoop = false;
+    returnFlags.endLoop = true;
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
-    MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTRecvFailed );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
-    TEST_ASSERT_EQUAL( MQTTRecvFailed, mqttStatus );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
 /**
@@ -1475,4 +1474,38 @@ void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
     TEST_ASSERT_EQUAL( MQTTRecvFailed, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgent_CommandLoop behavior processing multiple commands in command queue.
+ */
+void test_MQTTAgent_CommandLoop_with_multiple_commands( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    Command_t commandToSend = { 0 };
+
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.mqttContext.connectStatus = MQTTNotConnected;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = false;
+    returnFlags.endLoop = false;
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = PUBLISH;
+    commandToSend.pCommandCompleteCallback = NULL;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
+    /* PUBLISH failing while processing a second PUBLISH command. */
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSendFailed );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
 }
