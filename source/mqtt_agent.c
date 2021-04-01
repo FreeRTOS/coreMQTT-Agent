@@ -261,7 +261,7 @@ static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext );
 
 static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext )
 {
-    AckInfo_t * pendingAcks;
+    const AckInfo_t * pendingAcks;
     bool spaceFound = false;
     size_t i;
 
@@ -864,9 +864,9 @@ static bool validateParams( CommandType_t commandType,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             AgentMessageInterface_t * pMsgInterface,
-                             MQTTFixedBuffer_t * pNetworkBuffer,
-                             TransportInterface_t * pTransportInterface,
+                             const AgentMessageInterface_t * pMsgInterface,
+                             const MQTTFixedBuffer_t * pNetworkBuffer,
+                             const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
                              IncomingPublishCallback_t incomingCallback,
                              void * pIncomingPacketContext )
