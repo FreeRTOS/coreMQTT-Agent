@@ -110,6 +110,9 @@ void setUp()
     pCommandToReturn = NULL;
     commandCompleteCallbackCount = 0;
     packetIdentifier = 1U;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = false;
+    returnFlags.endLoop = false;
 }
 
 /* Called after each test method. */
