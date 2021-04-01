@@ -42,6 +42,6 @@ void harness()
     mqttStatus = MQTTAgent_Connect( pMqttAgentContext,
                                     pConnectArgs,
                                     pCommandInfo );
-    
+
     __CPROVER_assert( isAgentSendCommandFunctionStatus( mqttStatus ), "The return value is a MQTTStatus_t." );
 }

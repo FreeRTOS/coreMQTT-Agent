@@ -59,7 +59,7 @@ bool isValidMqttFixedBuffer( const MQTTFixedBuffer_t * pFixedBuffer );
  *
  * @return NULL or allocated #MQTTAgentContext_t memory.
  */
-MQTTAgentContext_t* allocateMqttAgentContext( MQTTAgentContext_t * pContext );
+MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext );
 
 /**
  * @brief Validate a #MQTTAgentContext_t object.

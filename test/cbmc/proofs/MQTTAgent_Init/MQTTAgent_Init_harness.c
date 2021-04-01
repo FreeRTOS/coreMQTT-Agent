@@ -25,25 +25,24 @@
 
 void harness()
 {
+    MQTTAgentContext_t * pMqttAgentContext;
+    AgentMessageInterface_t * pMsgInterface;
+    MQTTFixedBuffer_t * pNetworkBuffer;
+    TransportInterface_t * pTransportInterface;
+    MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
+    IncomingPublishCallback_t incomingCallback;
+    void * pIncomingPacketContext;
 
-  MQTTAgentContext_t * pMqttAgentContext;
-  AgentMessageInterface_t * pMsgInterface;
-  MQTTFixedBuffer_t * pNetworkBuffer;
-  TransportInterface_t * pTransportInterface;
-  MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
-  IncomingPublishCallback_t incomingCallback;
-  void * pIncomingPacketContext;
+    pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );
+    pMsgInterface = malloc( sizeof( AgentMessageInterface_t ) );
+    pNetworkBuffer = malloc( sizeof( MQTTFixedBuffer_t ) );
+    pTransportInterface = malloc( sizeof( TransportInterface_t ) );
 
-  pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );
-  pMsgInterface = malloc( sizeof( AgentMessageInterface_t ) );
-  pNetworkBuffer = malloc( sizeof( MQTTFixedBuffer_t ) );
-  pTransportInterface = malloc( sizeof( TransportInterface_t ) );
-
-  MQTTAgent_Init( pMqttAgentContext,
-                  pMsgInterface,
-                  pNetworkBuffer,
-                  pTransportInterface,
-                  getCurrentTimeMs,
-                  incomingCallback,
-                  pIncomingPacketContext );
+    MQTTAgent_Init( pMqttAgentContext,
+                    pMsgInterface,
+                    pNetworkBuffer,
+                    pTransportInterface,
+                    getCurrentTimeMs,
+                    incomingCallback,
+                    pIncomingPacketContext );
 }
