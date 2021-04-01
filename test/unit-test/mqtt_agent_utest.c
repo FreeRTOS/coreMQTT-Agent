@@ -134,6 +134,8 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
 {
     Command_t ** pCommandToSend = ( Command_t ** ) pData;
 
+    ( void ) blockTimeMs;
+
     pMsgCtx->pSentCommand = *pCommandToSend;
     return true;
 }
@@ -161,6 +163,8 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
 {
     Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
 
+    ( void ) blockTimeMs;
+
     *pCommandToReceive = pMsgCtx->pSentCommand;
     return true;
 }
@@ -170,6 +174,7 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
  */
 static Command_t * stubGetCommand( uint32_t blockTimeMs )
 {
+    ( void ) blockTimeMs;
     return pCommandToReturn;
 }
 
@@ -230,6 +235,8 @@ static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
                                           const MQTTFixedBuffer_t * pNetworkBuffer,
                                           int numCalls )
 {
+    ( void ) numCalls;
+
     pContext->connectStatus = MQTTNotConnected;
     pContext->transportInterface = *pTransport;
     pContext->getTime = getTimeFunc;
@@ -249,6 +256,9 @@ MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
     MQTTPacketInfo_t packetInfo = { 0 };
     MQTTDeserializedInfo_t deserializedInfo = { 0 };
     MQTTAgentContext_t * pMqttAgentContext;
+
+    ( void ) timeoutMs;
+    ( void ) numCalls;
 
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
@@ -298,7 +308,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
  * @param[in] FuncToTest Pointer to function to test.
  * @param[in] pFuncName String of function name to print for error messages.
  */
-static void invalidParamsTestFunc( MQTTStatus_t ( *FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
+static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
                                    const char * pFuncName )
 {
     MQTTAgentContext_t agentContext = { 0 };
@@ -358,7 +368,7 @@ void test_MQTTAgent_Init_Happy_Path( void )
     AgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
-    void * incomingPacketContext;
+    void * incomingPacketContext = NULL;
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
@@ -386,7 +396,7 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
     IncomingPublishCallback_t incomingCallback = stubPublishCallback;
-    void * incomingPacketContext;
+    void * incomingPacketContext = NULL;
     AgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
@@ -544,7 +554,6 @@ void test_MQTTAgent_ResumeSession_publish_resend_success( void )
 
 void test_MQTTAgent_ResumeSession_no_session_present( void )
 {
-    bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
     Command_t command = { 0 };
@@ -579,7 +588,6 @@ void test_MQTTAgent_Ping_Command_Allocation_Failure( void )
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
     CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
 
     setupAgentContext( &agentContext );
 
@@ -1250,6 +1258,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 
 /**
  * @brief Test mqttEventCallback invocation via MQTT_ProcessLoop.
+ * TODO: Split this function up.
  */
 void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 {
@@ -1346,7 +1355,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1359,7 +1368,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1377,7 +1386,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
@@ -1407,7 +1416,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &pReturnFlags );
-    MQTT_ProcessLoop_StubWithCallback( MQTT_ProcessLoop_stub );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
