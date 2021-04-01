@@ -228,10 +228,11 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
 {
     Command_t * pReceivedCommand = NULL;
     bool commandWasReceived = false;
-    MQTTAgentReturnInfo_t returnInfo = { 0U };
+    MQTTAgentReturnInfo_t returnInfo;
     AckInfo_t * pendingAcks;
     size_t i;
 
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     ( void ) pUnusedArg;
 
     assert( pMqttAgentContext != NULL );

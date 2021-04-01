@@ -476,12 +476,13 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 {
     MQTTStatus_t operationStatus = MQTTSuccess;
     bool ackAdded = false;
-    MQTTAgentReturnInfo_t returnInfo = { 0 };
+    MQTTAgentReturnInfo_t returnInfo;
     MQTTAgentCommandFunc_t commandFunction = NULL;
     void * pCommandArgs = NULL;
     const uint32_t processLoopTimeoutMs = 0U;
     MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pMqttAgentContext != NULL );
     assert( pEndLoop != NULL );
 
@@ -559,8 +560,9 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
     CommandContext_t * pAckContext = NULL;
     CommandCallback_t ackCallback = NULL;
     uint8_t * pSubackCodes = NULL;
-    MQTTAgentReturnInfo_t returnInfo = { 0U };
+    MQTTAgentReturnInfo_t returnInfo;
 
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pAckInfo != NULL );
     assert( pAckInfo->pOriginalCommand != NULL );
 
@@ -585,9 +587,9 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
 
 static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext )
 {
-    MQTTAgentContext_t * ret = ( MQTTAgentContext_t * ) pMQTTContext;
+    void * ret = pMQTTContext;
 
-    return ret;
+    return ( MQTTAgentContext_t * ) ret;
 }
 
 /*-----------------------------------------------------------*/
@@ -760,12 +762,14 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
 {
     size_t i = 0;
-    MQTTAgentReturnInfo_t returnInfo = { 0U };
+    MQTTAgentReturnInfo_t returnInfo;
     AckInfo_t * pendingAcks;
+
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
+    assert( pMqttAgentContext != NULL );
 
     returnInfo.returnCode = MQTTRecvFailed;
 
-    assert( pMqttAgentContext != NULL );
 
     pendingAcks = pMqttAgentContext->pPendingAcks;
 
