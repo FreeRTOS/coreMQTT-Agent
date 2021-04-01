@@ -47,7 +47,6 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "core_mqtt.h"
 #include "mqtt_agent.h"
 #include "mqtt_agent_command_functions.h"
 
