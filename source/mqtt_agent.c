@@ -53,10 +53,6 @@
 
 /*-----------------------------------------------------------*/
 
-static const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
-
-/*-----------------------------------------------------------*/
-
 /**
  * @brief Track an operation by adding it to a list, indicating it is anticipating
  * an acknowledgment.
@@ -348,6 +344,10 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                     ( void * ) pFoundAck->pOriginalCommand ) );
         pFoundAck = NULL;
     }
+    else
+    {
+        /* Empty else MISRA 15.7 */
+    }
 
     return pFoundAck;
 }
@@ -474,6 +474,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
                                     Command_t * pCommand,
                                     bool * pEndLoop )
 {
+    const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
     MQTTStatus_t operationStatus = MQTTSuccess;
     bool ackAdded = false;
     MQTTAgentReturnInfo_t returnInfo;
