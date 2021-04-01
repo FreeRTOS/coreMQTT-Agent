@@ -1161,7 +1161,6 @@ void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-
     Command_t commandToSend = { 0 };
 
     setupAgentContext( &mqttAgentContext );
@@ -1345,7 +1344,6 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
-
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
