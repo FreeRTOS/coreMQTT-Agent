@@ -651,18 +651,12 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
             case MQTT_PACKET_TYPE_PUBREL:
                 break;
 
-            case MQTT_PACKET_TYPE_PINGRESP:
-
-                /* Nothing to be done from application as library handles
-                 * PINGRESP with the use of MQTT_ProcessLoop API function. */
-                LogWarn( ( "PINGRESP should not be handled by the application "
-                           "callback when using MQTT_ProcessLoop.\n" ) );
-                break;
-
             /* Any other packet type is invalid. */
+            case MQTT_PACKET_TYPE_PINGRESP:
             default:
                 LogError( ( "Unknown packet type received:(%02x).\n",
                             pPacketInfo->type ) );
+                break;
         }
     }
 }
