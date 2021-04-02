@@ -9,6 +9,13 @@ list(APPEND mock_list
             "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt_state.h"
             "${MODULE_ROOT_DIR}/source/include/mqtt_agent_command_functions.h"
         )
+
+list(APPEND mock_list_command_functions
+            "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt.h"
+            "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt_state.h"
+            "${MODULE_ROOT_DIR}/source/include/mqtt_agent.h"
+        )
+
 # list the directories your mocks need
 list(APPEND mock_include_list
             .
@@ -17,6 +24,7 @@ list(APPEND mock_include_list
             ${MQTT_AGENT_INCLUDE_PUBLIC_DIRS}
             ${MQTT_INCLUDE_PUBLIC_DIRS}
         )
+
 #list the definitions of your mocks to control what to be included
 list(APPEND mock_define_list
             ""
@@ -84,6 +92,31 @@ create_test(${utest_name}
         )
 
 # mqtt_agent_command_functions_utest
+set(mock_name "${project_name}_command_functions_mock")
+set(real_name "${project_name}_command_functions_real")
+create_mock_list(${mock_name}
+                "${mock_list_command_functions}"
+                "${MODULE_ROOT_DIR}/tools/cmock/project.yml"
+                "${mock_include_list}"
+                "${mock_define_list}"
+        )
+
+create_real_library(${real_name}
+                    "${real_source_files}"
+                    "${real_include_directories}"
+                    "${mock_name}"
+        )
+
+set(utest_link_list "")
+list(APPEND utest_link_list
+            -l${mock_name}
+            lib${real_name}.a
+        )
+
+set(utest_dep_list "")
+list(APPEND utest_dep_list
+            ${real_name}
+        )
 set(utest_name "${project_name}_command_functions_utest")
 set(utest_source "${project_name}_command_functions_utest.c")
 create_test(${utest_name}
