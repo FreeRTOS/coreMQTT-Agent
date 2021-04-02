@@ -279,11 +279,11 @@ MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
 }
 
 /**
- * @brief A stub for MQTT_ProcessLoop function to be used to test multiple calls to MQTT_ProcessLoop.
+ * @brief A stub for MQTT_ProcessLoop function which fails on second and later calls.
  */
-MQTTStatus_t MQTT_ProcessLoop_stub_multiple( MQTTContext_t * pContext,
-                                             uint32_t timeoutMs,
-                                             int numCalls )
+MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pContext,
+                                                           uint32_t timeoutMs,
+                                                           int numCalls )
 {
     MQTTPacketInfo_t packetInfo;
     MQTTDeserializedInfo_t deserializedInfo;
@@ -1464,9 +1464,9 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 }
 
 /**
- * @brief Test MQTTAgent_CommandLoop failure case via calling MQTT_ProcessLoop multiple times.
+ * @brief Test MQTTAgent_CommandLoop failure when second call to MQTT_ProcessLoop fails.
  */
-void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
+void test_MQTTAgent_CommandLoop_second_processloop_fails( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
@@ -1480,18 +1480,25 @@ void test_MQTTAgent_CommandLoop_ProcessLoop_failure( void )
 
     MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
-    /* MQTTAgent_CommandLoop calling MQTT_ProcessLoop multiple times and returning failure second time. */
-    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_stub_multiple );
 
+    /* The following stub ensures that the second or later call to
+     * MQTT_ProcessLoop will fail. */
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_FailSecondAndLaterCallsStub );
+
+    /* MQTTAgent_CommandLoop keeps calling MQTT_ProcessLoop until an error occurs.
+     * In this case, the second call to MQTT_ProcessLoop will error out (as ensured
+     * by the above stub) and therefore, we expect the MQTTAgent_CommandLoop
+     * to fail.*/
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
     TEST_ASSERT_EQUAL( MQTTRecvFailed, mqttStatus );
 }
 
 /**
- * @brief Test MQTTAgent_CommandLoop failure while processing multiple commands in command queue.
+ * @brief Test MQTTAgent_CommandLoop failure when executing second command in
+ * the command queue fails.
  */
-void test_MQTTAgent_CommandLoop_failure_processing_multiple_commands( void )
+void test_MQTTAgent_CommandLoop_failure_executing_second_command( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
@@ -1515,7 +1522,9 @@ void test_MQTTAgent_CommandLoop_failure_processing_multiple_commands( void )
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
-    /* PUBLISH failing while processing a second PUBLISH command. */
+
+    /* The stubReceive function ensures that the CommandLoop keeps getting the
+     * same command again and again. Ensure that the second PUBLISH fails. */
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSendFailed );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
