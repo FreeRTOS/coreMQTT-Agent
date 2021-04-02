@@ -22,7 +22,7 @@
 
 /**
  * @file mqtt_agent_command_functions_utest.c
- * @brief Unit tests for functions in mqtt_agent_utest.h
+ * @brief Unit tests for functions in mqtt_agent_command_functions_utest.h
  */
 #include <string.h>
 #include <stdbool.h>
@@ -32,30 +32,127 @@
 /* Include paths for public enums, structures, and macros. */
 
 #include "mock_core_mqtt.h"
+#include "mock_core_mqtt_state.h"
+#include "mock_mqtt_agent.h"
+#include "mqtt_agent_command_functions.h"
 
 /**
- * @brief MQTT client identifier.
+ * @brief The agent messaging context.
  */
-#define MQTT_CLIENT_IDENTIFIER         "testclient"
+struct AgentMessageContext
+{
+    Command_t * pSentCommand;
+};
 
 /**
- * @brief A sample network context that we set to NULL.
+ * @brief Command callback context.
  */
-#define MQTT_SAMPLE_NETWORK_CONTEXT    ( NULL )
+struct CommandContext
+{
+    MQTTStatus_t returnStatus;
+};
 
 /**
- * @brief Time at the beginning of each test. Note that this is not updated with
- * a real clock. Instead, we simply increment this variable.
+ * @brief Message context to use for tests.
  */
-static uint32_t globalEntryTime = 0;
+static AgentMessageContext_t globalMessageContext;
 
+/**
+ * @brief Command struct pointer to return from mocked getCommand.
+ */
+static Command_t * pCommandToReturn;
+
+/**
+ * @brief Mock Counter variable to check callback is called on command completion.
+ */
+static uint32_t commandCompleteCallbackCount;
+
+/**
+ * @brief Mock Counter variable for calling stubReceive multiple times.
+ */
+static uint32_t receiveCounter;
+
+/* ========================================================================== */
+
+/**
+ * @brief A mocked send function to send commands to the agent.
+ */
+static bool stubSend( AgentMessageContext_t * pMsgCtx,
+                      const void * pData,
+                      uint32_t blockTimeMs )
+{
+    Command_t ** pCommandToSend = ( Command_t ** ) pData;
+
+    pMsgCtx->pSentCommand = *pCommandToSend;
+    return true;
+}
+
+/**
+ * @brief A mocked receive function for the agent to receive commands.
+ */
+static bool stubReceive( AgentMessageContext_t * pMsgCtx,
+                         void * pBuffer,
+                         uint32_t blockTimeMs )
+{
+    Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
+
+    if( receiveCounter == 0 )
+    {
+        *pCommandToReceive = pMsgCtx->pSentCommand;
+        receiveCounter++;
+        return true;
+    }
+    else
+    {
+        *pCommandToReceive = NULL;
+        receiveCounter++;
+        return false;
+    }
+}
+
+/**
+ * @brief A mocked function to obtain an allocated command.
+ */
+static Command_t * stubGetCommand( uint32_t blockTimeMs )
+{
+    return pCommandToReturn;
+}
+
+/**
+ * @brief A mocked function to release an allocated command.
+ */
+static bool stubReleaseCommand( Command_t * pCommandToRelease )
+{
+    ( void ) pCommandToRelease;
+    return true;
+}
+
+/**
+ * @brief A mocked callback function used for testing.
+ */
+static void stubCompletionCallback( void * pCommandCompletionContext,
+                                    MQTTAgentReturnInfo_t * pReturnInfo )
+{
+    CommandContext_t * pCastContext;
+
+    pCastContext = ( CommandContext_t * ) pCommandCompletionContext;
+
+    if( pCastContext != NULL )
+    {
+        pCastContext->returnStatus = pReturnInfo->returnCode;
+    }
+
+    commandCompleteCallbackCount++;
+}
 
 /* ============================   UNITY FIXTURES ============================ */
 
 /* Called before each test method. */
 void setUp()
 {
-    globalEntryTime = 0;
+    globalMessageContext.pSentCommand = NULL;
+    pCommandToReturn = NULL;
+    commandCompleteCallbackCount = 0;
 }
 
 /* Called after each test method. */
@@ -72,4 +169,266 @@ void suiteSetUp()
 int suiteTearDown( int numFailures )
 {
     return numFailures;
+}
+
+/* ========================================================================== */
+
+/**
+ * @brief Test that MQTTAgentCommand_ProcessLoop() works as intended.
+ */
+void test_MQTTAgentCommand_ProcessLoop( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    void * pUnusedArg;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    mqttStatus = MQTTAgentCommand_ProcessLoop( &mqttAgentContext, pUnusedArg, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgentCommand_Publish() success case with QoS0.
+ */
+void test_MQTTAgentCommand_Publish_QoS0_success( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTPublishInfo_t publishInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    /* Initializing QOS. */
+    publishInfo.qos = MQTTQoS0;
+
+    MQTT_Publish_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgentCommand_Publish() success case with QoS1.
+ */
+void test_MQTTAgentCommand_Publish_QoS1_success( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTPublishInfo_t publishInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    /* Initializing QOS. */
+    publishInfo.qos = MQTTQoS1;
+
+    MQTT_GetPacketId_IgnoreAndReturn( 1 );
+    MQTT_Publish_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgentCommand_Publish() failure case with QoS0.
+ */
+void test_MQTTAgentCommand_Publish_QoS0_failure( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTPublishInfo_t publishInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    /* Initializing QOS. */
+    publishInfo.qos = MQTTQoS0;
+
+    MQTT_Publish_IgnoreAndReturn( MQTTSendFailed );
+
+    mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
+}
+
+
+/**
+ * @brief Test MQTTAgentCommand_Publish() failure case with QoS1.
+ */
+void test_MQTTAgentCommand_Publish_QoS1_failure( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTPublishInfo_t publishInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    /* Initializing QOS. */
+    publishInfo.qos = MQTTQoS1;
+
+    MQTT_GetPacketId_IgnoreAndReturn( 1 );
+    MQTT_Publish_IgnoreAndReturn( MQTTSendFailed );
+
+    mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgentCommand_Subscribe() works as intended.
+ */
+void test_MQTTAgentCommand_Subscribe( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentSubscribeArgs_t subscribeArgs;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_GetPacketId_IgnoreAndReturn( 1 );
+    MQTT_Subscribe_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgentCommand_Subscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgentCommand_UnSubscribe() works as intended.
+ */
+void test_MQTTAgentCommand_UnSubscribe( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentSubscribeArgs_t subscribeArgs;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_GetPacketId_IgnoreAndReturn( 1 );
+    MQTT_Unsubscribe_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgentCommand_Unsubscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgentCommand_Disconnect() works as intended.
+ */
+void test_MQTTAgentCommand_Disconnect( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    void * pUnusedArg;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_Disconnect_IgnoreAndReturn( MQTTSuccess );
+    mqttStatus = MQTTAgentCommand_Disconnect( &mqttAgentContext, pUnusedArg, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgentCommand_Ping() works as intended.
+ */
+void test_MQTTAgentCommand_Ping( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    void * pUnusedArg;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_Ping_IgnoreAndReturn( MQTTSuccess );
+    mqttStatus = MQTTAgentCommand_Ping( &mqttAgentContext, pUnusedArg, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgentCommand_Connect() success case.
+ */
+void test_MQTTAgentCommand_Connect( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentConnectArgs_t connectInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_Connect_IgnoreAndReturn( MQTTSuccess );
+    MQTTAgent_ResumeSession_IgnoreAndReturn( MQTTSuccess );
+
+    mqttStatus = MQTTAgentCommand_Connect( &mqttAgentContext, &connectInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test MQTTAgentCommand_Connect() failure case.
+ */
+void test_MQTTAgentCommand_Connect_failure( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentConnectArgs_t connectInfo;
+    MQTTAgentCommandFuncReturns_t returnFlags;
+    MQTTStatus_t mqttStatus;
+
+    MQTT_Connect_IgnoreAndReturn( MQTTBadParameter );
+
+    mqttStatus = MQTTAgentCommand_Connect( &mqttAgentContext, &connectInfo, &returnFlags );
+
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgentCommand_terminate() works as intended.
+ */
+void test_MQTTAgentCommand_terminate( void )
+{
+    MQTTAgentContext_t mqttAgentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    void * pUnusedArg;
+    MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
+    Command_t command = { 0 };
+    AgentMessageInterface_t messageInterface = { 0 };
+
+    messageInterface.pMsgCtx = &globalMessageContext;
+    messageInterface.send = stubSend;
+    messageInterface.recv = stubReceive;
+    messageInterface.releaseCommand = stubReleaseCommand;
+    messageInterface.getCommand = stubGetCommand;
+
+    command.pCommandCompleteCallback = stubCompletionCallback;
+    mqttAgentContext.agentInterface = messageInterface;
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
+
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, pUnusedArg, &returnFlags );
+
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+
+    /* Test MQTTAgentCommand_Terminate() with commandCallback as null. */
+    receiveCounter = 0;
+    commandCompleteCallbackCount = 0;
+    command.pCommandCompleteCallback = NULL;
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, pUnusedArg, &returnFlags );
+
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that callback is not invoked. */
+    TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
+
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
 }
