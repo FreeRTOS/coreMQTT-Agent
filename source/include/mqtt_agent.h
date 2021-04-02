@@ -48,7 +48,7 @@
  * The higher this number is the greater the agent's RAM consumption will be.
  */
 #ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
-    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20 )
+    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20U )
 #endif
 
 /**
@@ -291,9 +291,9 @@ struct Command
  */
 /* @[declare_mqtt_agent_init] */
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             AgentMessageInterface_t * pMsgInterface,
-                             MQTTFixedBuffer_t * pNetworkBuffer,
-                             TransportInterface_t * pTransportInterface,
+                             const AgentMessageInterface_t * pMsgInterface,
+                             const MQTTFixedBuffer_t * pNetworkBuffer,
+                             const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
                              IncomingPublishCallback_t incomingCallback,
                              void * pIncomingPacketContext );

@@ -47,9 +47,10 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
                                            MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
     ( void ) pUnusedArg;
+    ( void ) pMqttAgentContext;
     assert( pReturnFlags != NULL );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->runProcessLoop = true;
 
     return MQTTSuccess;
@@ -68,7 +69,7 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
     assert( pPublishArg != NULL );
     assert( pReturnFlags != NULL );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pPublishInfo = ( MQTTPublishInfo_t * ) ( pPublishArg );
 
     if( pPublishInfo->qos != MQTTQoS0 )
@@ -99,7 +100,7 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
     assert( pVoidSubscribeArgs != NULL );
     assert( pReturnFlags != NULL );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
     pReturnFlags->packetId = MQTT_GetPacketId( &( pMqttAgentContext->mqttContext ) );
 
@@ -127,7 +128,7 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
     assert( pVoidSubscribeArgs != NULL );
     assert( pReturnFlags != NULL );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
     pReturnFlags->packetId = MQTT_GetPacketId( &( pMqttAgentContext->mqttContext ) );
 
@@ -171,7 +172,7 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
                                        pConnectInfo->sessionPresent );
     }
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
 
     return ret;
 }
@@ -191,7 +192,7 @@ MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext
 
     ret = MQTT_Disconnect( &( pMqttAgentContext->mqttContext ) );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->endLoop = true;
 
     return ret;
@@ -212,7 +213,7 @@ MQTTStatus_t MQTTAgentCommand_Ping( MQTTAgentContext_t * pMqttAgentContext,
 
     ret = MQTT_Ping( &( pMqttAgentContext->mqttContext ) );
 
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
 
     pReturnFlags->runProcessLoop = true;
 
@@ -227,10 +228,11 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
 {
     Command_t * pReceivedCommand = NULL;
     bool commandWasReceived = false;
-    MQTTAgentReturnInfo_t returnInfo = { 0 };
+    MQTTAgentReturnInfo_t returnInfo;
     AckInfo_t * pendingAcks;
     size_t i;
 
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     ( void ) pUnusedArg;
 
     assert( pMqttAgentContext != NULL );
@@ -240,7 +242,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
     pendingAcks = pMqttAgentContext->pPendingAcks;
 
     LogInfo( ( "Terminating command loop.\n" ) );
-    memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
+    ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->endLoop = true;
 
     /* Cancel all operations waiting in the queue. */
@@ -272,7 +274,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
             }
 
             /* Now remove it from the list. */
-            memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
         }
     }
 
