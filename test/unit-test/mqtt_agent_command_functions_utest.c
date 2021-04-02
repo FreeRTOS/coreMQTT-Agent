@@ -187,14 +187,17 @@ int suiteTearDown( int numFailures )
 void test_MQTTAgentCommand_ProcessLoop( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
-    void * pUnusedArg;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    mqttStatus = MQTTAgentCommand_ProcessLoop( &mqttAgentContext, pUnusedArg, &returnFlags );
+    mqttStatus = MQTTAgentCommand_ProcessLoop( &mqttAgentContext, NULL, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -210,14 +213,16 @@ void test_MQTTAgentCommand_Publish_QoS0_success( void )
     /* Initializing QOS. */
     publishInfo.qos = MQTTQoS0;
 
-    MQTT_Publish_IgnoreAndReturn( MQTTSuccess );
+    MQTT_Publish_ExpectAndReturn( &( mqttAgentContext.mqttContext ), &publishInfo, 0, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -233,8 +238,8 @@ void test_MQTTAgentCommand_Publish_QoS1_success( void )
     /* Initializing QOS. */
     publishInfo.qos = MQTTQoS1;
 
-    MQTT_GetPacketId_IgnoreAndReturn( 1 );
-    MQTT_Publish_ExpectAndReturn( &mqttAgentContext, &publishInfo, 1, MQTTSuccess );
+    MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
+    MQTT_Publish_ExpectAndReturn( &( mqttAgentContext.mqttContext ), &publishInfo, 1, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
 
@@ -243,6 +248,7 @@ void test_MQTTAgentCommand_Publish_QoS1_success( void )
     TEST_ASSERT_EQUAL( 1, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_TRUE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -258,16 +264,17 @@ void test_MQTTAgentCommand_Publish_QoS0_failure( void )
     /* Initializing QOS. */
     publishInfo.qos = MQTTQoS0;
 
-    MQTT_Publish_IgnoreAndReturn( MQTTSendFailed );
+    MQTT_Publish_ExpectAndReturn( &( mqttAgentContext.mqttContext ), &publishInfo, 0, MQTTSendFailed );
 
     mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
-
 
 /**
  * @brief Test MQTTAgentCommand_Publish() failure case with QoS1.
@@ -282,8 +289,8 @@ void test_MQTTAgentCommand_Publish_QoS1_failure( void )
     /* Initializing QOS. */
     publishInfo.qos = MQTTQoS1;
 
-    MQTT_GetPacketId_IgnoreAndReturn( 1 );
-    MQTT_Publish_ExpectAndReturn( &mqttAgentContext, &publishInfo, 1, MQTTSendFailed );
+    MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
+    MQTT_Publish_ExpectAndReturn( &( mqttAgentContext.mqttContext ), &publishInfo, 1, MQTTSendFailed );
 
     mqttStatus = MQTTAgentCommand_Publish( &mqttAgentContext, &publishInfo, &returnFlags );
 
@@ -292,6 +299,7 @@ void test_MQTTAgentCommand_Publish_QoS1_failure( void )
     TEST_ASSERT_EQUAL( 1, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -304,8 +312,8 @@ void test_MQTTAgentCommand_Subscribe( void )
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_GetPacketId_IgnoreAndReturn( 1 );
-    MQTT_Subscribe_IgnoreAndReturn( MQTTSuccess );
+    MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
+    MQTT_Subscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ), subscribeArgs.pSubscribeInfo, subscribeArgs.numSubscriptions, 1, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Subscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
 
@@ -314,6 +322,7 @@ void test_MQTTAgentCommand_Subscribe( void )
     TEST_ASSERT_EQUAL( 1, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_TRUE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -326,8 +335,8 @@ void test_MQTTAgentCommand_Unsubscribe( void )
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_GetPacketId_IgnoreAndReturn( 1 );
-    MQTT_Unsubscribe_IgnoreAndReturn( MQTTSuccess );
+    MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
+    MQTT_Unsubscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ), subscribeArgs.pSubscribeInfo, subscribeArgs.numSubscriptions, 1, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Unsubscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
 
@@ -336,6 +345,7 @@ void test_MQTTAgentCommand_Unsubscribe( void )
     TEST_ASSERT_EQUAL( 1, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
     TEST_ASSERT_TRUE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -344,16 +354,18 @@ void test_MQTTAgentCommand_Unsubscribe( void )
 void test_MQTTAgentCommand_Disconnect( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
-    void * pUnusedArg;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_Disconnect_ExpectAndReturn( &mqttAgentContext, MQTTSuccess );
-    mqttStatus = MQTTAgentCommand_Disconnect( &mqttAgentContext, pUnusedArg, &returnFlags );
+    MQTT_Disconnect_ExpectAndReturn( &( mqttAgentContext.mqttContext ), MQTTSuccess );
+    mqttStatus = MQTTAgentCommand_Disconnect( &mqttAgentContext, NULL, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.endLoop );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
 }
 
 /**
@@ -362,16 +374,18 @@ void test_MQTTAgentCommand_Disconnect( void )
 void test_MQTTAgentCommand_Ping( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
-    void * pUnusedArg;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_Ping_ExpectAndReturn( &mqttAgentContext, MQTTSuccess );
-    mqttStatus = MQTTAgentCommand_Ping( &mqttAgentContext, pUnusedArg, &returnFlags );
+    MQTT_Ping_ExpectAndReturn( &( mqttAgentContext.mqttContext ), MQTTSuccess );
+    mqttStatus = MQTTAgentCommand_Ping( &mqttAgentContext, NULL, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.runProcessLoop );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
 }
 
 /**
@@ -385,13 +399,16 @@ void test_MQTTAgentCommand_Connect( void )
     MQTTStatus_t mqttStatus;
 
     MQTT_Connect_IgnoreAndReturn( MQTTSuccess );
-    MQTTAgent_ResumeSession_IgnoreAndReturn( MQTTSuccess );
+    MQTTAgent_ResumeSession_ExpectAndReturn( &mqttAgentContext, connectInfo.sessionPresent, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Connect( &mqttAgentContext, &connectInfo, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
     TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
+    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
 }
 
 /**
@@ -411,6 +428,9 @@ void test_MQTTAgentCommand_Connect_failure( void )
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
     TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.endLoop );
+    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
 }
 
 /**
@@ -423,16 +443,16 @@ void test_MQTTAgentCommand_terminate( void )
     void * pUnusedArg;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     Command_t command = { 0 };
-    AgentMessageInterface_t messageInterface = { 0 };
+    CommandContext_t commandContext = { 0 };
 
-    messageInterface.pMsgCtx = &globalMessageContext;
-    messageInterface.send = stubSend;
-    messageInterface.recv = stubReceive;
-    messageInterface.releaseCommand = stubReleaseCommand;
-    messageInterface.getCommand = stubGetCommand;
+    mqttAgentContext.agentInterface.pMsgCtx = &globalMessageContext;
+    mqttAgentContext.agentInterface.send = stubSend;
+    mqttAgentContext.agentInterface.recv = stubReceive;
+    mqttAgentContext.agentInterface.releaseCommand = stubReleaseCommand;
+    mqttAgentContext.agentInterface.getCommand = stubGetCommand;
 
     command.pCommandCompleteCallback = stubCompletionCallback;
-    mqttAgentContext.agentInterface = messageInterface;
+    command.pCmdContext = &commandContext;
     mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
 
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
@@ -442,14 +462,23 @@ void test_MQTTAgentCommand_terminate( void )
 
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
+    TEST_ASSERT_TRUE( returnFlags.endLoop );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
 
     /* Ensure that callback is invoked. */
     TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+    TEST_ASSERT_EQUAL( MQTTBadResponse, command.pCmdContext->returnStatus );
+
 
     /* Ensure that acknowledgment is cleared. */
     TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
     TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
 
+    /* Ensure that command is released. */
+    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
 
     /* Test MQTTAgentCommand_Terminate() with commandCallback as null. */
     receiveCounter = 0;
@@ -464,7 +493,10 @@ void test_MQTTAgentCommand_terminate( void )
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
+    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
     TEST_ASSERT_TRUE( returnFlags.endLoop );
+    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
+    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
 
     /* Ensure that callback is not invoked. */
     TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
@@ -472,4 +504,7 @@ void test_MQTTAgentCommand_terminate( void )
     /* Ensure that acknowledgment is cleared. */
     TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
     TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+    /* Ensure that command is released. */
+    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
 }
