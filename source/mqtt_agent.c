@@ -739,27 +739,23 @@ static void concludeCommand( MQTTAgentContext_t * pAgentContext,
 
     ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pAgentContext != NULL );
+    assert( pCommand != NULL );
 
     returnInfo.returnCode = returnCode;
     returnInfo.pSubackCodes = pSubackCodes;
 
-    if( pCommand != NULL )
+    if( pCommand->pCommandCompleteCallback != NULL )
     {
-        CommandCallback_t pCallback = pCommand->pCommandCompleteCallback;
+        pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
+    }
 
-        if( pCallback != NULL )
-        {
-            pCallback( pCommand->pCmdContext, &returnInfo );
-        }
+    commandReleased = pAgentContext->agentInterface.releaseCommand( pCommand );
 
-        commandReleased = pAgentContext->agentInterface.releaseCommand( pCommand );
-
-        if( !commandReleased )
-        {
-            LogError( ( "Failed to release command %p of type %d.",
-                        ( void * ) pCommand,
-                        pCommand->commandType ) );
-        }
+    if( !commandReleased )
+    {
+        LogError( ( "Failed to release command %p of type %d.",
+                    ( void * ) pCommand,
+                    pCommand->commandType ) );
     }
 }
 
