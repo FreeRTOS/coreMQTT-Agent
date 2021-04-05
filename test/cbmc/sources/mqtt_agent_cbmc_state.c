@@ -126,7 +126,7 @@ MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext )
 
 bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext )
 {
-    bool isValid = false;
+    bool isValid = true;
 
     if( pContext != NULL )
     {

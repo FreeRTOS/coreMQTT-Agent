@@ -28,7 +28,49 @@
 #include "mqtt_agent.h"
 #include "agent_message_stubs.h"
 
+static void commandCompleteCallbackStub( void * pCmdCallbackContext,
+                                         MQTTAgentReturnInfo_t * pReturnInfo )
+{
+    __CPROVER_assert( pReturnInfo != NULL,
+                      "Command complete return info is not NULL." );
+}
 
+static Command_t * allocateCommand()
+{
+    Command_t * command = malloc( sizeof( Command_t ) );
+    MQTTAgentSubscribeArgs_t * pSubscribeArgs;
+    MQTTPublishInfo_t * pPublishInfo;
+    static bool terminate = false;
+
+    if( command != NULL )
+    {
+        __CPROVER_assume( command->commandType >= NONE && command->commandType < NUM_COMMANDS );
+        if ( terminate == true) 
+        {
+            __CPROVER_assume( command->commandType == TERMINATE );
+        }
+
+        if( ( command->commandType == SUBSCRIBE ) || ( command->commandType == UNSUBSCRIBE ) )
+        {
+            pSubscribeArgs = malloc( sizeof( MQTTAgentSubscribeArgs_t ) );
+            command->pArgs = ( void * ) pSubscribeArgs;
+        }
+        else if( command->commandType == PUBLISH )
+        {
+            pPublishInfo = malloc( sizeof( MQTTPublishInfo_t ) );
+            command->pArgs = ( void * ) pPublishInfo;
+        }
+        else
+        {
+            /* Empty else. */
+        }
+
+        __CPROVER_assume( command->pCommandCompleteCallback == commandCompleteCallbackStub );
+    }
+
+    terminate = true;
+    return command;
+}
 bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
                            const void * pData,
                            uint32_t blockTimeMs )
@@ -42,7 +84,17 @@ bool AgentMessageRecvStub( AgentMessageContext_t * pMsgCtx,
                            void * pBuffer,
                            uint32_t blockTimeMs )
 {
-    /* For the proofs, returning a non deterministic boolean value
-     * will be good enough. */
-    return nondet_bool();
+    Command_t * command;
+    bool returnStatus;
+
+    __CPROVER_assert( pMsgCtx != NULL,
+                      "MQTTAgent context is not NULL." );
+    __CPROVER_assert( pBuffer != NULL,
+                      "Command buffer is not NULL." );
+
+    command = allocateCommand();
+
+    *( ( Command_t ** ) pBuffer ) = command;
+
+    return returnStatus;
 }
