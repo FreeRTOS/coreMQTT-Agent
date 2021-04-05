@@ -36,8 +36,8 @@ include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/mqttFilePaths.cmake )
 include( ${MODULE_ROOT_DIR}/mqttAgentFilePaths.cmake )
 # Target for Coverity analysis that builds the library.
 add_library( coverity_analysis
-             ${MQTT_AGENT_SOURCES} 
-             ${MQTT_SOURCES} 
+             ${MQTT_AGENT_SOURCES}
+             ${MQTT_SOURCES}
              ${MQTT_SERIALIZER_SOURCES} )
 
 # Build MQTT library target without custom config dependency.
