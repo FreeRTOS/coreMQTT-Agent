@@ -313,8 +313,11 @@ void test_MQTTAgentCommand_Subscribe( void )
     MQTTStatus_t mqttStatus;
 
     MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
-    MQTT_Subscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ), subscribeArgs.pSubscribeInfo, subscribeArgs.numSubscriptions, 1, MQTTSuccess );
-
+    MQTT_Subscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ),
+                                    subscribeArgs.pSubscribeInfo,
+                                    subscribeArgs.numSubscriptions,
+                                    1,
+                                    MQTTSuccess );
     mqttStatus = MQTTAgentCommand_Subscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -336,8 +339,11 @@ void test_MQTTAgentCommand_Unsubscribe( void )
     MQTTStatus_t mqttStatus;
 
     MQTT_GetPacketId_ExpectAndReturn( &( mqttAgentContext.mqttContext ), 1 );
-    MQTT_Unsubscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ), subscribeArgs.pSubscribeInfo, subscribeArgs.numSubscriptions, 1, MQTTSuccess );
-
+    MQTT_Unsubscribe_ExpectAndReturn( &( mqttAgentContext.mqttContext ),
+                                      subscribeArgs.pSubscribeInfo,
+                                      subscribeArgs.numSubscriptions,
+                                      1,
+                                      MQTTSuccess );
     mqttStatus = MQTTAgentCommand_Unsubscribe( &mqttAgentContext, &subscribeArgs, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -398,7 +404,7 @@ void test_MQTTAgentCommand_Connect( void )
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_Connect_IgnoreAndReturn( MQTTSuccess );
+    MQTT_Connect_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgent_ResumeSession_ExpectAndReturn( &mqttAgentContext, connectInfo.sessionPresent, MQTTSuccess );
 
     mqttStatus = MQTTAgentCommand_Connect( &mqttAgentContext, &connectInfo, &returnFlags );
@@ -421,7 +427,7 @@ void test_MQTTAgentCommand_Connect_failure( void )
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     MQTTStatus_t mqttStatus;
 
-    MQTT_Connect_IgnoreAndReturn( MQTTBadParameter );
+    MQTT_Connect_ExpectAnyArgsAndReturn( MQTTBadParameter );
 
     mqttStatus = MQTTAgentCommand_Connect( &mqttAgentContext, &connectInfo, &returnFlags );
 
