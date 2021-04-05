@@ -305,9 +305,11 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 {
     size_t i = 0;
     bool ackAdded = false;
-    AckInfo_t * pendingAcks = pAgentContext->pPendingAcks;
+    AckInfo_t * pendingAcks = NULL;
 
+    assert( pAgentContext != NULL );
     assert( packetId != MQTT_PACKET_ID_INVALID );
+    pendingAcks = pAgentContext->pPendingAcks;
 
     /* Look for an unused space in the array of message IDs that are still waiting to
      * be acknowledged. */
@@ -754,7 +756,7 @@ static void concludeCommand( MQTTAgentContext_t * pAgentContext,
 
         if( !commandReleased )
         {
-            LogError( ( "Command %p of type %d not released.",
+            LogError( ( "Failed to release command %p of type %d.",
                         ( void * ) pCommand,
                         pCommand->commandType ) );
         }
@@ -793,7 +795,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
             {
                 concludeCommand( pMqttAgentContext, pFoundAck->pOriginalCommand, statusResult, NULL );
                 ( void ) memset( pFoundAck, 0x00, sizeof( AckInfo_t ) );
-                LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
+                LogError( ( "Failed to resend publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
                 break;
             }
         }
