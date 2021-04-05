@@ -446,7 +446,6 @@ void test_MQTTAgentCommand_terminate( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    void * pUnusedArg;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
     Command_t command = { 0 };
     CommandContext_t commandContext = { 0 };
@@ -464,7 +463,7 @@ void test_MQTTAgentCommand_terminate( void )
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
-    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, pUnusedArg, &returnFlags );
+    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
 
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -494,7 +493,7 @@ void test_MQTTAgentCommand_terminate( void )
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
-    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, pUnusedArg, &returnFlags );
+    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
 
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
