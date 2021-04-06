@@ -88,7 +88,7 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
                       uint32_t blockTimeMs )
 {
     Command_t ** pCommandToSend = ( Command_t ** ) pData;
-
+    ( void ) blockTimeMs;
     pMsgCtx->pSentCommand = *pCommandToSend;
     return true;
 }
@@ -464,7 +464,7 @@ void test_MQTTAgentCommand_terminate( void )
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
-    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
+    mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
 
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -495,7 +495,6 @@ void test_MQTTAgentCommand_terminate( void )
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
     mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
-
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that returnFlags are set as intended. */
