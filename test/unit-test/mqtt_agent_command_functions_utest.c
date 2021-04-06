@@ -88,6 +88,7 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
                       uint32_t blockTimeMs )
 {
     Command_t ** pCommandToSend = ( Command_t ** ) pData;
+
     ( void ) blockTimeMs;
     pMsgCtx->pSentCommand = *pCommandToSend;
     return true;
@@ -101,7 +102,9 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
                          uint32_t blockTimeMs )
 {
     Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
+
     ( void ) blockTimeMs;
+
     if( receiveCounter == 0 )
     {
         *pCommandToReceive = pMsgCtx->pSentCommand;
