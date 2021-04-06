@@ -14,7 +14,7 @@ PROOF_UID = MQTTAgent_CommandLoop
 MQTT_AGENT_MAX_OUTSTANDING_ACKS=2
 
 # Bound for loop unwinding for the loops trying to read and write into the
-# outstanding acks array. The size of the array is determined by 
+# outstanding acks array. The size of the array is determined by
 # MQTT_AGENT_MAX_OUTSTANDING_ACKS. The max bound will be one more than
 # array size for the proofs.
 MAX_BOUND_FOR_PENDING_ACK_LOOPS=$(shell expr $(MQTT_AGENT_MAX_OUTSTANDING_ACKS) + 1 )
