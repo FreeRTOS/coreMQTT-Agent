@@ -308,6 +308,7 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     AckInfo_t * pendingAcks = NULL;
 
     assert( pAgentContext != NULL );
+    assert( pCommand != NULL );
     assert( packetId != MQTT_PACKET_ID_INVALID );
     pendingAcks = pAgentContext->pPendingAcks;
 
@@ -739,6 +740,7 @@ static void concludeCommand( MQTTAgentContext_t * pAgentContext,
 
     ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pAgentContext != NULL );
+    assert( pAgentContext->agentInterface.releaseCommand != NULL );
     assert( pCommand != NULL );
 
     returnInfo.returnCode = returnCode;
