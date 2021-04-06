@@ -101,7 +101,7 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
                          uint32_t blockTimeMs )
 {
     Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
-
+    ( void ) blockTimeMs;
     if( receiveCounter == 0 )
     {
         *pCommandToReceive = pMsgCtx->pSentCommand;
@@ -121,6 +121,7 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
  */
 static Command_t * stubGetCommand( uint32_t blockTimeMs )
 {
+    ( void ) blockTimeMs;
     return pCommandToReturn;
 }
 
@@ -493,7 +494,7 @@ void test_MQTTAgentCommand_terminate( void )
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
     mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
 
-    mqttStatus = mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
+    mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
 
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
