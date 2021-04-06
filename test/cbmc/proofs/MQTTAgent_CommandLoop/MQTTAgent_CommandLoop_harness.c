@@ -28,12 +28,14 @@
 void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext = NULL;
-    MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( pMqttAgentContext );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
-    mqttStatus = MQTTAgent_CommandLoop( pMqttAgentContext );
+    if( pMqttAgentContext != NULL )
+    {
+        pMqttAgentContext->mqttContext.connectStatus = MQTTConnected;
+    }
 
-    /*__CPROVER_assert( isAgentSendCommandFunctionStatus( mqttStatus ), "The return value is a MQTTStatus_t." ); */
+    MQTTAgent_CommandLoop( pMqttAgentContext );
 }

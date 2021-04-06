@@ -53,7 +53,7 @@ MQTTFixedBuffer_t * allocateMqttFixedBuffer( MQTTFixedBuffer_t * pFixedBuffer )
 
 bool isValidMqttFixedBuffer( const MQTTFixedBuffer_t * pFixedBuffer )
 {
-    bool isValid = true;
+    bool isValid = false;
 
     if( pFixedBuffer != NULL )
     {

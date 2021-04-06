@@ -22,7 +22,7 @@
 
 /**
  * @file agent_command_functions_stub.c
- * @brief Function stub for processing an MQTT agent command.
+ * @brief Function stubs for processing an MQTT agent command.
  */
 
 /* MQTT Agent command functions include. */
@@ -34,14 +34,16 @@ static MQTTStatus_t MQTTAgentCommand_Stub( MQTTAgentContext_t * pMqttAgentContex
 {
     MQTTStatus_t returnStatus;
     uint16_t packetId;
-    MQTTAgentCommandFuncReturns_t returnFlags;
 
     __CPROVER_assert( pMqttAgentContext != NULL, "MQTT Agent context is not NULL." );
     __CPROVER_assert( pReturnFlags != NULL, "Return flags pointer is not NULL." );
 
-    *pReturnFlags = returnFlags;
+    __CPROVER_assume( packetId > 0U );
 
-    __CPROVER_assume( returnFlags.packetId > 0U );
+    pReturnFlags->packetId = packetId;
+    pReturnFlags->endLoop = nondet_bool();
+    pReturnFlags->addAcknowledgment = nondet_bool();
+    pReturnFlags->runProcessLoop = nondet_bool();
 
     return returnStatus;
 }
@@ -52,9 +54,15 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
                                            void * pUnusedArg,
                                            MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pUnusedArg,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pUnusedArg,
+                                          pReturnFlags );
+
+    pReturnFlags->runProcessLoop = false;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -63,9 +71,21 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
                                        void * pPublishArg,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pPublishArg,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+    MQTTPublishInfo_t * pPublishInfo;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pPublishArg,
+                                          pReturnFlags );
+
+    if( pPublishArg != NULL )
+    {
+        pPublishInfo = ( MQTTPublishInfo_t * ) pPublishArg;
+        pReturnFlags->addAcknowledgment = ( pPublishInfo->qos > MQTTQoS0 ) ? true : false;
+        pReturnFlags->runProcessLoop = ( pPublishInfo->qos > MQTTQoS0 ) ? true : false;
+    }
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -74,9 +94,16 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pVoidSubscribeArgs,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pVoidSubscribeArgs,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pVoidSubscribeArgs,
+                                          pReturnFlags );
+
+    pReturnFlags->addAcknowledgment = true;
+    pReturnFlags->runProcessLoop = true;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -85,9 +112,16 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
                                            void * pVoidSubscribeArgs,
                                            MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pVoidSubscribeArgs,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pVoidSubscribeArgs,
+                                          pReturnFlags );
+
+    pReturnFlags->addAcknowledgment = true;
+    pReturnFlags->runProcessLoop = true;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -96,9 +130,16 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
                                        void * pConnectArgs,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pConnectArgs,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pConnectArgs,
+                                          pReturnFlags );
+
+    pReturnFlags->addAcknowledgment = true;
+    pReturnFlags->runProcessLoop = true;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -107,9 +148,16 @@ MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext
                                           void * pUnusedArg,
                                           MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pUnusedArg,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pUnusedArg,
+                                          pReturnFlags );
+
+    pReturnFlags->addAcknowledgment = false;
+    pReturnFlags->runProcessLoop = false;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -118,9 +166,16 @@ MQTTStatus_t MQTTAgentCommand_Ping( MQTTAgentContext_t * pMqttAgentContext,
                                     void * pUnusedArg,
                                     MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    return MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pUnusedArg,
-                                  pReturnFlags );
+    MQTTStatus_t returnStatus;
+
+    returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
+                                          pUnusedArg,
+                                          pReturnFlags );
+
+    pReturnFlags->addAcknowledgment = false;
+    pReturnFlags->runProcessLoop = false;
+
+    return returnStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -130,9 +185,10 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
     MQTTStatus_t returnStatus;
+
     returnStatus = MQTTAgentCommand_Stub( pMqttAgentContext,
-                                  pUnusedArg,
-                                  pReturnFlags );
+                                          pUnusedArg,
+                                          pReturnFlags );
 
     pReturnFlags->endLoop = true;
 

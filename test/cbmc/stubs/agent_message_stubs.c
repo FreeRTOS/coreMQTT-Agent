@@ -37,18 +37,23 @@ static void commandCompleteCallbackStub( void * pCmdCallbackContext,
 
 static Command_t * allocateCommand()
 {
-    Command_t * command = malloc( sizeof( Command_t ) );
     MQTTAgentSubscribeArgs_t * pSubscribeArgs;
     MQTTPublishInfo_t * pPublishInfo;
     static bool terminate = false;
 
+    Command_t * command = malloc( sizeof( Command_t ) );
+
+
+    /* Second command always is TERMINATE to keep the MQTTAgent_CommandLoop unwind bound. */
+    if( terminate == true )
+    {
+        __CPROVER_assume( command != NULL );
+        __CPROVER_assume( command->commandType == TERMINATE );
+    }
+
     if( command != NULL )
     {
         __CPROVER_assume( command->commandType >= NONE && command->commandType < NUM_COMMANDS );
-        if ( terminate == true) 
-        {
-            __CPROVER_assume( command->commandType == TERMINATE );
-        }
 
         if( ( command->commandType == SUBSCRIBE ) || ( command->commandType == UNSUBSCRIBE ) )
         {
@@ -71,6 +76,7 @@ static Command_t * allocateCommand()
     terminate = true;
     return command;
 }
+
 bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
                            const void * pData,
                            uint32_t blockTimeMs )
