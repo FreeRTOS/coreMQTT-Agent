@@ -236,6 +236,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
     ( void ) pUnusedArg;
 
     assert( pMqttAgentContext != NULL );
+    assert( pMqttAgentContext->agentInterface.releaseCommand != NULL );
     assert( pReturnFlags != NULL );
 
     returnInfo.returnCode = MQTTBadResponse;
@@ -254,10 +255,14 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
             &( pReceivedCommand ),
             0U );
 
-        if( ( pReceivedCommand != NULL ) &&
-            ( pReceivedCommand->pCommandCompleteCallback != NULL ) )
+        if( pReceivedCommand != NULL )
         {
-            pReceivedCommand->pCommandCompleteCallback( pReceivedCommand->pCmdContext, &returnInfo );
+            if( pReceivedCommand->pCommandCompleteCallback != NULL )
+            {
+                pReceivedCommand->pCommandCompleteCallback( pReceivedCommand->pCmdContext, &returnInfo );
+            }
+
+            pMqttAgentContext->agentInterface.releaseCommand( pReceivedCommand );
         }
     } while( commandWasReceived );
 
@@ -273,6 +278,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                     &returnInfo );
             }
 
+            pMqttAgentContext->agentInterface.releaseCommand( pendingAcks[ i ].pOriginalCommand );
             /* Now remove it from the list. */
             ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
         }

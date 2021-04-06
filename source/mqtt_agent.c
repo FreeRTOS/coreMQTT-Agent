@@ -196,6 +196,20 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
                                          uint32_t blockTimeMs );
 
 /**
+ * @brief Helper function to mark a command as complete and invoke its callback.
+ * This function calls the releaseCommand callback.
+ *
+ * @param[in] pAgentContext Agent context for the MQTT connection.
+ * @param[in] pCommand Command to complete.
+ * @param[in] returnCode Return status of command.
+ * @param[in] pSubackCodes Pointer to suback array, if command is a SUBSCRIBE.
+ */
+static void concludeCommand( MQTTAgentContext_t * pAgentContext,
+                             Command_t * pCommand,
+                             MQTTStatus_t returnCode,
+                             uint8_t * pSubackCodes );
+
+/**
  * @brief Resend QoS 1 and 2 publishes after resuming a session.
  *
  * @param[in] pMqttAgentContext Agent context for the MQTT connection.
@@ -291,7 +305,12 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 {
     size_t i = 0;
     bool ackAdded = false;
-    AckInfo_t * pendingAcks = pAgentContext->pPendingAcks;
+    AckInfo_t * pendingAcks = NULL;
+
+    assert( pAgentContext != NULL );
+    assert( pCommand != NULL );
+    assert( packetId != MQTT_PACKET_ID_INVALID );
+    pendingAcks = pAgentContext->pPendingAcks;
 
     /* Look for an unused space in the array of message IDs that are still waiting to
      * be acknowledged. */
@@ -341,6 +360,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
         LogError( ( "Found ack had empty fields. PacketId=%hu, Original Command=%p",
                     ( unsigned short ) pFoundAck->packetId,
                     ( void * ) pFoundAck->pOriginalCommand ) );
+        ( void ) memset( pFoundAck, 0x00, sizeof( AckInfo_t ) );
         pFoundAck = NULL;
     }
     else
@@ -476,13 +496,11 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
     MQTTStatus_t operationStatus = MQTTSuccess;
     bool ackAdded = false;
-    MQTTAgentReturnInfo_t returnInfo;
     MQTTAgentCommandFunc_t commandFunction = NULL;
     void * pCommandArgs = NULL;
     const uint32_t processLoopTimeoutMs = 0U;
     MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
-    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pMqttAgentContext != NULL );
     assert( pEndLoop != NULL );
 
@@ -499,7 +517,9 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
     operationStatus = commandFunction( pMqttAgentContext, pCommandArgs, &commandOutParams );
 
-    if( ( operationStatus == MQTTSuccess ) && commandOutParams.addAcknowledgment )
+    if( ( operationStatus == MQTTSuccess ) &&
+        commandOutParams.addAcknowledgment &&
+        ( commandOutParams.packetId != MQTT_PACKET_ID_INVALID ) )
     {
         ackAdded = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
 
@@ -518,13 +538,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     if( ( pCommand != NULL ) && ( ackAdded != true ) )
     {
         /* The command is complete, call the callback. */
-        if( pCommand->pCommandCompleteCallback != NULL )
-        {
-            returnInfo.returnCode = operationStatus;
-            pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
-        }
-
-        pMqttAgentContext->agentInterface.releaseCommand( pCommand );
+        concludeCommand( pMqttAgentContext, pCommand, operationStatus, NULL );
     }
 
     /* Run the process loop if there were no errors and the MQTT connection
@@ -557,28 +571,19 @@ static void handleAcks( MQTTAgentContext_t * pAgentContext,
                         AckInfo_t * pAckInfo,
                         uint8_t packetType )
 {
-    CommandContext_t * pAckContext = NULL;
-    CommandCallback_t ackCallback = NULL;
     uint8_t * pSubackCodes = NULL;
-    MQTTAgentReturnInfo_t returnInfo;
 
-    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pAckInfo != NULL );
     assert( pAckInfo->pOriginalCommand != NULL );
 
-    pAckContext = pAckInfo->pOriginalCommand->pCmdContext;
-    ackCallback = pAckInfo->pOriginalCommand->pCommandCompleteCallback;
     /* A SUBACK's status codes start 2 bytes after the variable header. */
     pSubackCodes = ( packetType == MQTT_PACKET_TYPE_SUBACK ) ? ( pPacketInfo->pRemainingData + 2U ) : NULL;
 
-    if( ackCallback != NULL )
-    {
-        returnInfo.returnCode = pDeserializedInfo->deserializationResult;
-        returnInfo.pSubackCodes = pSubackCodes;
-        ackCallback( pAckContext, &returnInfo );
-    }
+    concludeCommand( pAgentContext,
+                     pAckInfo->pOriginalCommand,
+                     pDeserializedInfo->deserializationResult,
+                     pSubackCodes );
 
-    pAgentContext->agentInterface.releaseCommand( pAckInfo->pOriginalCommand );
     /* Clear the entry from the list. */
     ( void ) memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
 }
@@ -674,6 +679,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     Command_t * pCommand;
+    bool commandReleased = false;
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
      * is the initial value but not a valid packet ID. */
@@ -699,7 +705,13 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
             {
                 /* Could not send the command to the queue so release the command
                  * structure again. */
-                pMqttAgentContext->agentInterface.releaseCommand( pCommand );
+                commandReleased = pMqttAgentContext->agentInterface.releaseCommand( pCommand );
+
+                if( !commandReleased )
+                {
+                    LogError( ( "Command %p could not be released.",
+                                ( void * ) pCommand ) );
+                }
             }
         }
         else
@@ -714,6 +726,39 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
     }
 
     return statusReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+static void concludeCommand( MQTTAgentContext_t * pAgentContext,
+                             Command_t * pCommand,
+                             MQTTStatus_t returnCode,
+                             uint8_t * pSubackCodes )
+{
+    bool commandReleased = false;
+    MQTTAgentReturnInfo_t returnInfo;
+
+    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
+    assert( pAgentContext != NULL );
+    assert( pAgentContext->agentInterface.releaseCommand != NULL );
+    assert( pCommand != NULL );
+
+    returnInfo.returnCode = returnCode;
+    returnInfo.pSubackCodes = pSubackCodes;
+
+    if( pCommand->pCommandCompleteCallback != NULL )
+    {
+        pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
+    }
+
+    commandReleased = pAgentContext->agentInterface.releaseCommand( pCommand );
+
+    if( !commandReleased )
+    {
+        LogError( ( "Failed to release command %p of type %d.",
+                    ( void * ) pCommand,
+                    pCommand->commandType ) );
+    }
 }
 
 /*-----------------------------------------------------------*/
@@ -746,7 +791,9 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 
             if( statusResult != MQTTSuccess )
             {
-                LogError( ( "Error in resending publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
+                concludeCommand( pMqttAgentContext, pFoundAck->pOriginalCommand, statusResult, NULL );
+                ( void ) memset( pFoundAck, 0x00, sizeof( AckInfo_t ) );
+                LogError( ( "Failed to resend publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
                 break;
             }
         }
@@ -762,14 +809,9 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
 {
     size_t i = 0;
-    MQTTAgentReturnInfo_t returnInfo;
     AckInfo_t * pendingAcks;
 
-    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
     assert( pMqttAgentContext != NULL );
-
-    returnInfo.returnCode = MQTTRecvFailed;
-
 
     pendingAcks = pMqttAgentContext->pPendingAcks;
 
@@ -778,13 +820,8 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
     {
         if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
         {
-            if( pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback != NULL )
-            {
-                /* Bad response to indicate network error. */
-                pendingAcks[ i ].pOriginalCommand->pCommandCompleteCallback(
-                    pendingAcks[ i ].pOriginalCommand->pCmdContext,
-                    &returnInfo );
-            }
+            /* Receive failed to indicate network error. */
+            concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
 
             /* Now remove it from the list. */
             ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
