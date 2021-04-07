@@ -28,7 +28,6 @@
 #include "core_mqtt.h"
 #include <string.h>
 
-
 static bool isValidIncomingMqttPacket( uint8_t packetType )
 {
     bool isValid = false;
@@ -91,6 +90,13 @@ MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
     size_t payloadLength;
     static bool terminate = false;
 
+    /* These constants are used to limit the range of variable length fields in
+     * an MQTT packet. This will improve the proof run time. */
+    static const uint8_t maxRemainingLength = 64U;
+    static const uint8_t subAckMinRemainingLength = 2U;
+    static const uint8_t maxTopicNameLength = 32U;
+    static const uint8_t maxPayloadLength = 64U;
+
     __CPROVER_assert( pContext != NULL,
                       "MQTT Context is not NULL." );
 
@@ -102,12 +108,12 @@ MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
         pPacketInfo = malloc( sizeof( MQTTPacketInfo_t ) );
         __CPROVER_assume( pPacketInfo != NULL );
         __CPROVER_assume( isValidIncomingMqttPacket( pPacketInfo->type ) );
-        __CPROVER_assume( remainingLength < 64U );
+        __CPROVER_assume( remainingLength < maxRemainingLength );
 
         /* SUBACK codes will be after 2 bytes. */
         if( pPacketInfo->type == MQTT_PACKET_TYPE_SUBACK )
         {
-            __CPROVER_assume( remainingLength > 2U );
+            __CPROVER_assume( remainingLength > subAckMinRemainingLength );
         }
 
         pPacketInfo->pRemainingData = malloc( remainingLength );
@@ -122,20 +128,19 @@ MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
             pPublishInfo = malloc( sizeof( MQTTPublishInfo_t ) );
             __CPROVER_assume( pPublishInfo != NULL );
 
-            __CPROVER_assume( topicNameLength < 32U );
+            __CPROVER_assume( topicNameLength < maxTopicNameLength );
             pPublishInfo->pTopicName = malloc( topicNameLength );
             __CPROVER_assume( pPublishInfo->pTopicName != NULL );
             pPublishInfo->topicNameLength = topicNameLength;
 
-            __CPROVER_assume( payloadLength < 64U );
+            __CPROVER_assume( payloadLength < maxPayloadLength );
             pPublishInfo->pPayload = malloc( payloadLength );
-            __CPROVER_assume( pPublishInfo->pPayload != NULL );
-            pPublishInfo->payloadLength = payloadLength;
+            pPublishInfo->payloadLength = ( pPublishInfo->pPayload != NULL ) ? payloadLength : 0;
 
             pDeserializedInfo->pPublishInfo = pPublishInfo;
         }
 
-        __CPROVER_assume( pDeserializedInfo->packetIdentifier > 0U );
+        __CPROVER_assume( pDeserializedInfo->packetIdentifier > MQTT_PACKET_ID_INVALID );
 
         /* Invoke event callback. */
         pContext->appCallback( pContext,
