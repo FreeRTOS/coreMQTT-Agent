@@ -6,9 +6,10 @@ This directory contains a memory safety proof for MQTTAgent_ResumeSession.
 The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
  * MQTTAgent_ResumeSession()
  * MQTTAgent_Init()
- * addCommandToQueue()
- * createAndAddCommand()
- * validateStruct()
+ * clearPendingAcknowledgments()
+ * resendPublishes()
+ * concludeCommand()
+ * addPendingAcks()
  * isSpaceInPendingAckList()
 
 For this proof, stubs are used for the implementation of functions in the following interfaces and
@@ -18,6 +19,14 @@ the proof only will require stubs.
  * TransportInterface_t
  * MQTTGetCurrentTimeFunc_t
  * IncomingPublishCallback_t
+ * CommandCallback_t
+
+ In addition to the interfaces and the function types, stubs are used for the below listed functions.
+ CBMC proofs are written for these functions separately.
+ * MQTT_ProcessLoop()
+ * MQTT_Init()
+ * MQTT_Publish()
+ * MQTT_PublishToResend()
 
 To run the proof.
 -------------

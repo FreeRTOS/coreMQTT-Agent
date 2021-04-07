@@ -26,7 +26,9 @@
  */
 
 #include "core_mqtt.h"
+#include "core_mqtt_state.h"
 #include <string.h>
+
 
 static bool isValidIncomingMqttPacket( uint8_t packetType )
 {
@@ -150,5 +152,49 @@ MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
         terminate = true;
     }
 
+    __CPROVER_assume( ( status >= MQTTSuccess && status <= MQTTKeepAliveTimeout ) );
+
     return status;
+}
+
+MQTTStatus_t MQTT_Publish( MQTTContext_t * pContext,
+                           const MQTTPublishInfo_t * pPublishInfo,
+                           uint16_t packetId )
+{
+    MQTTStatus_t status;
+
+    __CPROVER_assert( pContext != NULL,
+                      "MQTT Context is not NULL." );
+    __CPROVER_assert( pPublishInfo != NULL,
+                      "Publish Info is not NULL." );
+    __CPROVER_assume( ( status >= MQTTSuccess && status <= MQTTKeepAliveTimeout ) );
+
+    return status;
+}
+
+uint16_t MQTT_PublishToResend( const MQTTContext_t * pMqttContext,
+                               MQTTStateCursor_t * pCursor )
+{
+    uint16_t packetId;
+    static bool terminate = false;
+
+    __CPROVER_assert( pMqttContext != NULL,
+                      "MQTT Context is not NULL." );
+    __CPROVER_assert( pCursor != NULL,
+                      "MQTT State Cursor is not NULL." );
+
+    if( terminate == true )
+    {
+        packetId = MQTT_PACKET_ID_INVALID;
+    }
+    else
+    {
+        /* Limit the packet Ids so that the range of packet ids so that the
+         * probability of finding a matching packet in the pending acks is high. */
+        __CPROVER_assume( packetId < MAX_PACKET_ID );
+    }
+
+    terminate = true;
+
+    return packetId;
 }

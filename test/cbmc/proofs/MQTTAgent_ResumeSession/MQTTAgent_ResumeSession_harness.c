@@ -32,10 +32,15 @@ void harness()
     MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
+
+    if( pMqttAgentContext != NULL )
+    {
+        addPendingAcks( pMqttAgentContext );
+    }
 
     mqttStatus = MQTTAgent_ResumeSession( pMqttAgentContext,
                                           sessionPresent );
 
-    __CPROVER_assert( isAgentSendCommandFunctionStatus( mqttStatus ), "The return value is a MQTTStatus_t." );
+    __CPROVER_assert( ( mqttStatus >= MQTTSuccess && mqttStatus <= MQTTKeepAliveTimeout ),
+                      "Return status from MQTTAgent_ResumeSession is a MQTT status." );
 }
