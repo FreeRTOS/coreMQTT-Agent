@@ -103,7 +103,7 @@ MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
                       "MQTT Context is not NULL." );
 
     /* Only one packet per MQTT_ProcessLoop is received for the proof and it will be enough
-     * to prove the memory safety. The second invocation of MQTT_ProcessLoopreturns without
+     * to prove the memory safety. The second invocation of MQTT_ProcessLoop returns without
      * invoking the appCallback. */
     if( terminate == false )
     {
