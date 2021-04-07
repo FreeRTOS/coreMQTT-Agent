@@ -184,7 +184,7 @@ void addPendingAcks( MQTTAgentContext_t * pContext )
         #endif
         pContext->pPendingAcks[ i ].packetId = packetId;
 
-        /*Add a publish command. */
+        /* Add a publish command. */
         pCommand = malloc( sizeof( Command_t ) );
         __CPROVER_assume( pCommand != NULL );
 
