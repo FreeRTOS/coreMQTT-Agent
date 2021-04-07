@@ -3,6 +3,9 @@ MQTTAgentCommand_ProcessLoop proof
 
 This directory contains a memory safety proof for MQTTAgentCommand_ProcessLoop.
 
+The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
+ * MQTTAgentCommand_ProcessLoop()
+
 To run the proof.
 -------------
 
