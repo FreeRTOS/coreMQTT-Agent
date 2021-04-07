@@ -3,6 +3,9 @@ MQTTAgentCommand_Disconnect proof
 
 This directory contains a memory safety proof for MQTTAgentCommand_Disconnect.
 
+The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
+ * MQTTAgentCommand_Disconnect()
+
 To run the proof.
 -------------
 

@@ -3,6 +3,9 @@ MQTTAgentCommand_Connect proof
 
 This directory contains a memory safety proof for MQTTAgentCommand_Connect.
 
+The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
+ * MQTTAgentCommand_Connect()
+ 
 To run the proof.
 -------------
 
