@@ -108,4 +108,13 @@ MQTTAgentConnectArgs_t * allocateConnectArgs( MQTTAgentConnectArgs_t * pConnectA
  */
 void addPendingAcks( MQTTAgentContext_t * pContext );
 
+/**
+ * @brief Allocate a #MQTTAgentSubscribeArgs_t object.
+ *
+ * @param[in] pSubscribeArgs #MQTTAgentSubscribeArgs_t object information.
+ *
+ * @return NULL or allocated #MQTTAgentSubscribeArgs_t memory.
+ */
+MQTTAgentSubscribeArgs_t * allocateSubscribeArgs( MQTTAgentSubscribeArgs_t * pSubscribeArgs );
+
 #endif /* ifndef MQTT_AGENT_CBMC_STATE_H_ */

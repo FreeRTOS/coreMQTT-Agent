@@ -27,6 +27,7 @@
 
 /* MQTT agent include. */
 #include "mqtt_agent_command_functions.h"
+#include "mqtt_agent_cbmc_state.h"
 
 void harness()
 {
@@ -38,8 +39,7 @@ void harness()
     __CPROVER_assume( pMqttAgentContext != NULL );
     pReturnFlags = malloc( sizeof( MQTTAgentCommandFuncReturns_t ) );
     __CPROVER_assume( pReturnFlags != NULL );
-    pSubscribeArgs = malloc( sizeof( MQTTAgentSubscribeArgs_t ) );
-    __CPROVER_assume( pSubscribeArgs != NULL );
+    pSubscribeArgs = allocateSubscribeArgs( NULL );
 
     MQTTAgentCommand_Unsubscribe( pMqttAgentContext, pSubscribeArgs, pReturnFlags );
 }
