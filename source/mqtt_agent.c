@@ -236,8 +236,8 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
  *
  * @return `true` if parameters are valid, else `false`.
  */
-static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
-                            CommandInfo_t * pCommandInfo );
+static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
+                            const CommandInfo_t * pCommandInfo );
 
 /**
  * @brief Validate the parameters for a CONNECT, SUBSCRIBE, UNSUBSCRIBE
@@ -829,8 +829,8 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
 
 /*-----------------------------------------------------------*/
 
-static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
-                            CommandInfo_t * pCommandInfo )
+static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
+                            const CommandInfo_t * pCommandInfo )
 {
     bool ret = false;
 
