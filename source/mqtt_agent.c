@@ -189,7 +189,7 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
  * Otherwise an enumerated error code.
  */
 static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
-                                         MQTTAgentContext_t * pMqttAgentContext,
+                                         const MQTTAgentContext_t * pMqttAgentContext,
                                          void * pMqttInfoParam,
                                          CommandCallback_t commandCompleteCallback,
                                          CommandContext_t * pCommandCompleteCallbackContext,
@@ -249,7 +249,7 @@ static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
  * @return `true` if parameter structure is valid, else `false`.
  */
 static bool validateParams( CommandType_t commandType,
-                            void * pParams );
+                            const void * pParams );
 
 /**
  * @brief Called before accepting any PUBLISH or SUBSCRIBE messages to check
@@ -669,7 +669,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
-                                         MQTTAgentContext_t * pMqttAgentContext,
+                                         const MQTTAgentContext_t * pMqttAgentContext,
                                          void * pMqttInfoParam,
                                          CommandCallback_t commandCompleteCallback,
                                          CommandContext_t * pCommandCompleteCallbackContext,
@@ -860,7 +860,7 @@ static bool validateStruct( MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 static bool validateParams( CommandType_t commandType,
-                            void * pParams )
+                            const void * pParams )
 {
     bool ret = false;
     const MQTTAgentConnectArgs_t * pConnectArgs = NULL;
