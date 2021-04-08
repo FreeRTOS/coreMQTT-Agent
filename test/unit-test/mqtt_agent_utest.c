@@ -1290,6 +1290,46 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 }
 
 /**
+ * @brief Test that MQTTAgent_CommandLoop does not add acknowledgments for invalid
+ * packet IDs.
+ */
+void test_MQTTAgent_CommandLoop_add_acknowledgment_invalid_id( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t agentContext;
+    Command_t command = { 0 };
+    AckInfo_t emptyAck = { 0 };
+
+    setupAgentContext( &agentContext );
+    agentContext.mqttContext.connectStatus = MQTTConnected;
+    returnFlags.addAcknowledgment = true;
+    returnFlags.runProcessLoop = false;
+    returnFlags.endLoop = true;
+    returnFlags.packetId = 0U;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
+
+    /* Initializing command to be sent to the commandLoop. */
+    command.commandType = PUBLISH;
+    command.pCommandCompleteCallback = stubCompletionCallback;
+    command.pCmdContext = NULL;
+    command.pArgs = NULL;
+
+    globalMessageContext.pSentCommand = &command;
+    mqttStatus = MQTTAgent_CommandLoop( &agentContext );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that acknowledgment is not added. */
+    TEST_ASSERT_EACH_EQUAL_MEMORY( &emptyAck,
+                                   agentContext.pPendingAcks,
+                                   sizeof( AckInfo_t ),
+                                   MQTT_AGENT_MAX_OUTSTANDING_ACKS );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
+}
+
+/**
  * @brief Test mqttEventCallback invocation via MQTT_ProcessLoop.
  * TODO: Split this function up.
  */
