@@ -101,7 +101,7 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
                                        void * pPublishArg,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    MQTTPublishInfo_t * pPublishInfo;
+    const MQTTPublishInfo_t * pPublishInfo;
     MQTTStatus_t ret;
 
     assert( pMqttAgentContext != NULL );
@@ -109,7 +109,7 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
     assert( pReturnFlags != NULL );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
-    pPublishInfo = ( MQTTPublishInfo_t * ) ( pPublishArg );
+    pPublishInfo = ( const MQTTPublishInfo_t * ) ( pPublishArg );
 
     if( pPublishInfo->qos != MQTTQoS0 )
     {
@@ -132,7 +132,7 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pVoidSubscribeArgs,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    MQTTAgentSubscribeArgs_t * pSubscribeArgs;
+    const MQTTAgentSubscribeArgs_t * pSubscribeArgs;
     MQTTStatus_t ret;
 
     assert( pMqttAgentContext != NULL );
@@ -140,7 +140,7 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
     assert( pReturnFlags != NULL );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
-    pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
+    pSubscribeArgs = ( const MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
     pReturnFlags->packetId = MQTT_GetPacketId( &( pMqttAgentContext->mqttContext ) );
 
     ret = MQTT_Subscribe( &( pMqttAgentContext->mqttContext ),
@@ -160,7 +160,7 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
                                            void * pVoidSubscribeArgs,
                                            MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    MQTTAgentSubscribeArgs_t * pSubscribeArgs;
+    const MQTTAgentSubscribeArgs_t * pSubscribeArgs;
     MQTTStatus_t ret;
 
     assert( pMqttAgentContext != NULL );
@@ -168,7 +168,7 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
     assert( pReturnFlags != NULL );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
-    pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
+    pSubscribeArgs = ( const MQTTAgentSubscribeArgs_t * ) ( pVoidSubscribeArgs );
     pReturnFlags->packetId = MQTT_GetPacketId( &( pMqttAgentContext->mqttContext ) );
 
     ret = MQTT_Unsubscribe( &( pMqttAgentContext->mqttContext ),
