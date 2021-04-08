@@ -287,8 +287,9 @@ MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pCont
 {
     MQTTPacketInfo_t packetInfo;
     MQTTDeserializedInfo_t deserializedInfo;
-    MQTTAgentContext_t * pMqttAgentContext;
     MQTTStatus_t status;
+
+    ( void ) timeoutMs;
 
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
@@ -669,7 +670,7 @@ void test_MQTTAgent_Subscribe_No_Ack_Space( void )
     Command_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
-    int i;
+    size_t i;
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -863,7 +864,7 @@ void test_MQTTAgent_Publish_No_Ack_Space( void )
     CommandInfo_t commandInfo = { 0 };
     Command_t command = { 0 };
     MQTTPublishInfo_t publishInfo = { 0 };
-    int i;
+    size_t i;
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;

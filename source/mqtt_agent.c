@@ -382,7 +382,6 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 {
     bool isValid, isSpace = true;
     MQTTStatus_t statusReturn;
-    MQTTAgentSubscribeArgs_t * pSubscribeArgs;
     MQTTPublishInfo_t * pPublishInfo;
     size_t uxHeaderBytes;
     const size_t uxControlAndLengthBytes = ( size_t ) 4; /* Control, remaining length and length bytes. */
@@ -404,7 +403,6 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
              * the array contains space for another outstanding ack. */
             isSpace = isSpaceInPendingAckList( pMqttAgentContext );
 
-            pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) pMqttInfoParam;
             isValid = isSpace;
 
             break;

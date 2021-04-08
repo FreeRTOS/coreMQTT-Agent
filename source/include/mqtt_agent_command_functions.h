@@ -39,7 +39,9 @@
  * execute.
  */
 #ifndef MQTT_AGENT_FUNCTION_TABLE
-    #define MQTT_AGENT_FUNCTION_TABLE                   \
+    /* Designated initializers are only in C99+. */
+    #if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L )
+        #define MQTT_AGENT_FUNCTION_TABLE               \
     {                                                   \
         [ NONE ] = MQTTAgentCommand_ProcessLoop,        \
         [ PROCESSLOOP ] = MQTTAgentCommand_ProcessLoop, \
@@ -51,6 +53,23 @@
         [ DISCONNECT ] = MQTTAgentCommand_Disconnect,   \
         [ TERMINATE ] = MQTTAgentCommand_Terminate      \
     }
+    #else /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
+
+        /* If not using designated initializers, this must correspond
+         * to the order of CommandType_t commands. */
+        #define MQTT_AGENT_FUNCTION_TABLE \
+    {                                     \
+        MQTTAgentCommand_ProcessLoop,     \
+        MQTTAgentCommand_ProcessLoop,     \
+        MQTTAgentCommand_Publish,         \
+        MQTTAgentCommand_Subscribe,       \
+        MQTTAgentCommand_Unsubscribe,     \
+        MQTTAgentCommand_Ping,            \
+        MQTTAgentCommand_Connect,         \
+        MQTTAgentCommand_Disconnect,      \
+        MQTTAgentCommand_Terminate        \
+    }
+    #endif /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
 #endif /* ifndef MQTT_AGENT_FUNCTION_TABLE */
 
 /*-----------------------------------------------------------*/
