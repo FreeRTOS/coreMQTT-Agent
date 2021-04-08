@@ -30,7 +30,6 @@ void harness()
     MQTTAgentContext_t * pMqttAgentContext = NULL;
 
     pMqttAgentContext = allocateMqttAgentContext( pMqttAgentContext );
-    __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
     if( pMqttAgentContext != NULL )
     {
