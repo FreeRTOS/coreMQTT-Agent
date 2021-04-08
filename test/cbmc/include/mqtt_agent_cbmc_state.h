@@ -92,4 +92,13 @@ bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext );
  */
 bool isAgentSendCommandFunctionStatus( MQTTStatus_t mqttStatus );
 
+/**
+ * @brief Allocate a #MQTTAgentConnectArgs_t object.
+ *
+ * @param[in] pConnectArgs #MQTTAgentConnectArgs_t object information.
+ *
+ * @return NULL or allocated #MQTTAgentConnectArgs_t memory.
+ */
+MQTTAgentConnectArgs_t * allocateConnectArgs( MQTTAgentConnectArgs_t * pConnectArgs );
+
 #endif /* ifndef MQTT_AGENT_CBMC_STATE_H_ */

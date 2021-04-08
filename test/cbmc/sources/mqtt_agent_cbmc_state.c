@@ -143,3 +143,18 @@ bool isAgentSendCommandFunctionStatus( MQTTStatus_t mqttStatus )
             ( mqttStatus == MQTTNoMemory ) ||
             ( mqttStatus == MQTTSendFailed ) );
 }
+
+MQTTAgentConnectArgs_t * allocateConnectArgs( MQTTAgentConnectArgs_t * pConnectArgs )
+{
+    if( pConnectArgs == NULL )
+    {
+        pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
+        __CPROVER_assume( pConnectArgs != NULL );
+    }
+
+    pConnectArgs->pConnectInfo = malloc( sizeof( MQTTConnectInfo_t ) );
+    __CPROVER_assume( pConnectArgs->pConnectInfo != NULL );
+    pConnectArgs->pWillInfo = malloc( sizeof( MQTTPublishInfo_t ) );
+
+    return pConnectArgs;
+}
