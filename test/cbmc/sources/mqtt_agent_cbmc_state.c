@@ -53,7 +53,7 @@ MQTTFixedBuffer_t * allocateMqttFixedBuffer( MQTTFixedBuffer_t * pFixedBuffer )
 
 bool isValidMqttFixedBuffer( const MQTTFixedBuffer_t * pFixedBuffer )
 {
-    bool isValid = true;
+    bool isValid = false;
 
     if( pFixedBuffer != NULL )
     {
@@ -126,7 +126,7 @@ MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext )
 
 bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext )
 {
-    bool isValid = false;
+    bool isValid = true;
 
     if( pContext != NULL )
     {
