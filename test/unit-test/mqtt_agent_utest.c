@@ -347,7 +347,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
  * @param[in] FuncToTest Pointer to function to test.
  * @param[in] pFuncName String of function name to print for error messages.
  */
-static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( MQTTAgentContext_t *, CommandInfo_t * ),
+static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgentContext_t *, const CommandInfo_t * ),
                                    const char * pFuncName )
 {
     MQTTAgentContext_t agentContext = { 0 };
