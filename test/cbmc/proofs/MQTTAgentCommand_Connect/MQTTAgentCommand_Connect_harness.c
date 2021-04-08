@@ -39,7 +39,7 @@ void harness()
     __CPROVER_assume( pMqttAgentContext != NULL );
     pReturnFlags = malloc( sizeof( MQTTAgentCommandFuncReturns_t ) );
     __CPROVER_assume( pReturnFlags != NULL );
-    pConnectArgs = allocateConnectArgs(NULL);
+    pConnectArgs = allocateConnectArgs( NULL );
     __CPROVER_assume( pConnectArgs != NULL );
     MQTTAgentCommand_Connect( pMqttAgentContext, pConnectArgs, pReturnFlags );
 }
