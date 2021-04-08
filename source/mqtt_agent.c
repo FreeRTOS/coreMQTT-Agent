@@ -93,7 +93,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * else an enumerated error code.
  */
 static MQTTStatus_t createCommand( CommandType_t commandType,
-                                   MQTTAgentContext_t * pMqttAgentContext,
+                                   const MQTTAgentContext_t * pMqttAgentContext,
                                    void * pMqttInfoParam,
                                    CommandCallback_t commandCompleteCallback,
                                    CommandContext_t * pCommandCompleteCallbackContext,
@@ -157,9 +157,9 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
  * @param[in] packetType The type of the incoming packet, either SUBACK, UNSUBACK,
  * PUBACK, or PUBCOMP.
  */
-static void handleAcks( MQTTAgentContext_t * pAgentContext,
+static void handleAcks( const MQTTAgentContext_t * pAgentContext,
                         const MQTTPacketInfo_t * pPacketInfo,
-                        MQTTDeserializedInfo_t * pDeserializedInfo,
+                        const MQTTDeserializedInfo_t * pDeserializedInfo,
                         AckInfo_t * pAckInfo,
                         uint8_t packetType );
 
@@ -374,7 +374,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t createCommand( CommandType_t commandType,
-                                   MQTTAgentContext_t * pMqttAgentContext,
+                                   const MQTTAgentContext_t * pMqttAgentContext,
                                    void * pMqttInfoParam,
                                    CommandCallback_t commandCompleteCallback,
                                    CommandContext_t * pCommandCompleteCallbackContext,
@@ -563,9 +563,9 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static void handleAcks( MQTTAgentContext_t * pAgentContext,
+static void handleAcks( const MQTTAgentContext_t * pAgentContext,
                         const MQTTPacketInfo_t * pPacketInfo,
-                        MQTTDeserializedInfo_t * pDeserializedInfo,
+                        const MQTTDeserializedInfo_t * pDeserializedInfo,
                         AckInfo_t * pAckInfo,
                         uint8_t packetType )
 {
@@ -863,8 +863,8 @@ static bool validateParams( CommandType_t commandType,
                             void * pParams )
 {
     bool ret = false;
-    MQTTAgentConnectArgs_t * pConnectArgs = NULL;
-    MQTTAgentSubscribeArgs_t * pSubscribeArgs = NULL;
+    const MQTTAgentConnectArgs_t * pConnectArgs = NULL;
+    const MQTTAgentSubscribeArgs_t * pSubscribeArgs = NULL;
 
     assert( ( commandType == CONNECT ) || ( commandType == PUBLISH ) ||
             ( commandType == SUBSCRIBE ) || ( commandType == UNSUBSCRIBE ) );
@@ -872,14 +872,14 @@ static bool validateParams( CommandType_t commandType,
     switch( commandType )
     {
         case CONNECT:
-            pConnectArgs = ( MQTTAgentConnectArgs_t * ) pParams;
+            pConnectArgs = ( const MQTTAgentConnectArgs_t * ) pParams;
             ret = ( ( pConnectArgs != NULL ) &&
                     ( pConnectArgs->pConnectInfo != NULL ) );
             break;
 
         case SUBSCRIBE:
         case UNSUBSCRIBE:
-            pSubscribeArgs = ( MQTTAgentSubscribeArgs_t * ) pParams;
+            pSubscribeArgs = ( const MQTTAgentSubscribeArgs_t * ) pParams;
             ret = ( ( pSubscribeArgs != NULL ) &&
                     ( pSubscribeArgs->pSubscribeInfo != NULL ) &&
                     ( pSubscribeArgs->numSubscriptions != 0U ) );
