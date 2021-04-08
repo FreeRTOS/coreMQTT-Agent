@@ -40,7 +40,6 @@ void harness()
     __CPROVER_assume( pReturnFlags != NULL );
     pPublishArg = malloc( sizeof( MQTTPublishInfo_t ) );
     __CPROVER_assume( pPublishArg != NULL );
-    __CPROVER_assume( pPublishArg->qos == MQTTQoS0 || pPublishArg->qos == MQTTQoS1 );
 
     MQTTAgentCommand_Publish( pMqttAgentContext, pPublishArg, pReturnFlags );
 }
