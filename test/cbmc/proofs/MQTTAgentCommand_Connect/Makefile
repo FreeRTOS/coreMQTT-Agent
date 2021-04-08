@@ -15,6 +15,7 @@ REMOVE_FUNCTION_BODY +=
 UNWINDSET +=
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
+PROOF_SOURCES += $(SRCDIR)/test/cbmc/sources/mqtt_agent_cbmc_state.c
 PROJECT_SOURCES += $(SRCDIR)/source/mqtt_agent_command_functions.c
 
 include ../Makefile.common
