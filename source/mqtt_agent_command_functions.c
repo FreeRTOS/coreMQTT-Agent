@@ -48,10 +48,10 @@
  * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] pCommand Command to complete.
  */
-static void concludeCommandAsError( MQTTAgentContext_t * pAgentContext,
+static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
                                     Command_t * pCommand );
 
-static void concludeCommandAsError( MQTTAgentContext_t * pAgentContext,
+static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
                                     Command_t * pCommand )
 {
     bool commandReleased = false;

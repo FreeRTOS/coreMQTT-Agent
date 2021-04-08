@@ -111,7 +111,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
  * @return MQTTSuccess if the command was added to the queue, else an enumerated
  * error code.
  */
-static MQTTStatus_t addCommandToQueue( MQTTAgentContext_t * pAgentContext,
+static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
                                        Command_t * pCommand,
                                        uint32_t blockTimeMs );
 
@@ -158,7 +158,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
  * PUBACK, or PUBCOMP.
  */
 static void handleAcks( MQTTAgentContext_t * pAgentContext,
-                        MQTTPacketInfo_t * pPacketInfo,
+                        const MQTTPacketInfo_t * pPacketInfo,
                         MQTTDeserializedInfo_t * pDeserializedInfo,
                         AckInfo_t * pAckInfo,
                         uint8_t packetType );
@@ -204,7 +204,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
  * @param[in] returnCode Return status of command.
  * @param[in] pSubackCodes Pointer to suback array, if command is a SUBSCRIBE.
  */
-static void concludeCommand( MQTTAgentContext_t * pAgentContext,
+static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
                              Command_t * pCommand,
                              MQTTStatus_t returnCode,
                              uint8_t * pSubackCodes );
@@ -268,11 +268,11 @@ static bool validateParams( CommandType_t commandType,
  * @return true if there is space in that MQTT connection's ACK list, otherwise
  * false;
  */
-static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext );
+static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext );
 
 /*-----------------------------------------------------------*/
 
-static bool isSpaceInPendingAckList( MQTTAgentContext_t * pAgentContext )
+static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 {
     const AckInfo_t * pendingAcks;
     bool spaceFound = false;
@@ -382,7 +382,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 {
     bool isValid, isSpace = true;
     MQTTStatus_t statusReturn;
-    MQTTPublishInfo_t * pPublishInfo;
+    const MQTTPublishInfo_t * pPublishInfo;
     size_t uxHeaderBytes;
     const size_t uxControlAndLengthBytes = ( size_t ) 4; /* Control, remaining length and length bytes. */
 
@@ -408,7 +408,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
             break;
 
         case PUBLISH:
-            pPublishInfo = ( MQTTPublishInfo_t * ) pMqttInfoParam;
+            pPublishInfo = ( const MQTTPublishInfo_t * ) pMqttInfoParam;
 
             /* Calculate the space consumed by everything other than the
              * payload. */
@@ -464,7 +464,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t addCommandToQueue( MQTTAgentContext_t * pAgentContext,
+static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
                                        Command_t * pCommand,
                                        uint32_t blockTimeMs )
 {
@@ -564,7 +564,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 static void handleAcks( MQTTAgentContext_t * pAgentContext,
-                        MQTTPacketInfo_t * pPacketInfo,
+                        const MQTTPacketInfo_t * pPacketInfo,
                         MQTTDeserializedInfo_t * pDeserializedInfo,
                         AckInfo_t * pAckInfo,
                         uint8_t packetType )
@@ -728,7 +728,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 
 /*-----------------------------------------------------------*/
 
-static void concludeCommand( MQTTAgentContext_t * pAgentContext,
+static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
                              Command_t * pCommand,
                              MQTTStatus_t returnCode,
                              uint8_t * pSubackCodes )
