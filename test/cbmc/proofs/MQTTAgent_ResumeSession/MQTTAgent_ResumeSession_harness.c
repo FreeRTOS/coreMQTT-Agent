@@ -27,14 +27,20 @@
 
 void harness()
 {
-    MQTTAgentContext_t * pMqttAgentContext = NULL;
+    MQTTAgentContext_t * pMqttAgentContext;
+    bool sessionPresent;
+    MQTTStatus_t mqttStatus;
 
-    pMqttAgentContext = allocateMqttAgentContext( pMqttAgentContext );
+    pMqttAgentContext = allocateMqttAgentContext( NULL );
 
     if( pMqttAgentContext != NULL )
     {
-        pMqttAgentContext->mqttContext.connectStatus = MQTTConnected;
+        addPendingAcks( pMqttAgentContext );
     }
 
-    MQTTAgent_CommandLoop( pMqttAgentContext );
+    mqttStatus = MQTTAgent_ResumeSession( pMqttAgentContext,
+                                          sessionPresent );
+
+    __CPROVER_assert( ( mqttStatus >= MQTTSuccess && mqttStatus <= MQTTKeepAliveTimeout ),
+                      "Return status from MQTTAgent_ResumeSession is a MQTT status." );
 }

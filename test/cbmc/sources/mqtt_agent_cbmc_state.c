@@ -34,6 +34,12 @@
 #include "agent_message_stubs.h"
 #include "agent_command_pool_stubs.h"
 
+static void commandCompleteCallbackStub( void * pCmdCallbackContext,
+                                         MQTTAgentReturnInfo_t * pReturnInfo )
+{
+    __CPROVER_assert( pReturnInfo != NULL,
+                      "Command complete return info is not NULL." );
+}
 
 MQTTFixedBuffer_t * allocateMqttFixedBuffer( MQTTFixedBuffer_t * pFixedBuffer )
 {
@@ -126,7 +132,7 @@ MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext )
 
 bool isValidMqttAgentContext( const MQTTAgentContext_t * pContext )
 {
-    bool isValid = true;
+    bool isValid = false;
 
     if( pContext != NULL )
     {
@@ -157,4 +163,40 @@ MQTTAgentConnectArgs_t * allocateConnectArgs( MQTTAgentConnectArgs_t * pConnectA
     pConnectArgs->pWillInfo = malloc( sizeof( MQTTPublishInfo_t ) );
 
     return pConnectArgs;
+}
+
+void addPendingAcks( MQTTAgentContext_t * pContext )
+{
+    uint8_t i;
+    uint16_t packetId;
+    Command_t * pCommand;
+    MQTTPublishInfo_t * pPublishInfo;
+
+    __CPROVER_assert( pContext != NULL, "MQTT Agent Context is not NULL" );
+
+    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+    {
+        #ifdef MAX_PACKET_ID
+
+            /* Limit the packet Ids so that the range of packet ids retrieved through
+             * MQTT_PublishToResend can be limited as well. */
+            __CPROVER_assume( packetId < MAX_PACKET_ID );
+        #endif
+        pContext->pPendingAcks[ i ].packetId = packetId;
+
+        /* Add a publish command. */
+        pCommand = malloc( sizeof( Command_t ) );
+        __CPROVER_assume( pCommand != NULL );
+
+        pCommand->commandType = MQTT_PACKET_TYPE_PUBLISH;
+
+        /* Add Publish Info. */
+        pPublishInfo = malloc( sizeof( MQTTPublishInfo_t ) );
+        __CPROVER_assume( pPublishInfo != NULL );
+        pCommand->pArgs = pPublishInfo;
+
+        pCommand->pCommandCompleteCallback = commandCompleteCallbackStub;
+
+        pContext->pPendingAcks[ i ].pOriginalCommand = pCommand;
+    }
 }

@@ -61,6 +61,7 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
                                           pReturnFlags );
 
     pReturnFlags->runProcessLoop = false;
+    pReturnFlags->addAcknowledgment = false;
 
     return returnStatus;
 }

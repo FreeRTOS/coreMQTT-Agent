@@ -101,4 +101,11 @@ bool isAgentSendCommandFunctionStatus( MQTTStatus_t mqttStatus );
  */
 MQTTAgentConnectArgs_t * allocateConnectArgs( MQTTAgentConnectArgs_t * pConnectArgs );
 
+/**
+ * @brief Add Pending ACKs to the MQTTAgentContext.
+ *
+ * @param[in] pContext #MQTTAgentContext_t object to add ACKs.
+ */
+void addPendingAcks( MQTTAgentContext_t * pContext );
+
 #endif /* ifndef MQTT_AGENT_CBMC_STATE_H_ */
