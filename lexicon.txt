@@ -12,6 +12,7 @@ agentmessagerecv
 agentmessagesend
 api
 apis
+appcallback
 args
 aws
 blocktimems
