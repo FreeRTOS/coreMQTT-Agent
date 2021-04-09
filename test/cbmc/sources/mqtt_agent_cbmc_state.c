@@ -200,3 +200,17 @@ void addPendingAcks( MQTTAgentContext_t * pContext )
         pContext->pPendingAcks[ i ].pOriginalCommand = pCommand;
     }
 }
+
+MQTTAgentSubscribeArgs_t * allocateSubscribeArgs( MQTTAgentSubscribeArgs_t * pSubscribeArgs )
+{
+    if( pSubscribeArgs == NULL )
+    {
+        pSubscribeArgs = malloc( sizeof( MQTTAgentSubscribeArgs_t ) );
+        __CPROVER_assume( pSubscribeArgs != NULL );
+    }
+
+    pSubscribeArgs->pSubscribeInfo = malloc( sizeof( MQTTSubscribeInfo_t ) );
+    __CPROVER_assume( pSubscribeArgs->pSubscribeInfo != NULL );
+
+    return pSubscribeArgs;
+}
