@@ -349,9 +349,9 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_subscribe] */
-MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
+MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                  CommandInfo_t * pCommandInfo );
+                                  const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_subscribe] */
 
 /**
@@ -374,9 +374,9 @@ MQTTStatus_t MQTTAgent_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_unsubscribe] */
-MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
+MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                    CommandInfo_t * pCommandInfo );
+                                    const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_unsubscribe] */
 
 /**
@@ -399,9 +399,9 @@ MQTTStatus_t MQTTAgent_Unsubscribe( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_publish] */
-MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
+MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
-                                CommandInfo_t * pCommandInfo );
+                                const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_publish] */
 
 /**
@@ -422,8 +422,8 @@ MQTTStatus_t MQTTAgent_Publish( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_processloop] */
-MQTTStatus_t MQTTAgent_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
-                                    CommandInfo_t * pCommandInfo );
+MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext,
+                                    const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_processloop] */
 
 /**
@@ -445,8 +445,8 @@ MQTTStatus_t MQTTAgent_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_ping] */
-MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
-                             CommandInfo_t * pCommandInfo );
+MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
+                             const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_ping] */
 
 /**
@@ -470,9 +470,9 @@ MQTTStatus_t MQTTAgent_Ping( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_connect] */
-MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
+MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTAgentConnectArgs_t * pConnectArgs,
-                                CommandInfo_t * pCommandInfo );
+                                const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_connect] */
 
 /**
@@ -494,8 +494,8 @@ MQTTStatus_t MQTTAgent_Connect( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_disconnect] */
-MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
-                                   CommandInfo_t * pCommandInfo );
+MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
+                                   const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_disconnect] */
 
 /**
@@ -517,8 +517,8 @@ MQTTStatus_t MQTTAgent_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_terminate] */
-MQTTStatus_t MQTTAgent_Terminate( MQTTAgentContext_t * pMqttAgentContext,
-                                  CommandInfo_t * pCommandInfo );
+MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
+                                  const CommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
 
 #endif /* MQTT_AGENT_H */
