@@ -43,7 +43,6 @@ static Command_t * allocateCommand()
 
     Command_t * command = malloc( sizeof( Command_t ) );
 
-
     /* Second command always is TERMINATE to keep the MQTTAgent_CommandLoop unwind bound. */
     if( terminate == true )
     {
@@ -93,12 +92,15 @@ bool AgentMessageRecvStub( AgentMessageContext_t * pMsgCtx,
     Command_t * command;
     bool returnStatus;
 
-    __CPROVER_assert( pMsgCtx != NULL,
-                      "MQTTAgent context is not NULL." );
     __CPROVER_assert( pBuffer != NULL,
                       "Command buffer is not NULL." );
 
     command = allocateCommand();
+
+    if( ( command != NULL ) && ( command->commandType == TERMINATE ) )
+    {
+        returnStatus = false;
+    }
 
     *( ( Command_t ** ) pBuffer ) = command;
 
