@@ -99,14 +99,17 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
                          Command_t ** pReceivedCommand,
                          uint32_t blockTimeMs )
 {
+    bool ret = false;
+
     ( void ) blockTimeMs;
 
-    if( receiveCounter == 0 )
+    if( receiveCounter++ == 0 )
     {
         *pReceivedCommand = pMsgCtx->pSentCommand;
+        ret = true;
     }
 
-    return( receiveCounter++ == 0 );
+    return ret;
 }
 
 /**
