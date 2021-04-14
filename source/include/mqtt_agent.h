@@ -81,7 +81,7 @@ typedef enum CommandType
 } CommandType_t;
 
 struct MQTTAgentContext;
-typedef struct MQTTAgentContext MQTTAgentContext_t;
+struct CommandContext;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -95,22 +95,11 @@ typedef struct MQTTAgentReturnInfo
 
 /**
  * @ingroup mqtt_agent_struct_types
- * @brief Information for a pending MQTT ack packet expected by the agent.
- */
-typedef struct ackInfo
-{
-    uint16_t packetId;            /**< Packet ID of the pending acknowledgment. */
-    Command_t * pOriginalCommand; /**< Command expecting acknowledgment. */
-} AckInfo_t;
-
-/**
- * @ingroup mqtt_agent_struct_types
  * @brief Struct containing context for a specific command.
  *
  * @note An instance of this struct and any variables it points to MUST stay
  * in scope until the associated command is processed, and its callback called.
  */
-struct CommandContext;
 typedef struct CommandContext CommandContext_t;
 
 /**
@@ -133,6 +122,30 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
 
 /**
+ * @ingroup mqtt_agent_struct_types
+ * @brief The commands sent from the APIs to the MQTT agent task.
+ *
+ * @note The structure used to pass information from the public facing API into the
+ * agent task. */
+struct Command
+{
+    CommandType_t commandType;                  /**< @brief Type of command. */
+    void * pArgs;                               /**< @brief Arguments of command. */
+    CommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
+    CommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
+};
+
+/**
+ * @ingroup mqtt_agent_struct_types
+ * @brief Information for a pending MQTT ack packet expected by the agent.
+ */
+typedef struct ackInfo
+{
+    uint16_t packetId;            /**< Packet ID of the pending acknowledgment. */
+    Command_t * pOriginalCommand; /**< Command expecting acknowledgment. */
+} AckInfo_t;
+
+/**
  * @ingroup mqtt_agent_callback_types
  * @brief Callback function called when receiving a publish.
  *
@@ -146,7 +159,7 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
  */
-typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
+typedef void (* IncomingPublishCallback_t )( struct MQTTAgentContext * pMqttAgentContext,
                                              uint16_t packetId,
                                              MQTTPublishInfo_t * pPublishInfo );
 
@@ -156,7 +169,7 @@ typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentCont
  * MQTTAgent_Init(), and every API function will accept a pointer to the
  * initalized struct.
  */
-struct MQTTAgentContext
+typedef struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;                                 /**< MQTT connection information used by coreMQTT. */
     AgentMessageInterface_t agentInterface;                    /**< Struct of function pointers for agent messaging. */
@@ -164,7 +177,7 @@ struct MQTTAgentContext
     IncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
     void * pIncomingCallbackContext;                           /**< Context for incoming publish callback. */
     bool packetReceivedInLoop;                                 /**< Whether a MQTT_ProcessLoop() call received a packet. */
-};
+} MQTTAgentContext_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -198,20 +211,6 @@ typedef struct CommandInfo
     CommandContext_t * pCmdCompleteCallbackContext; /**< @brief Context for completion callback. */
     uint32_t blockTimeMs;                           /**< @brief Maximum block time for enqueueing the command. */
 } CommandInfo_t;
-
-/**
- * @ingroup mqtt_agent_struct_types
- * @brief The commands sent from the APIs to the MQTT agent task.
- *
- * @note The structure used to pass information from the public facing API into the
- * agent task. */
-struct Command
-{
-    CommandType_t commandType;                  /**< @brief Type of command. */
-    void * pArgs;                               /**< @brief Arguments of command. */
-    CommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
-    CommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
-};
 
 /*-----------------------------------------------------------*/
 

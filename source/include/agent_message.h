@@ -33,13 +33,13 @@
 
 /* Declare here so interface functions can use. */
 struct Command;
+struct AgentMessageContext;
 typedef struct Command               Command_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
  * @brief Context with which tasks may deliver messages to the agent.
  */
-struct AgentMessageContext;
 typedef struct AgentMessageContext   AgentMessageContext_t;
 
 /**
