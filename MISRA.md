@@ -8,9 +8,9 @@ Deviations from the MISRA standard are listed below:
 | Deviation | Category | Justification |
 | :-: | :-: | :-: |
 | Directive 4.5 | Advisory | Allow names that MISRA considers ambiguous (such as LogInfo and LogError) |
-| Directive 4.8 | Advisory | Allow inclusion of unused types. Header files from coreMQTT, which are used by the agent files, may define types that are not used by the agent. |
+| Directive 4.8 | Advisory | Allow inclusion of unused types. Header files from coreMQTT may define types that are not used by the agent. |
 | Directive 4.9 | Advisory | Allow inclusion of function like macros. The `assert` macro is used throughout the library for parameter validation, and logging is done using function like macros. |
-| Rule 2.3 | Advisory | Allow unused types. Both the agent and coreMQTT headers define types intended for the application's use, which are not used by the agent files. |
+| Rule 2.3 | Advisory | Allow unused types. Both the agent and coreMQTT headers define types that are not directly used by the library but are still intended to be used by the application. |
 | Rule 2.4 | Advisory | Allow unused tags. Some compilers warn if types are not tagged. |
 | Rule 2.5 | Advisory | Allow unused macros. Library headers may define macros intended for the application's use, but are not used by a specific file. |
 | Rule 3.1 | Required | Allow nested comments. C++ style `//` comments are used in example code within Doxygen documentation blocks. |
