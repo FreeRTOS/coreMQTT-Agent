@@ -35,7 +35,7 @@
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
 
-/* Queue include. */
+/* Command messaging interface include. */
 #include "agent_message.h"
 
 /**
@@ -85,10 +85,7 @@ typedef enum CommandType
 } CommandType_t;
 
 struct MQTTAgentContext;
-typedef struct MQTTAgentContext   MQTTAgentContext_t;
-
-struct Command;
-typedef struct Command            Command_t;
+typedef struct MQTTAgentContext MQTTAgentContext_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -156,53 +153,6 @@ typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
 typedef void (* IncomingPublishCallback_t )( MQTTAgentContext_t * pMqttAgentContext,
                                              uint16_t packetId,
                                              MQTTPublishInfo_t * pPublishInfo );
-
-/**
- * @brief Obtain a Command_t structure.
- *
- * @note Command_t structures hold everything the MQTT agent needs to process a
- * command that originates from application.  Examples of commands are PUBLISH and
- * SUBSCRIBE. The Command_t structure must persist for the duration of the command's
- * operation.
- *
- * @param[in] blockTimeMs The length of time the calling task should remain in the
- * Blocked state (so not consuming any CPU time) to wait for a Command_t structure to
- * become available should one not be immediately at the time of the call.
- *
- * @return A pointer to a Command_t structure if one becomes available before
- * blockTimeMs time expired, otherwise NULL.
- */
-typedef Command_t * ( * AgentCommandGet_t )( uint32_t blockTimeMs );
-
-/**
- * @brief Give a Command_t structure back to the application.
- *
- * @note Command_t structures hold everything the MQTT agent needs to process a
- * command that originates from application.  Examples of commands are PUBLISH and
- * SUBSCRIBE. The Command_t structure must persist for the duration of the command's
- * operation.
- *
- * @param[in] pCommandToRelease A pointer to the Command_t structure to return to
- * the application. The structure must first have been obtained by calling
- * an #AgentCommandGet_t, otherwise it will have no effect.
- *
- * @return true if the Command_t structure was returned to the application, otherwise false.
- */
-typedef bool ( * AgentCommandRelease_t )( Command_t * pCommandToRelease );
-
-/**
- * @ingroup mqtt_agent_struct_types
- * @brief Function pointers and contexts used for sending and receiving commands,
- * and allocating memory for them.
- */
-typedef struct AgentMessageInterface
-{
-    AgentMessageContext_t * pMsgCtx;      /**< Context with which tasks may deliver messages to the agent. */
-    AgentMessageSend_t send;              /**< Function to send a command to the agent. */
-    AgentMessageRecv_t recv;              /**< Function for the agent to receive a command. */
-    AgentCommandGet_t getCommand;         /**< Function to obtain a pointer to an allocated command. */
-    AgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
-} AgentMessageInterface_t;
 
 /**
  * @ingroup mqtt_agent_struct_types

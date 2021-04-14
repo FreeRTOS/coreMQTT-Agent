@@ -137,13 +137,10 @@ int suiteTearDown( int numFailures )
  * @brief A mocked send function to send commands to the agent.
  */
 static bool stubSend( AgentMessageContext_t * pMsgCtx,
-                      const void * pData,
+                      Command_t * const * pCommandToSend,
                       uint32_t blockTimeMs )
 {
-    Command_t ** pCommandToSend = ( Command_t ** ) pData;
-
     ( void ) blockTimeMs;
-
     pMsgCtx->pSentCommand = *pCommandToSend;
     return true;
 }
@@ -153,11 +150,11 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
  * Returns failure.
  */
 static bool stubSendFail( AgentMessageContext_t * pMsgCtx,
-                          const void * pData,
+                          Command_t * const * pCommandToSend,
                           uint32_t blockTimeMs )
 {
     ( void ) pMsgCtx;
-    ( void ) pData;
+    ( void ) pCommandToSend;
     ( void ) blockTimeMs;
     return false;
 }
@@ -166,14 +163,11 @@ static bool stubSendFail( AgentMessageContext_t * pMsgCtx,
  * @brief A mocked receive function for the agent to receive commands.
  */
 static bool stubReceive( AgentMessageContext_t * pMsgCtx,
-                         void * pBuffer,
+                         Command_t ** pReceivedCommand,
                          uint32_t blockTimeMs )
 {
-    Command_t ** pCommandToReceive = ( Command_t ** ) pBuffer;
-
     ( void ) blockTimeMs;
-
-    *pCommandToReceive = pMsgCtx->pSentCommand;
+    *pReceivedCommand = pMsgCtx->pSentCommand;
     return true;
 }
 

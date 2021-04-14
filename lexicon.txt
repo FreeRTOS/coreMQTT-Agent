@@ -118,6 +118,7 @@ pcommandcompletecallback
 pcommandcompletecallbackcontext
 pcommandinfo
 pcommandtorelease
+pcommandtosend
 pconnectargs
 pconnectinfo
 pcontext
@@ -145,6 +146,7 @@ pparams
 ppendingacks
 ppublisharg
 ppublishinfo
+preceivedcommand
 preturnflags
 preturninfo
 printf
