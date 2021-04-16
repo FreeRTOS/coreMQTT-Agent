@@ -221,12 +221,17 @@ static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
 static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
 
 /**
- * @brief Clear the list of pending acknowledgments by invoking each callback
- * with #MQTTRecvFailed.
+ * @brief Clears the list of pending acknowledgments by invoking each callback
+ * with #MQTTRecvFailed either for ALL operations in the list OR only for
+ * Subscribe/Unsubscribe operations.
  *
  * @param[in] pMqttAgentContext Agent context of the MQTT connection.
+ * @param[in] clearOnlySubUnsubEntries Flag indicating whether all entries OR
+ * entries pertaining to only Subscribe/Unsubscribe operations should be cleaned
+ * from the list.
  */
-static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext );
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
+                                         bool clearOnlySubUnsubEntries );
 
 /**
  * @brief Validate an #MQTTAgentContext_t and a #CommandInfo_t from API
@@ -825,7 +830,8 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 
 /*-----------------------------------------------------------*/
 
-static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
+                                         bool clearOnlySubUnsubEntries )
 {
     size_t i = 0;
     AckInfo_t * pendingAcks;
@@ -839,11 +845,23 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
     {
         if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
         {
-            /* Receive failed to indicate network error. */
-            concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
+            bool clearEntry = true;
 
-            /* Now remove it from the list. */
-            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            if( clearOnlySubUnsubEntries &&
+                ( pendingAcks[ i ].pOriginalCommand->commandType != SUBSCRIBE ) &&
+                ( pendingAcks[ i ].pOriginalCommand->commandType != UNSUBSCRIBE ) )
+            {
+                clearEntry = false;
+            }
+
+            if( clearEntry )
+            {
+                /* Receive failed to indicate network error. */
+                concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
+
+                /* Now remove it from the list. */
+                ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            }
         }
     }
 }
@@ -1027,6 +1045,10 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
          * that the calling task can try subscribing again. */
         if( sessionPresent )
         {
+            /* The session has resumed, so clear any SUBSCRIBE/UNSUBSCRIBE operations
+             * that were pending acknowledgments in the previous connection. */
+            clearPendingAcknowledgments( pMqttAgentContext, true );
+
             statusResult = resendPublishes( pMqttAgentContext );
         }
 
@@ -1036,7 +1058,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
         else
         {
             /* We have a clean session, so clear all operations pending acknowledgments. */
-            clearPendingAcknowledgments( pMqttAgentContext );
+            clearPendingAcknowledgments( pMqttAgentContext, false );
         }
     }
     else

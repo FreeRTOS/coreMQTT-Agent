@@ -529,14 +529,55 @@ void test_MQTTAgent_ResumeSession_session_present_no_publish_found( void )
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
+    Command_t command = { 0 };
 
     setupAgentContext( &mqttAgentContext );
 
     MQTT_PublishToResend_ExpectAnyArgsAndReturn( 2 );
     mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
     MQTT_PublishToResend_ExpectAnyArgsAndReturn( MQTT_PACKET_ID_INVALID );
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+void test_MQTTAgent_ResumeSession_session_present_clear_pending_subscribe_unsubscribe( void )
+{
+    bool sessionPresent = true;
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    Command_t subscribeCommand = { 0 };
+
+    subscribeCommand.commandType = SUBSCRIBE;
+    Command_t unsubscribeCommand = { 0 };
+    unsubscribeCommand.commandType = UNSUBSCRIBE;
+
+    MQTT_PublishToResend_IgnoreAndReturn( MQTT_PACKET_ID_INVALID );
+
+    setupAgentContext( &mqttAgentContext );
+
+    /* Setup the pending ack list to contain operations for both SUBSCRIBE
+     * and UNSUBSCRIBE operations. */
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &subscribeCommand;
+
+    mqttAgentContext.pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].packetId = 2U;
+    mqttAgentContext.pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].pOriginalCommand =
+        &unsubscribeCommand;
+
+    /* Call API under test. */
+    mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that the list entries for SUBSCRIBE and UNSUBSCRIBE operations have
+     * been cleared. */
+    TEST_ASSERT_EQUAL( MQTT_PACKET_ID_INVALID, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL_PTR( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+    TEST_ASSERT_EQUAL( MQTT_PACKET_ID_INVALID, mqttAgentContext.
+                          pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].packetId );
+    TEST_ASSERT_EQUAL_PTR( NULL, mqttAgentContext.
+                              pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].pOriginalCommand );
 }
 
 void test_MQTTAgent_ResumeSession_failed_publish( void )
