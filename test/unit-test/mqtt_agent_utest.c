@@ -1280,8 +1280,9 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
 }
 
 /**
- * @brief Test that MQTTAgent_CommandLoop returns MQTTNoMemory if
- * pPendingAcks array is full.
+ * @brief Test that MQTTAgent_CommandLoop returns failure if an operation's entry
+ * cannot be added in the list of pending acknowledgments, either due to the array
+ * being full OR there being an existing entry for the same packet ID.
  */
 void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 {
@@ -1310,6 +1311,8 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 
     globalMessageContext.pSentCommand = &commandToSend;
 
+    /*** Test case when the list is full and there exists no entry with same packet ID. ***/
+
     /* Test case when the list of pending acknowledgements is full. */
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
@@ -1319,15 +1322,18 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 
     /* Call API under test. */
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
-
     TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
 
     /* Ensure that callback is invoked. */
     TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
 
+    /***** Test case when list is not full but the operation's packet ID already exists in list. ******/
+
+    /* Reset the completed callback counter. */
+    commandCompleteCallbackCount = 0;
+
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
-    MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
 
     /* Test case when there is space availability in pending acks list but
      * there also exists an entry for the same packet ID being attempted to be
@@ -1337,11 +1343,10 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
 
     /* Call API under test. */
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
-
     TEST_ASSERT_EQUAL( MQTTStateCollision, mqttStatus );
 
     /* Ensure that callback is invoked. */
-    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+    TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );
 }
 
 /**

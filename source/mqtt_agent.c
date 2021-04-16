@@ -332,20 +332,21 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
             unusedPos = i;
             status = MQTTSuccess;
         }
-        else if( pendingAcks[ i ].packetId == packetId )
+
+        if( pendingAcks[ i ].packetId == packetId )
         {
             /* Check whether there exists a duplicate entry for pending
-             * acknowledgement for the same packet ID that we want to add to
+             * acknowledgment for the same packet ID that we want to add to
              * the list.
              * Note: This is an unlikely edge case which represents that a packet ID
-             * didn't receive acknowledgement, but subsequent SUBSCRIBE/PUBLISH operations
+             * didn't receive acknowledgment, but subsequent SUBSCRIBE/PUBLISH operations
              * representing 65535 packet IDs were successful that caused the bit packet
              * ID value to wrap around and reached the same packet ID as that was still
-             * pending acknowledgement.
+             * pending acknowledgment.
              */
             status = MQTTStateCollision;
-            LogError( ( "Failed to add operation to list of pending acknowledgements: Existing entry found :"
-                        "for same packet: PacketId=%u\n", packetId ) );
+            LogError( ( "Failed to add operation to list of pending acknowledgments: "
+                        "Existing entry found for same packet: PacketId=%u\n", packetId ) );
             break;
         }
     }
@@ -359,8 +360,12 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     }
     else if( status == MQTTNoMemory )
     {
-        LogError( ( "Failed to add operation to list of pending acknowledgements: No memory available:"
-                    "PacketId=%u\n", packetId ) );
+        LogError( ( "Failed to add operation to list of pending acknowledgments: "
+                    "No memory available: PacketId=%u\n", packetId ) );
+    }
+    else
+    {
+        /* Empty else MISRA 15.7 */
     }
 
     return status;
@@ -556,7 +561,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         ( commandOutParams.packetId != MQTT_PACKET_ID_INVALID ) )
     {
         operationStatus = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
-        ackAdded = ( operationStatus == MQTTSuccess ) ? true : false;
+        ackAdded = ( operationStatus == MQTTSuccess );
     }
 
     if( ( pCommand != NULL ) && ( ackAdded != true ) )
@@ -846,6 +851,8 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
         if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
         {
             bool clearEntry = true;
+
+            assert( pendingAcks[ i ].pOriginalCommand != NULL );
 
             if( clearOnlySubUnsubEntries &&
                 ( pendingAcks[ i ].pOriginalCommand->commandType != SUBSCRIBE ) &&
