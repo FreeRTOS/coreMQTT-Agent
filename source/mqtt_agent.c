@@ -299,8 +299,8 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                   uint16_t packetId,
                                   Command_t * pCommand )
 {
-    size_t i = 0;
-    bool ackAdded = false;
+    size_t i = 0, unusedPos = MQTT_AGENT_MAX_OUTSTANDING_ACKS;
+    bool pendingAckCanBeAdded = false;
     AckInfo_t * pendingAcks = NULL;
 
     assert( pAgentContext != NULL );
@@ -308,22 +308,45 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     assert( packetId != MQTT_PACKET_ID_INVALID );
     pendingAcks = pAgentContext->pPendingAcks;
 
-    /* Look for an unused space in the array of message IDs that are still waiting to
-     * be acknowledged. */
+    /* Before adding the record for the pending acknowledgement of the packet ID,
+     * make sure that there doesn't already exist an entry for the same packet ID.
+     * Also, as part of iterating through the list of pending acknowledgements,
+     * find an unused space for the packet ID to be added, if it can be. */
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
         /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is not in
          * use. */
-        if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
+        if( ( unusedPos == MQTT_AGENT_MAX_OUTSTANDING_ACKS ) &&
+            ( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID ) )
         {
-            pendingAcks[ i ].packetId = packetId;
-            pendingAcks[ i ].pOriginalCommand = pCommand;
-            ackAdded = true;
+            unusedPos = i;
+            pendingAckCanBeAdded = true;
+        }
+        else if( pendingAcks[ i ].packetId == packetId )
+        {
+            /* Check whether there exists a duplicate entry for pending
+             * acknowledgement for the same packet ID that we want to add to
+             * the list.
+             * Note: This is an unlikely edge case which represents that a packet ID
+             * didn't receive acknowledgement, but subsequent SUBSCRIBE/PUBLISH operations
+             * representing 65535 packet IDs were successful that caused the bit packet
+             * ID value to wrap around and reached the same packet ID as that was still
+             * pending acknowledgement.
+             */
+            pendingAckCanBeAdded = false;
             break;
         }
     }
 
-    return ackAdded;
+    /* Add the packet ID to the list if there is space available, and there is no
+     * duplicate entry for the same packet ID found. */
+    if( pendingAckCanBeAdded )
+    {
+        pendingAcks[ unusedPos ].packetId = packetId;
+        pendingAcks[ unusedPos ].pOriginalCommand = pCommand;
+    }
+
+    return pendingAckCanBeAdded;
 }
 
 /*-----------------------------------------------------------*/
