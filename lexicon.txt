@@ -22,6 +22,7 @@ bytesorerror
 bytestorecv
 bytestosend
 cbmc
+clearonlysubunsubentries
 cmdcompletecallback
 com
 commandcallback
@@ -38,6 +39,7 @@ coremqtt
 cpu
 createandaddcommand
 deserialized
+didn
 doesn
 doxygen
 dup
@@ -91,6 +93,7 @@ mqttnomemory
 mqttpublishinfo
 mqttrecvfailed
 mqttsendfailed
+mqttstatecollision
 mqttstatus
 mqttsubscribeinfo
 mqttsuccess
