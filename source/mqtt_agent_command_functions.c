@@ -181,17 +181,17 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
-                                       void * pConnectArgs,
+                                       void * pVoidConnectArgs,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
     MQTTStatus_t ret;
     MQTTAgentConnectArgs_t * pConnectInfo;
 
     assert( pMqttAgentContext != NULL );
-    assert( pConnectArgs != NULL );
+    assert( pVoidConnectArgs != NULL );
     assert( pReturnFlags != NULL );
 
-    pConnectInfo = ( MQTTAgentConnectArgs_t * ) ( pConnectArgs );
+    pConnectInfo = ( MQTTAgentConnectArgs_t * ) ( pVoidConnectArgs );
 
     ret = MQTT_Connect( &( pMqttAgentContext->mqttContext ),
                         pConnectInfo->pConnectInfo,

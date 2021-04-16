@@ -1,0 +1,100 @@
+/**
+@mainpage Overview
+@anchor mqtt
+@brief Thread safe MQTT 3.1.1 client
+
+The coreMQTT Agent is a thread-safe library to serialize calls to coreMQTT, to be executed by a single thread. It provides APIs for a single, dedicated agent task to process coreMQTT related commands, and the APIs for other tasks to enqueue these commands for processing.
+
+@section coreMQTT_brief Why is there a higher level library based on coreMQTT?
+coreMQTT is an MIT licensed open source C MQTT client library for microcontroller and small microprocessor based IoT devices. Its design is intentionally simple to ensure it has no dependency on any other library or operating system, and to better enable static analysis including memory safety proofs. That simplicity and lack of operating system dependency (coreMQTT does not require multithreading at all) means coreMQTT does not build thread safety directly into its implementation. Instead, thread safety must be provided by higher level software. The coreMQTT Agent library is a coreMQTT extension that provides that higher level functionality in the form of an MQTT agent (or MQTT daemon).
+
+*/
+
+/**
+@page core_mqtt_config Configurations
+@brief Configurations of the MQTT Agent.
+<!-- @par configpagestyle allows the @section titles to be styled according to style.css -->
+@par configpagestyle
+
+Configuration settings are C preprocessor constants. They can be set with a `#define` in the config file (**core_mqtt_config.h**) or by using a compiler option such as -D in gcc. The MQTT Agent uses the same configuration file as coreMQTT.
+
+@section MQTT_AGENT_MAX_OUTSTANDING_ACKS
+@copydoc MQTT_AGENT_MAX_OUTSTANDING_ACKS
+
+@section MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
+@copydoc MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
+
+*/
+
+/**
+@page mqtt_agent_functions Functions
+@brief Primary functions of the MQTT Agent:<br><br>
+@subpage mqtt_agent_init_function <br>
+@subpage mqtt_agent_command_function <br>
+@subpage mqtt_agent_publish_function <br>
+@subpage mqtt_agent_subscribe_function <br>
+@subpage mqtt_agent_unsubscribe_function <br>
+@subpage mqtt_agent_connect_function <br>
+@subpage mqtt_agent_disconnect_function <br>
+@subpage mqtt_agent_ping_function <br>
+@subpage mqtt_agent_terminate_function <br>
+@subpage mqtt_agent_resume_function <br><br>
+
+@page mqtt_agent_init_function MQTTAgent_Init
+@snippet mqtt_agent.h declare_mqtt_agent_init
+@copydoc MQTTAgent_Init
+
+@page mqtt_agent_command_function MQTTAgent_CommandLoop
+@snippet mqtt_agent.h declare_mqtt_agent_commandloop
+@copydoc MQTTAgent_CommandLoop
+
+@page mqtt_agent_resume_function MQTTAgent_ResumeSession
+@snippet mqtt_agent.h declare_mqtt_agent_resumesession
+@copydoc MQTTAgent_ResumeSession
+
+@page mqtt_agent_publish_function MQTTAgent_Publish
+@snippet mqtt_agent.h declare_mqtt_agent_publish
+@copydoc MQTTAgent_Publish
+
+@page mqtt_agent_subscribe_function MQTTAgent_Subscribe
+@snippet mqtt_agent.h declare_mqtt_agent_subscribe
+@copydoc MQTTAgent_Subscribe
+
+@page mqtt_agent_unsubscribe_function MQTTAgent_Unsubscribe
+@snippet mqtt_agent.h declare_mqtt_agent_unsubscribe
+@copydoc MQTTAgent_Unsubscribe
+
+@page mqtt_agent_connect_function MQTTAgent_Connect
+@snippet mqtt_agent.h declare_mqtt_agent_connect
+@copydoc MQTTAgent_Connect
+
+@page mqtt_agent_disconnect_function MQTTAgent_Disconnect
+@snippet mqtt_agent.h declare_mqtt_agent_disconnect
+@copydoc MQTTAgent_Disconnect
+
+@page mqtt_agent_ping_function MQTTAgent_Ping
+@snippet mqtt_agent.h declare_mqtt_agent_ping
+@copydoc MQTTAgent_Ping
+
+@page mqtt_agent_terminate_function MQTTAgent_Terminate
+@snippet mqtt_agent.h declare_mqtt_agent_terminate
+@copydoc MQTTAgent_Terminate
+
+*/
+
+/**
+@defgroup mqtt_agent_enum_types Enumerated Types
+@brief Enumerated types of the MQTT Agent
+*/
+
+/**
+@defgroup mqtt_agent_callback_types Callback Types
+@brief Callback function pointer types of the MQTT Agent
+*/
+
+/**
+@defgroup mqtt_agent_struct_types Parameter Structures
+@brief Structures passed as parameters to [MQTT Agent functions](@ref mqtt_agent_functions)
+
+These structures are passed as parameters to library functions. Documentation for these structures will state the functions associated with each parameter structure and the purpose of each member.
+*/
