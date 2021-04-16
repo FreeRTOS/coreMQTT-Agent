@@ -56,11 +56,16 @@
  * @param[in] packetId Packet ID of pending ack.
  * @param[in] pCommand Pointer to command that is expecting an ack.
  *
- * @return `true` if the operation was added; else `false`
+ * @return Returns one of the following:
+ * - #MQTTSuccess if an entry was added for the to the list.
+ * - #MQTTStateCollision if there already exists an entry for the same packet ID
+ * in the list.
+ * - #MQTTNoMemory if there is no space available in the list for adding a
+ * new entry.
  */
-static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                  uint16_t packetId,
-                                  Command_t * pCommand );
+static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                          uint16_t packetId,
+                                          Command_t * pCommand );
 
 /**
  * @brief Retrieve an operation from the list of pending acks, and optionally
@@ -295,12 +300,12 @@ static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 
 /*-----------------------------------------------------------*/
 
-static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                  uint16_t packetId,
-                                  Command_t * pCommand )
+static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                          uint16_t packetId,
+                                          Command_t * pCommand )
 {
     size_t i = 0, unusedPos = MQTT_AGENT_MAX_OUTSTANDING_ACKS;
-    bool pendingAckCanBeAdded = false;
+    MQTTStatus_t status = MQTTNoMemory;
     AckInfo_t * pendingAcks = NULL;
 
     assert( pAgentContext != NULL );
@@ -320,7 +325,7 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
             ( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID ) )
         {
             unusedPos = i;
-            pendingAckCanBeAdded = true;
+            status = MQTTSuccess;
         }
         else if( pendingAcks[ i ].packetId == packetId )
         {
@@ -333,20 +338,27 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
              * ID value to wrap around and reached the same packet ID as that was still
              * pending acknowledgement.
              */
-            pendingAckCanBeAdded = false;
+            status = MQTTStateCollision;
+            LogError( ( "Failed to add operation to list of pending acknowledgements: Existing entry found :"
+                        "for same packet: PacketId=%u\n", packetId ) );
             break;
         }
     }
 
     /* Add the packet ID to the list if there is space available, and there is no
      * duplicate entry for the same packet ID found. */
-    if( pendingAckCanBeAdded )
+    if( status == MQTTSuccess )
     {
         pendingAcks[ unusedPos ].packetId = packetId;
         pendingAcks[ unusedPos ].pOriginalCommand = pCommand;
     }
+    else if( status == MQTTNoMemory )
+    {
+        LogError( ( "Failed to add operation to list of pending acknowledgements: No memory available:"
+                    "PacketId=%u\n", packetId ) );
+    }
 
-    return pendingAckCanBeAdded;
+    return status;
 }
 
 /*-----------------------------------------------------------*/
@@ -538,18 +550,8 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         commandOutParams.addAcknowledgment &&
         ( commandOutParams.packetId != MQTT_PACKET_ID_INVALID ) )
     {
-        ackAdded = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
-
-        /* Set the return status if no memory was available to store the operation
-         * information. */
-        if( !ackAdded )
-        {
-            LogError( ( "No memory to wait for acknowledgment for packet %u\n", commandOutParams.packetId ) );
-
-            /* All operations that can wait for acks (publish, subscribe,
-             * unsubscribe) require a context. */
-            operationStatus = MQTTNoMemory;
-        }
+        operationStatus = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
+        ackAdded = ( operationStatus == MQTTSuccess ) ? true : false;
     }
 
     if( ( pCommand != NULL ) && ( ackAdded != true ) )

@@ -1248,13 +1248,14 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     MQTTAgentContext_t mqttAgentContext;
     size_t i = 0;
     Command_t commandToSend = { 0 };
+    uint16_t testPacketId = 1U;
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
     returnFlags.addAcknowledgment = true;
     returnFlags.runProcessLoop = false;
     returnFlags.endLoop = false;
-    returnFlags.packetId = 1U;
+    returnFlags.packetId = testPacketId;
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
@@ -1272,7 +1273,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
         /* Assigning valid packet ID to all array spaces to make no space for incoming acknowledgment. */
-        mqttAgentContext.pPendingAcks[ i ].packetId = i + 1;
+        mqttAgentContext.pPendingAcks[ i ].packetId = testPacketId + i + 1;
     }
 
     /* Call API under test. */
@@ -1287,7 +1288,6 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     MQTT_ProcessLoop_IgnoreAndReturn( MQTTSuccess );
 
-
     /* Test case when there is space availability in pending acks list but
      * there also exists an entry for the same packet ID being attempted to be
      * added. */
@@ -1297,7 +1297,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     /* Call API under test. */
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
-    TEST_ASSERT_EQUAL( MQTTNoMemory, mqttStatus );
+    TEST_ASSERT_EQUAL( MQTTStateCollision, mqttStatus );
 
     /* Ensure that callback is invoked. */
     TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
