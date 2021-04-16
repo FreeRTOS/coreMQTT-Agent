@@ -170,6 +170,7 @@ pubcomp
 pubrec
 pubrel
 punusedarg
+pvoidconnectargs
 pvoidsubscribeargs
 pwillinfo
 qos

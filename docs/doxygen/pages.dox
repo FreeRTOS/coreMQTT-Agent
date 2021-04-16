@@ -3,7 +3,10 @@
 @anchor mqtt
 @brief Thread safe MQTT 3.1.1 client
 
-coreMQTT is an MIT licensed open source C MQTT client library for microcontroller and small microprocessor based IoT devices. It’s design is intentionally simple to ensure it has no dependency on any other library or operating system, and to better enable static analysis including memory safety proofs. That simplicity and lack of operating system dependency (coreMQTT does not require multithreading at all) means coreMQTT does not build thread safety directly into its implementation. Instead thread safety must be provided by higher level software. This web page demonstrates a coreMQTT extension that provides that higher level functionality in the form of an MQTT agent (or MQTT daemon). While the implementation demonstrated here is currently specific to FreeRTOS, there are not many dependencies on FreeRTOS, meaning the implementation can easily be adapted for use with other operating systems.
+The coreMQTT Agent is a thread-safe library to serialize calls to coreMQTT, to be executed by a single thread. It provides APIs for a single, dedicated agent task to process coreMQTT related commands, and the APIs for other tasks to enqueue these commands for processing.
+
+@section coreMQTT_brief Why is there a higher level library based on coreMQTT?
+coreMQTT is an MIT licensed open source C MQTT client library for microcontroller and small microprocessor based IoT devices. Its design is intentionally simple to ensure it has no dependency on any other library or operating system, and to better enable static analysis including memory safety proofs. That simplicity and lack of operating system dependency (coreMQTT does not require multithreading at all) means coreMQTT does not build thread safety directly into its implementation. Instead thread safety must be provided by higher level software. This library is a coreMQTT extension that provides that higher level functionality in the form of an MQTT agent (or MQTT daemon).
 
 */
 

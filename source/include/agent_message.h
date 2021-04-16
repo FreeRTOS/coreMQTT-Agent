@@ -34,6 +34,10 @@
 /* Declare here so interface functions can use. */
 struct Command;
 struct AgentMessageContext;
+
+/**
+ * @brief The commands sent from the APIs to the MQTT agent task.
+ */
 typedef struct Command               Command_t;
 
 /**
