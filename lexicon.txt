@@ -33,11 +33,15 @@ commandloop
 commandtype
 cond
 config
+configpagestyle
 connack
 const
+copydoc
 coremqtt
 cpu
 createandaddcommand
+css
+defgroup
 deserialized
 didn
 doesn
@@ -52,6 +56,7 @@ enums
 freertos
 func
 functotest
+gcc
 getcommand
 getcurrenttimems
 github
@@ -72,9 +77,12 @@ logdebug
 logerror
 loginfo
 logwarn
+mainpage
 memset
 metadata
+microcontroller
 min
+mit
 misra
 mqtt
 mqttagent
@@ -98,6 +106,7 @@ mqttstatus
 mqttsubscribeinfo
 mqttsuccess
 multithreaded
+multithreading
 networkinterfacereceivestub
 networkinterfacesendstub
 noninfringement
@@ -164,6 +173,8 @@ pubcomp
 pubrec
 pubrel
 punusedarg
+pvoidconnectargs
+pvoidsubscribeargs
 pwillinfo
 qos
 receiveloop

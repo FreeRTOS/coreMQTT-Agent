@@ -127,7 +127,7 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
  * @brief Function to execute for a SUBSCRIBE command.
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pSubscribeArgs Arguments for MQTT_Subscribe().
+ * @param[in] pVoidSubscribeArgs Arguments for MQTT_Subscribe().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Subscribe().
@@ -140,7 +140,7 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
  * @brief Function to execute for an UNSUBSCRIBE command.
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pSubscribeArgs Arguments for MQTT_Unsubscribe().
+ * @param[in] pVoidSubscribeArgs Arguments for MQTT_Unsubscribe().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Unsubscribe().
@@ -153,13 +153,13 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
  * @brief Function to execute for a CONNECT command.
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pConnectArgs Arguments for MQTT_Connect().
+ * @param[in] pVoidConnectArgs Arguments for MQTT_Connect().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Connect().
  */
 MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
-                                       void * pConnectArgs,
+                                       void * pVoidConnectArgs,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
 /**

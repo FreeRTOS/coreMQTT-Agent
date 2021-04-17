@@ -1,0 +1,18 @@
+{
+    "lib_name": "MQTT Agent",
+    "src": [
+        "source/mqtt_agent.c",
+        "source/mqtt_agent_command_functions.c",
+        "source/dependency/coreMQTT/source/core_mqtt.c",
+        "source/dependency/coreMQTT/source/core_mqtt_state.c",
+        "source/dependency/coreMQTT/source/core_mqtt_serializer.c"
+    ],
+    "include": [
+        "source/include",
+        "source/dependency/coreMQTT/source/include",
+        "source/dependency/coreMQTT/source/interface"
+    ],
+    "compiler_flags": [
+        "MQTT_DO_NOT_USE_CUSTOM_CONFIG"
+    ]
+}
