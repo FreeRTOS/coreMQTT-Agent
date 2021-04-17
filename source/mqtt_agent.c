@@ -56,11 +56,16 @@
  * @param[in] packetId Packet ID of pending ack.
  * @param[in] pCommand Pointer to command that is expecting an ack.
  *
- * @return `true` if the operation was added; else `false`
+ * @return Returns one of the following:
+ * - #MQTTSuccess if an entry was added for the to the list.
+ * - #MQTTStateCollision if there already exists an entry for the same packet ID
+ * in the list.
+ * - #MQTTNoMemory if there is no space available in the list for adding a
+ * new entry.
  */
-static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                  uint16_t packetId,
-                                  Command_t * pCommand );
+static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                          uint16_t packetId,
+                                          Command_t * pCommand );
 
 /**
  * @brief Retrieve an operation from the list of pending acks, and optionally
@@ -216,12 +221,17 @@ static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
 static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
 
 /**
- * @brief Clear the list of pending acknowledgments by invoking each callback
- * with #MQTTRecvFailed.
+ * @brief Clears the list of pending acknowledgments by invoking each callback
+ * with #MQTTRecvFailed either for ALL operations in the list OR only for
+ * Subscribe/Unsubscribe operations.
  *
  * @param[in] pMqttAgentContext Agent context of the MQTT connection.
+ * @param[in] clearOnlySubUnsubEntries Flag indicating whether all entries OR
+ * entries pertaining to only Subscribe/Unsubscribe operations should be cleaned
+ * from the list.
  */
-static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext );
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
+                                         bool clearOnlySubUnsubEntries );
 
 /**
  * @brief Validate an #MQTTAgentContext_t and a #CommandInfo_t from API
@@ -295,12 +305,12 @@ static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 
 /*-----------------------------------------------------------*/
 
-static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                  uint16_t packetId,
-                                  Command_t * pCommand )
+static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                          uint16_t packetId,
+                                          Command_t * pCommand )
 {
-    size_t i = 0;
-    bool ackAdded = false;
+    size_t i = 0, unusedPos = MQTT_AGENT_MAX_OUTSTANDING_ACKS;
+    MQTTStatus_t status = MQTTNoMemory;
     AckInfo_t * pendingAcks = NULL;
 
     assert( pAgentContext != NULL );
@@ -308,22 +318,57 @@ static bool addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
     assert( packetId != MQTT_PACKET_ID_INVALID );
     pendingAcks = pAgentContext->pPendingAcks;
 
-    /* Look for an unused space in the array of message IDs that are still waiting to
-     * be acknowledged. */
+    /* Before adding the record for the pending acknowledgement of the packet ID,
+     * make sure that there doesn't already exist an entry for the same packet ID.
+     * Also, as part of iterating through the list of pending acknowledgements,
+     * find an unused space for the packet ID to be added, if it can be. */
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
         /* If the packetId is MQTT_PACKET_ID_INVALID then the array space is not in
          * use. */
-        if( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID )
+        if( ( unusedPos == MQTT_AGENT_MAX_OUTSTANDING_ACKS ) &&
+            ( pendingAcks[ i ].packetId == MQTT_PACKET_ID_INVALID ) )
         {
-            pendingAcks[ i ].packetId = packetId;
-            pendingAcks[ i ].pOriginalCommand = pCommand;
-            ackAdded = true;
+            unusedPos = i;
+            status = MQTTSuccess;
+        }
+
+        if( pendingAcks[ i ].packetId == packetId )
+        {
+            /* Check whether there exists a duplicate entry for pending
+             * acknowledgment for the same packet ID that we want to add to
+             * the list.
+             * Note: This is an unlikely edge case which represents that a packet ID
+             * didn't receive acknowledgment, but subsequent SUBSCRIBE/PUBLISH operations
+             * representing 65535 packet IDs were successful that caused the bit packet
+             * ID value to wrap around and reached the same packet ID as that was still
+             * pending acknowledgment.
+             */
+            status = MQTTStateCollision;
+            LogError( ( "Failed to add operation to list of pending acknowledgments: "
+                        "Existing entry found for same packet: PacketId=%u\n", packetId ) );
             break;
         }
     }
 
-    return ackAdded;
+    /* Add the packet ID to the list if there is space available, and there is no
+     * duplicate entry for the same packet ID found. */
+    if( status == MQTTSuccess )
+    {
+        pendingAcks[ unusedPos ].packetId = packetId;
+        pendingAcks[ unusedPos ].pOriginalCommand = pCommand;
+    }
+    else if( status == MQTTNoMemory )
+    {
+        LogError( ( "Failed to add operation to list of pending acknowledgments: "
+                    "No memory available: PacketId=%u\n", packetId ) );
+    }
+    else
+    {
+        /* Empty else MISRA 15.7 */
+    }
+
+    return status;
 }
 
 /*-----------------------------------------------------------*/
@@ -515,18 +560,8 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         commandOutParams.addAcknowledgment &&
         ( commandOutParams.packetId != MQTT_PACKET_ID_INVALID ) )
     {
-        ackAdded = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
-
-        /* Set the return status if no memory was available to store the operation
-         * information. */
-        if( !ackAdded )
-        {
-            LogError( ( "No memory to wait for acknowledgment for packet %u\n", commandOutParams.packetId ) );
-
-            /* All operations that can wait for acks (publish, subscribe,
-             * unsubscribe) require a context. */
-            operationStatus = MQTTNoMemory;
-        }
+        operationStatus = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
+        ackAdded = ( operationStatus == MQTTSuccess );
     }
 
     if( ( pCommand != NULL ) && ( ackAdded != true ) )
@@ -800,7 +835,8 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
 
 /*-----------------------------------------------------------*/
 
-static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext )
+static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
+                                         bool clearOnlySubUnsubEntries )
 {
     size_t i = 0;
     AckInfo_t * pendingAcks;
@@ -814,11 +850,25 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext 
     {
         if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
         {
-            /* Receive failed to indicate network error. */
-            concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
+            bool clearEntry = true;
 
-            /* Now remove it from the list. */
-            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            assert( pendingAcks[ i ].pOriginalCommand != NULL );
+
+            if( clearOnlySubUnsubEntries &&
+                ( pendingAcks[ i ].pOriginalCommand->commandType != SUBSCRIBE ) &&
+                ( pendingAcks[ i ].pOriginalCommand->commandType != UNSUBSCRIBE ) )
+            {
+                clearEntry = false;
+            }
+
+            if( clearEntry )
+            {
+                /* Receive failed to indicate network error. */
+                concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
+
+                /* Now remove it from the list. */
+                ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            }
         }
     }
 }
@@ -1002,6 +1052,10 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
          * that the calling task can try subscribing again. */
         if( sessionPresent )
         {
+            /* The session has resumed, so clear any SUBSCRIBE/UNSUBSCRIBE operations
+             * that were pending acknowledgments in the previous connection. */
+            clearPendingAcknowledgments( pMqttAgentContext, true );
+
             statusResult = resendPublishes( pMqttAgentContext );
         }
 
@@ -1011,7 +1065,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
         else
         {
             /* We have a clean session, so clear all operations pending acknowledgments. */
-            clearPendingAcknowledgments( pMqttAgentContext );
+            clearPendingAcknowledgments( pMqttAgentContext, false );
         }
     }
     else
