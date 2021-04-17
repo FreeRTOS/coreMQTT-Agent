@@ -542,29 +542,41 @@ void test_MQTTAgent_ResumeSession_session_present_no_publish_found( void )
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
+/**
+ * @brief Tests that the MQTTAgent_ResumeSession API clears the entries in pending
+ * acknowledgments' list only for SUBSCRIBE and UNSUBSCRIBE operations on a session
+ * resumption.
+ */
 void test_MQTTAgent_ResumeSession_session_present_clear_pending_subscribe_unsubscribe( void )
 {
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
+    Command_t publishCommand = { 0 };
     Command_t subscribeCommand = { 0 };
+    Command_t unsubscribeCommand = { 0 };
+    const uint16_t pubPacketId = 1U;
 
     subscribeCommand.commandType = SUBSCRIBE;
-    Command_t unsubscribeCommand = { 0 };
     unsubscribeCommand.commandType = UNSUBSCRIBE;
-
-    MQTT_PublishToResend_IgnoreAndReturn( MQTT_PACKET_ID_INVALID );
+    publishCommand.commandType = PUBLISH;
 
     setupAgentContext( &mqttAgentContext );
 
-    /* Setup the pending ack list to contain operations for both SUBSCRIBE
-     * and UNSUBSCRIBE operations. */
-    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
-    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &subscribeCommand;
-
-    mqttAgentContext.pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].packetId = 2U;
+    /* Setup the pending ack list to contain operations for SUBSCRIBE
+     * UNSUBSCRIBE and PUBLISH operations. */
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = pubPacketId;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &publishCommand;
+    mqttAgentContext.pPendingAcks[ 1 ].packetId = pubPacketId + 1;
+    mqttAgentContext.pPendingAcks[ 1 ].pOriginalCommand = &subscribeCommand;
+    mqttAgentContext.pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].packetId = pubPacketId + 2;
     mqttAgentContext.pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].pOriginalCommand =
         &unsubscribeCommand;
+
+    /* Even though the list has a pending PUBLISH operation, return no packet ID
+     * from MQTT_PublishToResend function as the operation of re-sending publish
+     * packet is not part of the scope of this test. */
+    MQTT_PublishToResend_IgnoreAndReturn( MQTT_PACKET_ID_INVALID );
 
     /* Call API under test. */
     mqttStatus = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
@@ -572,12 +584,16 @@ void test_MQTTAgent_ResumeSession_session_present_clear_pending_subscribe_unsubs
 
     /* Ensure that the list entries for SUBSCRIBE and UNSUBSCRIBE operations have
      * been cleared. */
-    TEST_ASSERT_EQUAL( MQTT_PACKET_ID_INVALID, mqttAgentContext.pPendingAcks[ 0 ].packetId );
-    TEST_ASSERT_EQUAL_PTR( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+    TEST_ASSERT_EQUAL( MQTT_PACKET_ID_INVALID, mqttAgentContext.pPendingAcks[ 1 ].packetId );
+    TEST_ASSERT_EQUAL_PTR( NULL, mqttAgentContext.pPendingAcks[ 1 ].pOriginalCommand );
     TEST_ASSERT_EQUAL( MQTT_PACKET_ID_INVALID, mqttAgentContext.
                           pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].packetId );
     TEST_ASSERT_EQUAL_PTR( NULL, mqttAgentContext.
                               pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS - 1 ].pOriginalCommand );
+
+    /* Ensure that the list entry for PUBLISH operation was not removed. */
+    TEST_ASSERT_EQUAL( pubPacketId, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL_PTR( &publishCommand, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
 }
 
 void test_MQTTAgent_ResumeSession_failed_publish( void )
@@ -1290,7 +1306,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     MQTTAgentContext_t mqttAgentContext;
     size_t i = 0;
     Command_t commandToSend = { 0 };
-    uint16_t testPacketId = 1U;
+    const uint16_t testPacketId = 1U;
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
