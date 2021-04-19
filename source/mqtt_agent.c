@@ -81,7 +81,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                          uint16_t incomingPacketId );
 
 /**
- * @brief Populate the parameters of a #Command_t
+ * @brief Populate the parameters of a #Command struct.
  *
  * @param[in] commandType Type of command.  For example, publish or subscribe.
  * @param[in] pMqttAgentContext Pointer to MQTT context to use for command.
@@ -117,7 +117,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
                                        uint32_t blockTimeMs );
 
 /**
- * @brief Process a #Command_t.
+ * @brief Process a #Command struct.
  *
  * @note This agent does not check existing subscriptions before sending a
  * SUBSCRIBE or UNSUBSCRIBE packet. If a subscription already exists, then
