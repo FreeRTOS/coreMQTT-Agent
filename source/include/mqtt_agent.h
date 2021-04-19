@@ -249,7 +249,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  *
- * @return appropriate error code, or `MQTTSuccess` from a successful disconnect
+ * @return appropriate error code, or #MQTTSuccess from a successful disconnect
  * or termination.
  */
 /* @[declare_mqtt_agent_commandloop] */
@@ -266,7 +266,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * @note This function is NOT thread-safe and should only be called
  * from the context of the task responsible for #MQTTAgent_CommandLoop.
  *
- * @return `MQTTSuccess` if it succeeds in resending publishes, else an
+ * @return #MQTTSuccess if it succeeds in resending publishes, else an
  * appropriate error code from `MQTT_Publish()`
  */
 /* @[declare_mqtt_agent_resumesession] */
@@ -290,7 +290,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_subscribe] */
@@ -315,7 +315,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_unsubscribe] */
@@ -340,7 +340,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_publish] */
@@ -363,7 +363,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  *    command to be posted to the MQTT agent, should the agent's event queue
  *    be full. Tasks wait in the Blocked state so don't use any CPU time.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_processloop] */
@@ -386,7 +386,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_ping] */
@@ -411,7 +411,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_connect] */
@@ -435,7 +435,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_disconnect] */
@@ -458,7 +458,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  * @p pCommandInfo parameter MUST remain in scope at least until the callback
  * has been executed by the agent task.
  *
- * @return `MQTTSuccess` if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 /* @[declare_mqtt_agent_terminate] */

@@ -195,7 +195,7 @@ MQTTStatus_t MQTTAgentCommand_Ping( MQTTAgentContext_t * pMqttAgentContext,
  * @param[in] pUnusedArg Unused NULL argument.
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
- * @return `MQTTSuccess`.
+ * @return #MQTTSuccess.
  */
 MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
