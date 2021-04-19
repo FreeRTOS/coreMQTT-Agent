@@ -51,6 +51,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Download MQTT tag
+        run: |
+          # We don't need to generate the coreMQTT docs, we only need the tag file. We can just download it.
+          mkdir -p source/dependency/coreMQTT/docs/doxygen/output
+          wget -O source/dependency/coreMQTT/docs/doxygen/output/mqtt.tag \
+          "https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreMQTT/docs/doxygen/output/mqtt.tag"
       - name: Run doxygen build
         uses: FreeRTOS/CI-CD-Github-Actions/doxygen@main
         with:
