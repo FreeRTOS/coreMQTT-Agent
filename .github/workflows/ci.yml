@@ -47,6 +47,20 @@ jobs:
         uses: FreeRTOS/CI-CD-Github-Actions/complexity@main
         with:
           path: ./
+  doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download MQTT tag
+        run: |
+          # We don't need to generate the coreMQTT docs, we only need the tag file. We can just download it.
+          mkdir -p source/dependency/coreMQTT/docs/doxygen/output
+          wget -O source/dependency/coreMQTT/docs/doxygen/output/mqtt.tag \
+          "https://freertos.org/Documentation/api-ref/coreMQTT/docs/doxygen/output/mqtt.tag"
+      - name: Run doxygen build
+        uses: FreeRTOS/CI-CD-Github-Actions/doxygen@main
+        with:
+          path: ./
   spell-check:
     runs-on: ubuntu-latest
     steps:

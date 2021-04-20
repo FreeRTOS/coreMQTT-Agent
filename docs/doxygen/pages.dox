@@ -1,6 +1,6 @@
 /**
 @mainpage Overview
-@anchor mqtt
+@anchor mqtt_agent
 @brief Thread safe MQTT 3.1.1 client
 
 The coreMQTT Agent is a thread-safe library to serialize calls to coreMQTT, to be executed by a single thread. It provides APIs for a single, dedicated agent task to process coreMQTT related commands, and the APIs for other tasks to enqueue these commands for processing.
@@ -11,7 +11,7 @@ coreMQTT is an MIT licensed open source C MQTT client library for microcontrolle
 */
 
 /**
-@page core_mqtt_config Configurations
+@page core_mqtt_agent_config Configurations
 @brief Configurations of the MQTT Agent.
 <!-- @par configpagestyle allows the @section titles to be styled according to style.css -->
 @par configpagestyle

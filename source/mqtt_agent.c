@@ -81,7 +81,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                          uint16_t incomingPacketId );
 
 /**
- * @brief Populate the parameters of a #Command_t
+ * @brief Populate the parameters of a #Command struct.
  *
  * @param[in] commandType Type of command.  For example, publish or subscribe.
  * @param[in] pMqttAgentContext Pointer to MQTT context to use for command.
@@ -90,7 +90,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * @param[in] pCommandCompleteCallbackContext Context and necessary structs for command.
  * @param[out] pCommand Pointer to initialized command.
  *
- * @return `MQTTSuccess` if all necessary fields for the command are passed,
+ * @return #MQTTSuccess if all necessary fields for the command are passed,
  * else an enumerated error code.
  */
 static MQTTStatus_t createCommand( CommandType_t commandType,
@@ -109,7 +109,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
  * Blocked state (so not consuming any CPU time) for the command to be posted to the
  * queue should the queue already be full.
  *
- * @return MQTTSuccess if the command was added to the queue, else an enumerated
+ * @return #MQTTSuccess if the command was added to the queue, else an enumerated
  * error code.
  */
 static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
@@ -117,7 +117,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
                                        uint32_t blockTimeMs );
 
 /**
- * @brief Process a #Command_t.
+ * @brief Process a #Command struct.
  *
  * @note This agent does not check existing subscriptions before sending a
  * SUBSCRIBE or UNSUBSCRIBE packet. If a subscription already exists, then
@@ -186,7 +186,7 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
  * Blocked state, so not consuming any CPU time) for the command to be posted to the
  * MQTT agent should the MQTT agent's event queue be full.
  *
- * @return MQTTSuccess if the command was posted to the MQTT agent's event queue.
+ * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
 static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
@@ -215,7 +215,7 @@ static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
  *
  * @param[in] pMqttAgentContext Agent context for the MQTT connection.
  *
- * @return MQTTSuccess if all publishes resent successfully, else error code
+ * @return #MQTTSuccess if all publishes resent successfully, else error code
  * from #MQTT_Publish.
  */
 static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext );
