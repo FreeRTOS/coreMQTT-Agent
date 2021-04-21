@@ -127,7 +127,7 @@ typedef void (* MQTTAgentCommandCallback_t )( void * pCmdCallbackContext,
  *
  * @note The structure used to pass information from the public facing API into the
  * agent task. */
-struct Command
+struct MQTTAgentCommand
 {
     MQTTAgentCommandType_t commandType;                  /**< @brief Type of command. */
     void * pArgs;                                        /**< @brief Arguments of command. */

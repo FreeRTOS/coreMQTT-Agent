@@ -32,13 +32,13 @@
 #include <stdbool.h>
 
 /* Declare here so interface functions can use. */
-struct Command;
+struct MQTTAgentCommand;
 struct MQTTAgentMessageContext;
 
 /**
  * @brief The commands sent from the APIs to the MQTT agent task.
  */
-typedef struct Command                   MQTTAgentCommand_t;
+typedef struct MQTTAgentCommand          MQTTAgentCommand_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
