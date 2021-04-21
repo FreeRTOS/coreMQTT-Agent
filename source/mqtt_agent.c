@@ -78,7 +78,7 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * Returns NULL if the packet ID is zero or original command does not exist.
  */
 static MQTTAgentAckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                         uint16_t incomingPacketId );
+                                                  uint16_t incomingPacketId );
 
 /**
  * @brief Populate the parameters of a #Command struct.
@@ -374,7 +374,7 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 /*-----------------------------------------------------------*/
 
 static MQTTAgentAckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                         uint16_t incomingPacketId )
+                                                  uint16_t incomingPacketId )
 {
     size_t i = 0;
     MQTTAgentAckInfo_t * pFoundAck = NULL;

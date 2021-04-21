@@ -38,7 +38,7 @@ struct MQTTAgentMessageContext;
 /**
  * @brief The commands sent from the APIs to the MQTT agent task.
  */
-typedef struct Command               MQTTAgentCommand_t;
+typedef struct Command                   MQTTAgentCommand_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -57,8 +57,8 @@ typedef struct MQTTAgentMessageContext   MQTTAgentMessageContext_t;
  * @return `true` if send was successful, else `false`.
  */
 typedef bool ( * MQTTAgentMessageSend_t )( MQTTAgentMessageContext_t * pMsgCtx,
-                                       MQTTAgentCommand_t * const * pCommandToSend,
-                                       uint32_t blockTimeMs );
+                                           MQTTAgentCommand_t * const * pCommandToSend,
+                                           uint32_t blockTimeMs );
 
 /**
  * @brief Receive a message from the specified context.
@@ -71,8 +71,8 @@ typedef bool ( * MQTTAgentMessageSend_t )( MQTTAgentMessageContext_t * pMsgCtx,
  * @return `true` if receive was successful, else `false`.
  */
 typedef bool ( * MQTTAgentMessageRecv_t )( MQTTAgentMessageContext_t * pMsgCtx,
-                                       MQTTAgentCommand_t ** pReceivedCommand,
-                                       uint32_t blockTimeMs );
+                                           MQTTAgentCommand_t ** pReceivedCommand,
+                                           uint32_t blockTimeMs );
 
 /**
  * @brief Obtain a MQTTAgentCommand_t structure.
