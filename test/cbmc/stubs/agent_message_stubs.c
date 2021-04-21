@@ -25,7 +25,7 @@
  * @brief Stub functions to interact with queues.
  */
 
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 #include "agent_message_stubs.h"
 
 static void commandCompleteCallbackStub( void * pCmdCallbackContext,

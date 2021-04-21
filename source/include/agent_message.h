@@ -21,7 +21,7 @@
  */
 
 /**
- * @file agent_message.h
+ * @file core_mqtt_agent_message_interface.h
  * @brief Functions to interact with queues.
  */
 #ifndef AGENT_MESSAGE_H

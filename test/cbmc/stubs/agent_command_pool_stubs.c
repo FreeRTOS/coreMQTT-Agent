@@ -24,7 +24,7 @@
  * @file agent_command_pool_stubs.h
  * @brief Stub functions to get and release command structure from a command pool.
  */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 #include "agent_command_pool_stubs.h"
 
 MQTTAgentCommand_t * AgentGetCommandStub( uint32_t blockTimeMs )

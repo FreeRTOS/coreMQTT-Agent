@@ -22,7 +22,7 @@ PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/get_time_stub.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_command_pool_stubs.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_message_stubs.c
 
-PROJECT_SOURCES += $(SRCDIR)/source/mqtt_agent.c
+PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent.c
 PROJECT_SOURCES += $(SRCDIR)/source/dependency/coreMQTT/source/core_mqtt.c
 PROJECT_SOURCES += $(SRCDIR)/source/dependency/coreMQTT/source/core_mqtt_serializer.c
 

@@ -21,7 +21,7 @@
  */
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 void harness()
 {

@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* mqtt_agent.h must precede including this header. */
+/* core_mqtt_agent.h must precede including this header. */
 
 /**
  * @brief Send a message to the specified context.

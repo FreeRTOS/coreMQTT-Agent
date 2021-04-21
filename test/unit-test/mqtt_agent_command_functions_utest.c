@@ -33,8 +33,8 @@
 
 #include "mock_core_mqtt.h"
 #include "mock_core_mqtt_state.h"
-#include "mock_mqtt_agent.h"
-#include "mqtt_agent_command_functions.h"
+#include "mock_core_mqtt_agent.h"
+#include "core_mqtt_agent_command_functions.h"
 
 /**
  * @brief The agent messaging context.

@@ -21,14 +21,14 @@
  */
 
 /**
- * @file mqtt_agent_command_functions.h
+ * @file core_mqtt_agent_command_functions.h
  * @brief Functions for processing an MQTT agent command.
  */
 #ifndef MQTT_AGENT_COMMAND_FUNCTIONS_H
 #define MQTT_AGENT_COMMAND_FUNCTIONS_H
 
 /* MQTT Agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 /**
  * @brief An array of function pointers mapping commands to a function to

@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mqtt_agent.c
+ * @file core_mqtt_agent.c
  * @brief Implements an MQTT agent (or daemon task) to enable multithreaded access to
  * coreMQTT.
  *
@@ -43,8 +43,8 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent.h"
+#include "core_mqtt_agent_command_functions.h"
 
 /*-----------------------------------------------------------*/
 

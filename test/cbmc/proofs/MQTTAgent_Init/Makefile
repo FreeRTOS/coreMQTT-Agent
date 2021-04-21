@@ -16,6 +16,6 @@ UNWINDSET +=
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
 
-PROJECT_SOURCES += $(SRCDIR)/source/mqtt_agent.c
+PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent.c
 
 include ../Makefile.common

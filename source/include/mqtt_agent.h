@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mqtt_agent.h
+ * @file core_mqtt_agent.h
  * @brief Functions for running a coreMQTT client in a dedicated thread.
  */
 #ifndef MQTT_AGENT_H
@@ -32,7 +32,7 @@
 #include "core_mqtt_state.h"
 
 /* Command messaging interface include. */
-#include "agent_message.h"
+#include "core_mqtt_agent_message_interface.h"
 
 /**
  * @brief The maximum number of pending acknowledgments to track for a single

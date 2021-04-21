@@ -26,7 +26,7 @@
  */
 #include <stdint.h>
 #include <stdlib.h>
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 #include "mqtt_agent_cbmc_state.h"
 #include "network_interface_stubs.h"
 #include "get_time_stub.h"

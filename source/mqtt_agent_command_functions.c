@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mqtt_agent_command_functions.c
+ * @file core_mqtt_agent_command_functions.c
  * @brief Implements functions to process MQTT agent commands.
  */
 
@@ -31,15 +31,15 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 /* Header include. */
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent_command_functions.h"
 
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Conclude a command and mark as an error. Copied from mqtt_agent.c
+ * @brief Conclude a command and mark as an error. Copied from core_mqtt_agent.c
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] pCommand Command to complete.
