@@ -39,7 +39,7 @@
 /**
  * @brief The agent messaging context.
  */
-struct AgentMessageContext
+struct MQTTAgentMessageContext
 {
     MQTTAgentCommand_t * pSentCommand;
 };
@@ -47,7 +47,7 @@ struct AgentMessageContext
 /**
  * @brief Command callback context.
  */
-struct CommandContext
+struct MQTTAgentCommandContext
 {
     MQTTStatus_t returnStatus;
 };

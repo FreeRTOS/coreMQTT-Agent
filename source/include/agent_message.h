@@ -33,7 +33,7 @@
 
 /* Declare here so interface functions can use. */
 struct Command;
-struct AgentMessageContext;
+struct MQTTAgentMessageContext;
 
 /**
  * @brief The commands sent from the APIs to the MQTT agent task.
@@ -44,7 +44,7 @@ typedef struct Command               MQTTAgentCommand_t;
  * @ingroup mqtt_agent_struct_types
  * @brief Context with which tasks may deliver messages to the agent.
  */
-typedef struct AgentMessageContext   MQTTAgentMessageContext_t;
+typedef struct MQTTAgentMessageContext   MQTTAgentMessageContext_t;
 
 /**
  * @brief Send a message to the specified context.
@@ -112,7 +112,7 @@ typedef bool ( * MQTTAgentCommandRelease_t )( MQTTAgentCommand_t * pCommandToRel
  * @brief Function pointers and contexts used for sending and receiving commands,
  * and allocating memory for them.
  */
-typedef struct AgentMessageInterface
+typedef struct MQTTAgentMessageInterface
 {
     MQTTAgentMessageContext_t * pMsgCtx;      /**< Context with which tasks may deliver messages to the agent. */
     MQTTAgentMessageSend_t send;              /**< Function to send a command to the agent. */

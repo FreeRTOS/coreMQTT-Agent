@@ -35,7 +35,7 @@ void harness()
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
-    /* CommandInfo and MQTTAgentSubscribeArgs_t are only added to Queue
+    /* MQTTAgentCommandInfo and MQTTAgentSubscribeArgs_t are only added to Queue
      * in MQTTAgent_Subscribe and non deterministic values for the members
      * of MQTTAgentCommandInfo_t and MQTTAgentSubscribeArgs_t type will be sufficient
      * for this proof.*/

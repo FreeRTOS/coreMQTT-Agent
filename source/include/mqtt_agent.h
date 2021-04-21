@@ -81,7 +81,7 @@ typedef enum CommandType
 } CommandType_t;
 
 struct MQTTAgentContext;
-struct CommandContext;
+struct MQTTAgentCommandContext;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -100,7 +100,7 @@ typedef struct MQTTAgentReturnInfo
  * @note An instance of this struct and any variables it points to MUST stay
  * in scope until the associated command is processed, and its callback called.
  */
-typedef struct CommandContext MQTTAgentCommandContext_t;
+typedef struct MQTTAgentCommandContext MQTTAgentCommandContext_t;
 
 /**
  * @ingroup mqtt_agent_callback_types
@@ -205,7 +205,7 @@ typedef struct MQTTAgentConnectArgs
  * @ingroup mqtt_agent_struct_types
  * @brief Struct holding arguments that are common to every command.
  */
-typedef struct CommandInfo
+typedef struct MQTTAgentCommandInfo
 {
     MQTTAgentCommandCallback_t cmdCompleteCallback;          /**< @brief Callback to invoke upon completion. */
     MQTTAgentCommandContext_t * pCmdCompleteCallbackContext; /**< @brief Context for completion callback. */
