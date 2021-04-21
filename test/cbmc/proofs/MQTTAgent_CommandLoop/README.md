@@ -15,11 +15,11 @@ The proof runs within 3 minutes on a t2.2xlarge. It provides complete coverage o
 For this proof, stubs are used for the implementation of functions in the following interfaces and
 function types. Since the implementation for these functions will be provided by the applications,
 the proof only will require stubs.
- * AgentMessageInterface_t
+ * MQTTAgentMessageInterface_t
  * TransportInterface_t
  * MQTTGetCurrentTimeFunc_t
  * IncomingPublishCallback_t
- * CommandCallback_t
+ * MQTTAgentCommandCallback_t
 
  In addition to the interfaces and the function types, stubs are used for the below listed functions.
  CBMC proofs are written for these functions separately.

@@ -29,7 +29,7 @@ void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
     MQTTPublishInfo_t * pPublishInfo;
-    CommandInfo_t * pCommandInfo;
+    MQTTAgentCommandInfo_t * pCommandInfo;
     MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
@@ -37,10 +37,10 @@ void harness()
 
     /* CommandInfo and MQTTPublishInfo_t are only added to Queue
      * in MQTTAgent_Publish and non deterministic values for the
-     * members of CommandInfo_t and MQTTPublishInfo_t type will be
+     * members of MQTTAgentCommandInfo_t and MQTTPublishInfo_t type will be
      * sufficient for this proof.*/
     pPublishInfo = malloc( sizeof( MQTTPublishInfo_t ) );
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
+    pCommandInfo = malloc( sizeof( MQTTAgentCommandInfo_t ) );
 
     mqttStatus = MQTTAgent_Publish( pMqttAgentContext,
                                     pPublishInfo,

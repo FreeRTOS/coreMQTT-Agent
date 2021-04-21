@@ -45,10 +45,10 @@
  * @param[in] pCommand Command to complete.
  */
 static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    Command_t * pCommand );
+                                    MQTTAgentCommand_t * pCommand );
 
 static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    Command_t * pCommand )
+                                    MQTTAgentCommand_t * pCommand )
 {
     bool commandReleased = false;
     MQTTAgentReturnInfo_t returnInfo;
@@ -261,7 +261,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    Command_t * pReceivedCommand = NULL;
+    MQTTAgentCommand_t * pReceivedCommand = NULL;
     bool commandWasReceived = false;
     AckInfo_t * pendingAcks;
     size_t i;

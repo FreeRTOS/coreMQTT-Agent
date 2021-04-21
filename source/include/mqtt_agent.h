@@ -100,7 +100,7 @@ typedef struct MQTTAgentReturnInfo
  * @note An instance of this struct and any variables it points to MUST stay
  * in scope until the associated command is processed, and its callback called.
  */
-typedef struct CommandContext CommandContext_t;
+typedef struct CommandContext MQTTAgentCommandContext_t;
 
 /**
  * @ingroup mqtt_agent_callback_types
@@ -114,11 +114,11 @@ typedef struct CommandContext CommandContext_t;
  *
  * @note The callback MUST NOT block as it runs in the context of the MQTT agent
  * task. If the callback calls any MQTT Agent API to enqueue a command, the
- * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
+ * blocking time (blockTimeMs member of MQTTAgentCommandInfo_t) MUST be zero. If the
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
  */
-typedef void (* CommandCallback_t )( void * pCmdCallbackContext,
+typedef void (* MQTTAgentCommandCallback_t )( void * pCmdCallbackContext,
                                      MQTTAgentReturnInfo_t * pReturnInfo );
 
 /**
@@ -131,8 +131,8 @@ struct Command
 {
     CommandType_t commandType;                  /**< @brief Type of command. */
     void * pArgs;                               /**< @brief Arguments of command. */
-    CommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
-    CommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
+    MQTTAgentCommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
+    MQTTAgentCommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
 };
 
 /**
@@ -142,7 +142,7 @@ struct Command
 typedef struct ackInfo
 {
     uint16_t packetId;            /**< Packet ID of the pending acknowledgment. */
-    Command_t * pOriginalCommand; /**< Command expecting acknowledgment. */
+    MQTTAgentCommand_t * pOriginalCommand; /**< Command expecting acknowledgment. */
 } AckInfo_t;
 
 /**
@@ -155,7 +155,7 @@ typedef struct ackInfo
  *
  * @note The callback MUST NOT block as it runs in the context of the MQTT agent
  * task. If the callback calls any MQTT Agent API to enqueue a command, the
- * blocking time (blockTimeMs member of CommandInfo_t) MUST be zero. If the
+ * blocking time (blockTimeMs member of MQTTAgentCommandInfo_t) MUST be zero. If the
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
  */
@@ -172,7 +172,7 @@ typedef void (* IncomingPublishCallback_t )( struct MQTTAgentContext * pMqttAgen
 typedef struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;                                 /**< MQTT connection information used by coreMQTT. */
-    AgentMessageInterface_t agentInterface;                    /**< Struct of function pointers for agent messaging. */
+    MQTTAgentMessageInterface_t agentInterface;                    /**< Struct of function pointers for agent messaging. */
     AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
     IncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
     void * pIncomingCallbackContext;                           /**< Context for incoming publish callback. */
@@ -207,10 +207,10 @@ typedef struct MQTTAgentConnectArgs
  */
 typedef struct CommandInfo
 {
-    CommandCallback_t cmdCompleteCallback;          /**< @brief Callback to invoke upon completion. */
-    CommandContext_t * pCmdCompleteCallbackContext; /**< @brief Context for completion callback. */
+    MQTTAgentCommandCallback_t cmdCompleteCallback;          /**< @brief Callback to invoke upon completion. */
+    MQTTAgentCommandContext_t * pCmdCompleteCallbackContext; /**< @brief Context for completion callback. */
     uint32_t blockTimeMs;                           /**< @brief Maximum block time for enqueueing the command. */
-} CommandInfo_t;
+} MQTTAgentCommandInfo_t;
 
 /*-----------------------------------------------------------*/
 
@@ -236,7 +236,7 @@ typedef struct CommandInfo
  */
 /* @[declare_mqtt_agent_init] */
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             const AgentMessageInterface_t * pMsgInterface,
+                             const MQTTAgentMessageInterface_t * pMsgInterface,
                              const MQTTFixedBuffer_t * pNetworkBuffer,
                              const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
@@ -296,7 +296,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
 /* @[declare_mqtt_agent_subscribe] */
 MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                  const CommandInfo_t * pCommandInfo );
+                                  const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_subscribe] */
 
 /**
@@ -321,7 +321,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
 /* @[declare_mqtt_agent_unsubscribe] */
 MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                    const CommandInfo_t * pCommandInfo );
+                                    const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_unsubscribe] */
 
 /**
@@ -346,7 +346,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
 /* @[declare_mqtt_agent_publish] */
 MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
-                                const CommandInfo_t * pCommandInfo );
+                                const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_publish] */
 
 /**
@@ -368,7 +368,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  */
 /* @[declare_mqtt_agent_processloop] */
 MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext,
-                                    const CommandInfo_t * pCommandInfo );
+                                    const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_processloop] */
 
 /**
@@ -391,7 +391,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
  */
 /* @[declare_mqtt_agent_ping] */
 MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
-                             const CommandInfo_t * pCommandInfo );
+                             const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_ping] */
 
 /**
@@ -417,7 +417,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
 /* @[declare_mqtt_agent_connect] */
 MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTAgentConnectArgs_t * pConnectArgs,
-                                const CommandInfo_t * pCommandInfo );
+                                const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_connect] */
 
 /**
@@ -440,7 +440,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  */
 /* @[declare_mqtt_agent_disconnect] */
 MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
-                                   const CommandInfo_t * pCommandInfo );
+                                   const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_disconnect] */
 
 /**
@@ -463,7 +463,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  */
 /* @[declare_mqtt_agent_terminate] */
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
-                                  const CommandInfo_t * pCommandInfo );
+                                  const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
 
 #endif /* MQTT_AGENT_H */

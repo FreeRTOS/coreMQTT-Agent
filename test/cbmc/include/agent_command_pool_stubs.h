@@ -37,25 +37,25 @@
  * @brief Send a message to the specified context.
  *
  * @param[in] blockTimeMs The length of time the calling task should remain in the
- * Blocked state (so not consuming any CPU time) to wait for a Command_t structure to
+ * Blocked state (so not consuming any CPU time) to wait for a MQTTAgentCommand_t structure to
  * become available should one not be immediately at the time of the call.
  *
- * @return A pointer to a Command_t structure if one becomes available before
+ * @return A pointer to a MQTTAgentCommand_t structure if one becomes available before
  * blockTimeMs time expired, otherwise NULL.
  */
-Command_t * AgentGetCommandStub( uint32_t blockTimeMs );
+MQTTAgentCommand_t * AgentGetCommandStub( uint32_t blockTimeMs );
 
 /**
  * @brief Receive a message from the specified context.
  * Must be thread safe.
  *
- * @param[in] pCommandToRelease A pointer to the Command_t structure to return to
+ * @param[in] pCommandToRelease A pointer to the MQTTAgentCommand_t structure to return to
  * the pool.  The structure must first have been obtained by calling
  * Agent_GetCommand(), otherwise Agent_ReleaseCommand() will
  * have no effect.
  *
- * @return true if the Command_t structure was returned to the pool, otherwise false.
+ * @return true if the MQTTAgentCommand_t structure was returned to the pool, otherwise false.
  */
-bool Agent_ReleaseCommand( Command_t * pCommandToRelease );
+bool Agent_ReleaseCommand( MQTTAgentCommand_t * pCommandToRelease );
 
 #endif /* AGENT_COMMAND_POOL_STUBS_H */

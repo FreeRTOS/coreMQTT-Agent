@@ -26,7 +26,7 @@
 void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
-    AgentMessageInterface_t * pMsgInterface;
+    MQTTAgentMessageInterface_t * pMsgInterface;
     MQTTFixedBuffer_t * pNetworkBuffer;
     TransportInterface_t * pTransportInterface;
     MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
@@ -34,7 +34,7 @@ void harness()
     void * pIncomingPacketContext;
 
     pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );
-    pMsgInterface = malloc( sizeof( AgentMessageInterface_t ) );
+    pMsgInterface = malloc( sizeof( MQTTAgentMessageInterface_t ) );
     pNetworkBuffer = malloc( sizeof( MQTTFixedBuffer_t ) );
     pTransportInterface = malloc( sizeof( TransportInterface_t ) );
 

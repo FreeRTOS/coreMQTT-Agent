@@ -73,7 +73,7 @@ MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext )
 {
     TransportInterface_t * pTransportInterface;
     MQTTFixedBuffer_t * pNetworkBuffer;
-    AgentMessageInterface_t * pMessageInterface;
+    MQTTAgentMessageInterface_t * pMessageInterface;
     MQTTStatus_t status = MQTTSuccess;
     void * pIncomingCallbackContext;
 
@@ -96,7 +96,7 @@ MQTTAgentContext_t * allocateMqttAgentContext( MQTTAgentContext_t * pContext )
     pNetworkBuffer = allocateMqttFixedBuffer( NULL );
     __CPROVER_assume( isValidMqttFixedBuffer( pNetworkBuffer ) );
 
-    pMessageInterface = malloc( sizeof( AgentMessageInterface_t ) );
+    pMessageInterface = malloc( sizeof( MQTTAgentMessageInterface_t ) );
 
     if( pMessageInterface != NULL )
     {
@@ -169,7 +169,7 @@ void addPendingAcks( MQTTAgentContext_t * pContext )
 {
     uint8_t i;
     uint16_t packetId;
-    Command_t * pCommand;
+    MQTTAgentCommand_t * pCommand;
     MQTTPublishInfo_t * pPublishInfo;
 
     __CPROVER_assert( pContext != NULL, "MQTT Agent Context is not NULL" );
@@ -185,7 +185,7 @@ void addPendingAcks( MQTTAgentContext_t * pContext )
         pContext->pPendingAcks[ i ].packetId = packetId;
 
         /* Add a publish command. */
-        pCommand = malloc( sizeof( Command_t ) );
+        pCommand = malloc( sizeof( MQTTAgentCommand_t ) );
         __CPROVER_assume( pCommand != NULL );
 
         pCommand->commandType = MQTT_PACKET_TYPE_PUBLISH;

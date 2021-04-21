@@ -41,7 +41,7 @@
  */
 struct AgentMessageContext
 {
-    Command_t * pSentCommand;
+    MQTTAgentCommand_t * pSentCommand;
 };
 
 /**
@@ -55,12 +55,12 @@ struct CommandContext
 /**
  * @brief Message context to use for tests.
  */
-static AgentMessageContext_t globalMessageContext;
+static MQTTAgentMessageContext_t globalMessageContext;
 
 /**
  * @brief Command struct pointer to return from mocked getCommand.
  */
-static Command_t * pCommandToReturn;
+static MQTTAgentCommand_t * pCommandToReturn;
 
 /**
  * @brief Mock Counter variable to check callback is called on command completion.
@@ -83,8 +83,8 @@ static uint32_t commandReleaseCallCount = 0;
 /**
  * @brief A mocked send function to send commands to the agent.
  */
-static bool stubSend( AgentMessageContext_t * pMsgCtx,
-                      Command_t * const * pCommandToSend,
+static bool stubSend( MQTTAgentMessageContext_t * pMsgCtx,
+                      MQTTAgentCommand_t * const * pCommandToSend,
                       uint32_t blockTimeMs )
 {
     ( void ) blockTimeMs;
@@ -95,8 +95,8 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked receive function for the agent to receive commands.
  */
-static bool stubReceive( AgentMessageContext_t * pMsgCtx,
-                         Command_t ** pReceivedCommand,
+static bool stubReceive( MQTTAgentMessageContext_t * pMsgCtx,
+                         MQTTAgentCommand_t ** pReceivedCommand,
                          uint32_t blockTimeMs )
 {
     bool ret = false;
@@ -115,7 +115,7 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked function to obtain an allocated command.
  */
-static Command_t * stubGetCommand( uint32_t blockTimeMs )
+static MQTTAgentCommand_t * stubGetCommand( uint32_t blockTimeMs )
 {
     ( void ) blockTimeMs;
     return pCommandToReturn;
@@ -124,7 +124,7 @@ static Command_t * stubGetCommand( uint32_t blockTimeMs )
 /**
  * @brief A mocked function to release an allocated command.
  */
-static bool stubReleaseCommand( Command_t * pCommandToRelease )
+static bool stubReleaseCommand( MQTTAgentCommand_t * pCommandToRelease )
 {
     ( void ) pCommandToRelease;
     commandReleaseCallCount++;
@@ -137,9 +137,9 @@ static bool stubReleaseCommand( Command_t * pCommandToRelease )
 static void stubCompletionCallback( void * pCommandCompletionContext,
                                     MQTTAgentReturnInfo_t * pReturnInfo )
 {
-    CommandContext_t * pCastContext;
+    MQTTAgentCommandContext_t * pCastContext;
 
-    pCastContext = ( CommandContext_t * ) pCommandCompletionContext;
+    pCastContext = ( MQTTAgentCommandContext_t * ) pCommandCompletionContext;
 
     if( pCastContext != NULL )
     {
@@ -529,15 +529,15 @@ void test_MQTTAgentCommand_Connect_failure( void )
 }
 
 /**
- * @brief Test that MQTTAgentCommand_terminate() works as intended.
+ * @brief Test that MQTTAgentMQTTAgentCommand_terminate() works as intended.
  */
-void test_MQTTAgentCommand_terminate( void )
+void test_MQTTAgentMQTTAgentCommand_terminate( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
     MQTTStatus_t mqttStatus;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
-    Command_t command = { 0 };
-    CommandContext_t commandContext = { 0 };
+    MQTTAgentCommand_t command = { 0 };
+    MQTTAgentCommandContext_t commandContext = { 0 };
 
     mqttAgentContext.agentInterface.pMsgCtx = &globalMessageContext;
     mqttAgentContext.agentInterface.send = stubSend;

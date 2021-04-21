@@ -30,14 +30,14 @@ void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
     MQTTAgentConnectArgs_t * pConnectArgs;
-    CommandInfo_t * pCommandInfo;
+    MQTTAgentCommandInfo_t * pCommandInfo;
     MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
     pConnectArgs = malloc( sizeof( MQTTAgentConnectArgs_t ) );
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
+    pCommandInfo = malloc( sizeof( MQTTAgentCommandInfo_t ) );
 
     mqttStatus = MQTTAgent_Connect( pMqttAgentContext,
                                     pConnectArgs,

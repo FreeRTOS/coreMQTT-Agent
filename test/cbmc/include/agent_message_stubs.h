@@ -36,13 +36,13 @@
 /**
  * @brief Send a message to the specified context.
  *
- * @param[in] pMsgCtx An #AgentMessageContext_t.
+ * @param[in] pMsgCtx An #MQTTAgentMessageContext_t.
  * @param[in] pData Pointer to element to send to queue.
  * @param[in] blockTimeMs Block time to wait for a send.
  *
  * @return `true` if send was successful, else `false`.
  */
-bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
+bool AgentMessageSendStub( MQTTAgentMessageContext_t * pMsgCtx,
                            const void * pData,
                            uint32_t blockTimeMs );
 
@@ -50,13 +50,13 @@ bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
  * @brief Receive a message from the specified context.
  * Must be thread safe.
  *
- * @param[in] pMsgCtx An #AgentMessageContext_t.
+ * @param[in] pMsgCtx An #MQTTAgentMessageContext_t.
  * @param[in] pBuffer Pointer to buffer to write received data.
  * @param[in] blockTimeMs Block time to wait for a receive.
  *
  * @return `true` if receive was successful, else `false`.
  */
-bool AgentMessageRecvStub( AgentMessageContext_t * pMsgCtx,
+bool AgentMessageRecvStub( MQTTAgentMessageContext_t * pMsgCtx,
                            void * pBuffer,
                            uint32_t blockTimeMs );
 

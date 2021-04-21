@@ -41,7 +41,7 @@
  */
 struct AgentMessageContext
 {
-    Command_t * pSentCommand;
+    MQTTAgentCommand_t * pSentCommand;
 };
 
 /**
@@ -66,12 +66,12 @@ static uint32_t commandReleaseCallCount = 0;
 /**
  * @brief Message context to use for tests.
  */
-static AgentMessageContext_t globalMessageContext;
+static MQTTAgentMessageContext_t globalMessageContext;
 
 /**
  * @brief Command struct pointer to return from mocked getCommand.
  */
-static Command_t * pCommandToReturn;
+static MQTTAgentCommand_t * pCommandToReturn;
 
 /**
  * @brief Mock Counter variable to check callback is called on command completion.
@@ -136,8 +136,8 @@ int suiteTearDown( int numFailures )
 /**
  * @brief A mocked send function to send commands to the agent.
  */
-static bool stubSend( AgentMessageContext_t * pMsgCtx,
-                      Command_t * const * pCommandToSend,
+static bool stubSend( MQTTAgentMessageContext_t * pMsgCtx,
+                      MQTTAgentCommand_t * const * pCommandToSend,
                       uint32_t blockTimeMs )
 {
     ( void ) blockTimeMs;
@@ -149,8 +149,8 @@ static bool stubSend( AgentMessageContext_t * pMsgCtx,
  * @brief A mocked send function to send commands to the agent.
  * Returns failure.
  */
-static bool stubSendFail( AgentMessageContext_t * pMsgCtx,
-                          Command_t * const * pCommandToSend,
+static bool stubSendFail( MQTTAgentMessageContext_t * pMsgCtx,
+                          MQTTAgentCommand_t * const * pCommandToSend,
                           uint32_t blockTimeMs )
 {
     ( void ) pMsgCtx;
@@ -162,8 +162,8 @@ static bool stubSendFail( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked receive function for the agent to receive commands.
  */
-static bool stubReceive( AgentMessageContext_t * pMsgCtx,
-                         Command_t ** pReceivedCommand,
+static bool stubReceive( MQTTAgentMessageContext_t * pMsgCtx,
+                         MQTTAgentCommand_t ** pReceivedCommand,
                          uint32_t blockTimeMs )
 {
     ( void ) blockTimeMs;
@@ -174,7 +174,7 @@ static bool stubReceive( AgentMessageContext_t * pMsgCtx,
 /**
  * @brief A mocked function to obtain an allocated command.
  */
-static Command_t * stubGetCommand( uint32_t blockTimeMs )
+static MQTTAgentCommand_t * stubGetCommand( uint32_t blockTimeMs )
 {
     ( void ) blockTimeMs;
     return pCommandToReturn;
@@ -183,7 +183,7 @@ static Command_t * stubGetCommand( uint32_t blockTimeMs )
 /**
  * @brief A mocked function to release an allocated command.
  */
-static bool stubReleaseCommand( Command_t * pCommandToRelease )
+static bool stubReleaseCommand( MQTTAgentCommand_t * pCommandToRelease )
 {
     ( void ) pCommandToRelease;
     commandReleaseCallCount++;
@@ -207,9 +207,9 @@ static void stubPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
 static void stubCompletionCallback( void * pCommandCompletionContext,
                                     MQTTAgentReturnInfo_t * pReturnInfo )
 {
-    CommandContext_t * pCastContext;
+    MQTTAgentCommandContext_t * pCastContext;
 
-    pCastContext = ( CommandContext_t * ) pCommandCompletionContext;
+    pCastContext = ( MQTTAgentCommandContext_t * ) pCommandCompletionContext;
 
     if( pCastContext != NULL )
     {
@@ -308,7 +308,7 @@ MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pCont
  */
 static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
 {
-    AgentMessageInterface_t messageInterface = { 0 };
+    MQTTAgentMessageInterface_t messageInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
     void * incomingPacketContext = NULL;
@@ -335,18 +335,18 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
 
 /**
  * @brief Helper function to test API functions of the form
- * MQTTStatus_t func( MQTTAgentContext_t *, CommandInfo_t * )
+ * MQTTStatus_t func( MQTTAgentContext_t *, MQTTAgentCommandInfo_t * )
  * for invalid parameters.
  *
  * @param[in] FuncToTest Pointer to function to test.
  * @param[in] pFuncName String of function name to print for error messages.
  */
-static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgentContext_t *, const CommandInfo_t * ),
+static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgentContext_t *, const MQTTAgentCommandInfo_t * ),
                                    const char * pFuncName )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
 
     setupAgentContext( &agentContext );
 
@@ -398,11 +398,11 @@ static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgen
 void test_MQTTAgent_Init_Happy_Path( void )
 {
     MQTTAgentContext_t mqttAgentContext;
-    AgentMessageInterface_t msgInterface = { 0 };
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
     void * incomingPacketContext = NULL;
-    AgentMessageContext_t msg;
+    MQTTAgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
     msgInterface.pMsgCtx = &msg;
@@ -425,12 +425,12 @@ void test_MQTTAgent_Init_Happy_Path( void )
 void test_MQTTAgent_Init_Invalid_Params( void )
 {
     MQTTAgentContext_t mqttAgentContext;
-    AgentMessageInterface_t msgInterface = { 0 };
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
     IncomingPublishCallback_t incomingCallback = stubPublishCallback;
     void * incomingPacketContext = NULL;
-    AgentMessageContext_t msg;
+    MQTTAgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
 
     msgInterface.pMsgCtx = &msg;
@@ -529,7 +529,7 @@ void test_MQTTAgent_ResumeSession_session_present_no_publish_found( void )
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t command = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &mqttAgentContext );
 
@@ -552,9 +552,9 @@ void test_MQTTAgent_ResumeSession_session_present_clear_pending_subscribe_unsubs
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t publishCommand = { 0 };
-    Command_t subscribeCommand = { 0 };
-    Command_t unsubscribeCommand = { 0 };
+    MQTTAgentCommand_t publishCommand = { 0 };
+    MQTTAgentCommand_t subscribeCommand = { 0 };
+    MQTTAgentCommand_t unsubscribeCommand = { 0 };
     const uint16_t pubPacketId = 1U;
 
     subscribeCommand.commandType = SUBSCRIBE;
@@ -601,7 +601,7 @@ void test_MQTTAgent_ResumeSession_failed_publish( void )
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t command = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t args = { 0 };
 
     setupAgentContext( &mqttAgentContext );
@@ -621,7 +621,7 @@ void test_MQTTAgent_ResumeSession_publish_resend_success( void )
     bool sessionPresent = true;
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t command = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t args = { 0 };
     AckInfo_t ackInfo;
 
@@ -646,7 +646,7 @@ void test_MQTTAgent_ResumeSession_no_session_present( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t command = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &mqttAgentContext );
 
@@ -677,7 +677,7 @@ void test_MQTTAgent_Ping_Command_Allocation_Failure( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
 
     setupAgentContext( &agentContext );
 
@@ -693,8 +693,8 @@ void test_MQTTAgent_Ping_Command_Send_Failure( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &agentContext );
 
@@ -717,8 +717,8 @@ void test_MQTTAgent_Subscribe_No_Ack_Space( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
     size_t i;
@@ -745,8 +745,8 @@ void test_MQTTAgent_Subscribe_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
 
@@ -780,8 +780,8 @@ void test_MQTTAgent_Subscribe_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
 
@@ -806,8 +806,8 @@ void test_MQTTAgent_Unsubscribe_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
 
@@ -841,8 +841,8 @@ void test_MQTTAgent_Unsubscribe_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTSubscribeInfo_t subscribeInfo = { 0 };
     MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
 
@@ -870,8 +870,8 @@ void test_MQTTAgent_Publish_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t publishInfo = { 0 };
 
     setupAgentContext( &agentContext );
@@ -912,8 +912,8 @@ void test_MQTTAgent_Publish_No_Ack_Space( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t publishInfo = { 0 };
     size_t i;
 
@@ -951,8 +951,8 @@ void test_MQTTAgent_Publish_success( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t publishInfo = { 0 };
 
     setupAgentContext( &agentContext );
@@ -987,8 +987,8 @@ void test_MQTTAgent_Connect_Invalid_Parameters( void )
 {
     MQTTAgentContext_t agentContext = { 0 };
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTAgentConnectArgs_t connectArgs = { 0 };
     MQTTConnectInfo_t connectInfo = { 0 };
 
@@ -1020,8 +1020,8 @@ void test_MQTTAgent_Connect_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     MQTTAgentConnectArgs_t connectArgs = { 0 };
     MQTTConnectInfo_t connectInfo = { 0 };
 
@@ -1057,8 +1057,8 @@ void test_MQTTAgent_ProcessLoop_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -1090,8 +1090,8 @@ void test_MQTTAgent_Disconnect_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -1124,8 +1124,8 @@ void test_MQTTAgent_Ping_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -1158,8 +1158,8 @@ void test_MQTTAgent_Terminate_success( void )
 {
     MQTTAgentContext_t agentContext;
     MQTTStatus_t mqttStatus;
-    CommandInfo_t commandInfo = { 0 };
-    Command_t command = { 0 };
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -1223,7 +1223,7 @@ void test_MQTTAgent_CommandLoop_process_commands_in_command_queue( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t commandToSend = { 0 };
+    MQTTAgentCommand_t commandToSend = { 0 };
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
@@ -1266,7 +1266,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_success( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t commandToSend = { 0 };
+    MQTTAgentCommand_t commandToSend = { 0 };
 
     setupAgentContext( &mqttAgentContext );
     mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
@@ -1305,7 +1305,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_failure( void )
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
     size_t i = 0;
-    Command_t commandToSend = { 0 };
+    MQTTAgentCommand_t commandToSend = { 0 };
     const uint16_t testPacketId = 1U;
 
     setupAgentContext( &mqttAgentContext );
@@ -1373,7 +1373,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_invalid_id( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t agentContext;
-    Command_t command = { 0 };
+    MQTTAgentCommand_t command = { 0 };
     AckInfo_t emptyAck = { 0 };
 
     setupAgentContext( &agentContext );
@@ -1413,7 +1413,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t command = { 0 }, commandToSend = { 0 };
+    MQTTAgentCommand_t command = { 0 }, commandToSend = { 0 };
 
     /* Setting up MQTT Agent Context. */
     setupAgentContext( &mqttAgentContext );
@@ -1619,7 +1619,7 @@ void test_MQTTAgent_CommandLoop_failure_executing_second_command( void )
 {
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t mqttAgentContext;
-    Command_t commandToSend = { 0 };
+    MQTTAgentCommand_t commandToSend = { 0 };
 
     setupAgentContext( &mqttAgentContext );
 

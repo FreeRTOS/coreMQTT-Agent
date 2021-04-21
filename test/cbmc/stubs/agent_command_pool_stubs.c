@@ -27,16 +27,16 @@
 #include "mqtt_agent.h"
 #include "agent_command_pool_stubs.h"
 
-Command_t * AgentGetCommandStub( uint32_t blockTimeMs )
+MQTTAgentCommand_t * AgentGetCommandStub( uint32_t blockTimeMs )
 {
-    Command_t * pCommand;
+    MQTTAgentCommand_t * pCommand;
 
-    pCommand = malloc( sizeof( Command_t ) );
+    pCommand = malloc( sizeof( MQTTAgentCommand_t ) );
 
     return pCommand;
 }
 
-bool Agent_ReleaseCommand( Command_t * pCommandToRelease )
+bool Agent_ReleaseCommand( MQTTAgentCommand_t * pCommandToRelease )
 {
     return ( pCommandToRelease != NULL ) ? true : false;
 }
