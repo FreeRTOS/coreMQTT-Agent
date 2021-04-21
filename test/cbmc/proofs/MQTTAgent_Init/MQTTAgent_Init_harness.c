@@ -30,7 +30,7 @@ void harness()
     MQTTFixedBuffer_t * pNetworkBuffer;
     TransportInterface_t * pTransportInterface;
     MQTTGetCurrentTimeFunc_t getCurrentTimeMs;
-    IncomingPublishCallback_t incomingCallback;
+    MQTTAgentIncomingPublishCallback_t incomingCallback;
     void * pIncomingPacketContext;
 
     pMqttAgentContext = malloc( sizeof( MQTTAgentContext_t ) );

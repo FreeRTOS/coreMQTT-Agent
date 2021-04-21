@@ -428,7 +428,7 @@ void test_MQTTAgent_Init_Invalid_Params( void )
     MQTTAgentMessageInterface_t msgInterface = { 0 };
     MQTTFixedBuffer_t networkBuffer = { 0 };
     TransportInterface_t transportInterface = { 0 };
-    IncomingPublishCallback_t incomingCallback = stubPublishCallback;
+    MQTTAgentIncomingPublishCallback_t incomingCallback = stubPublishCallback;
     void * incomingPacketContext = NULL;
     MQTTAgentMessageContext_t msg;
     MQTTStatus_t mqttStatus;
@@ -623,7 +623,7 @@ void test_MQTTAgent_ResumeSession_publish_resend_success( void )
     MQTTAgentContext_t mqttAgentContext;
     MQTTAgentCommand_t command = { 0 };
     MQTTPublishInfo_t args = { 0 };
-    AckInfo_t ackInfo;
+    MQTTAgentAckInfo_t ackInfo;
 
     setupAgentContext( &mqttAgentContext );
 
@@ -1374,7 +1374,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_invalid_id( void )
     MQTTStatus_t mqttStatus;
     MQTTAgentContext_t agentContext;
     MQTTAgentCommand_t command = { 0 };
-    AckInfo_t emptyAck = { 0 };
+    MQTTAgentAckInfo_t emptyAck = { 0 };
 
     setupAgentContext( &agentContext );
     agentContext.mqttContext.connectStatus = MQTTConnected;
@@ -1399,7 +1399,7 @@ void test_MQTTAgent_CommandLoop_add_acknowledgment_invalid_id( void )
     /* Ensure that acknowledgment is not added. */
     TEST_ASSERT_EACH_EQUAL_MEMORY( &emptyAck,
                                    agentContext.pPendingAcks,
-                                   sizeof( AckInfo_t ),
+                                   sizeof( MQTTAgentAckInfo_t ),
                                    MQTT_AGENT_MAX_OUTSTANDING_ACKS );
     /* Ensure that callback is invoked. */
     TEST_ASSERT_EQUAL( 1, commandCompleteCallbackCount );

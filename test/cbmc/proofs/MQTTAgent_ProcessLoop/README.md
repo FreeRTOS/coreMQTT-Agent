@@ -17,7 +17,7 @@ the proof only will require stubs.
  * MQTTAgentMessageInterface_t
  * TransportInterface_t
  * MQTTGetCurrentTimeFunc_t
- * IncomingPublishCallback_t
+ * MQTTAgentIncomingPublishCallback_t
 
 To run the proof.
 -------------

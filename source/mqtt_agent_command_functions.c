@@ -263,7 +263,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
 {
     MQTTAgentCommand_t * pReceivedCommand = NULL;
     bool commandWasReceived = false;
-    AckInfo_t * pendingAcks;
+    MQTTAgentAckInfo_t * pendingAcks;
     size_t i;
 
     ( void ) pUnusedArg;
@@ -301,7 +301,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
             concludeCommandAsError( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand );
 
             /* Now remove it from the list. */
-            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
         }
     }
 

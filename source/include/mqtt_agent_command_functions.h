@@ -52,7 +52,7 @@
     #else /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
 
 /* If not using designated initializers, this must correspond
- * to the order of CommandType_t commands. */
+ * to the order of MQTTAgentCommandType_t commands. */
         #define MQTT_AGENT_FUNCTION_TABLE \
     {                                     \
         MQTTAgentCommand_ProcessLoop,     \

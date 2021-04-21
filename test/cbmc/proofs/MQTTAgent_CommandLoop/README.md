@@ -18,7 +18,7 @@ the proof only will require stubs.
  * MQTTAgentMessageInterface_t
  * TransportInterface_t
  * MQTTGetCurrentTimeFunc_t
- * IncomingPublishCallback_t
+ * MQTTAgentIncomingPublishCallback_t
  * MQTTAgentCommandCallback_t
 
  In addition to the interfaces and the function types, stubs are used for the below listed functions.

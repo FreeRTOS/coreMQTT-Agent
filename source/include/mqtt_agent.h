@@ -66,7 +66,7 @@
  * @ingroup mqtt_agent_enum_types
  * @brief A type of command for interacting with the MQTT API.
  */
-typedef enum CommandType
+typedef enum MQTTCommandType
 {
     NONE = 0,    /**< @brief No command received.  Must be zero (its memset() value). */
     PROCESSLOOP, /**< @brief Call MQTT_ProcessLoop(). */
@@ -78,7 +78,7 @@ typedef enum CommandType
     DISCONNECT,  /**< @brief Call MQTT_Disconnect(). */
     TERMINATE,   /**< @brief Exit the command loop and stop processing commands. */
     NUM_COMMANDS /**< @brief The number of command types handled by the agent. */
-} CommandType_t;
+} MQTTAgentCommandType_t;
 
 struct MQTTAgentContext;
 struct MQTTAgentCommandContext;
@@ -129,7 +129,7 @@ typedef void (* MQTTAgentCommandCallback_t )( void * pCmdCallbackContext,
  * agent task. */
 struct Command
 {
-    CommandType_t commandType;                  /**< @brief Type of command. */
+    MQTTAgentCommandType_t commandType;                  /**< @brief Type of command. */
     void * pArgs;                               /**< @brief Arguments of command. */
     MQTTAgentCommandCallback_t pCommandCompleteCallback; /**< @brief Callback to invoke upon completion. */
     MQTTAgentCommandContext_t * pCmdContext;             /**< @brief Context for completion callback. */
@@ -139,11 +139,11 @@ struct Command
  * @ingroup mqtt_agent_struct_types
  * @brief Information for a pending MQTT ack packet expected by the agent.
  */
-typedef struct ackInfo
+typedef struct MQTTAckInfo
 {
     uint16_t packetId;            /**< Packet ID of the pending acknowledgment. */
     MQTTAgentCommand_t * pOriginalCommand; /**< Command expecting acknowledgment. */
-} AckInfo_t;
+} MQTTAgentAckInfo_t;
 
 /**
  * @ingroup mqtt_agent_callback_types
@@ -159,7 +159,7 @@ typedef struct ackInfo
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
  */
-typedef void (* IncomingPublishCallback_t )( struct MQTTAgentContext * pMqttAgentContext,
+typedef void (* MQTTAgentIncomingPublishCallback_t )( struct MQTTAgentContext * pMqttAgentContext,
                                              uint16_t packetId,
                                              MQTTPublishInfo_t * pPublishInfo );
 
@@ -173,8 +173,8 @@ typedef struct MQTTAgentContext
 {
     MQTTContext_t mqttContext;                                 /**< MQTT connection information used by coreMQTT. */
     MQTTAgentMessageInterface_t agentInterface;                    /**< Struct of function pointers for agent messaging. */
-    AckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
-    IncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
+    MQTTAgentAckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
+    MQTTAgentIncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
     void * pIncomingCallbackContext;                           /**< Context for incoming publish callback. */
     bool packetReceivedInLoop;                                 /**< Whether a MQTT_ProcessLoop() call received a packet. */
 } MQTTAgentContext_t;
@@ -240,7 +240,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              const MQTTFixedBuffer_t * pNetworkBuffer,
                              const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             IncomingPublishCallback_t incomingCallback,
+                             MQTTAgentIncomingPublishCallback_t incomingCallback,
                              void * pIncomingPacketContext );
 /* @[declare_mqtt_agent_init] */
 
