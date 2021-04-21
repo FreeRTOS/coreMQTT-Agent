@@ -233,6 +233,77 @@ typedef struct CommandInfo
  * callback MUST remain in scope throughout the period that the agent task is running.
  *
  * @return Appropriate status code from MQTT_Init().
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Function for obtaining a timestamp.
+ * uint32_t getTimeStampMs();
+ * // Callback function for receiving packets.
+ * void incomingPublishCallback( struct MQTTAgentContext * pMqttAgentContext,
+ *                               uint16_t packetId,
+ *                               MQTTPublishInfo_t * pPublishInfo );
+ * // Platform function for network send interface.
+ * int32_t networkSend( NetworkContext_t * pContext, const void * pBuffer, size_t bytes );
+ * // Platform for network receive interface.
+ * int32_t networkRecv( NetworkContext_t * pContext, void * pBuffer, size_t bytes );
+ *
+ * // Platform function for Agent Message Send.
+ * bool agentSendMessage( AgentMessageContext_t * pMsgCtx,
+ *                        Command_t * const * pCommandToSend,
+ *                        uint32_t blockTimeMs );
+ * // Platform function for Agent Message Receive.
+ * bool agentReceiveMessage( AgentMessageContext_t * pMsgCtx,
+ *                           Command_t * const * pCommandToSend,
+ *                           uint32_t blockTimeMs );
+ * // Platform function to Get Agent Command.
+ * Command_t * getCommand( uint32_t blockTimeMs );
+ * // Platform function to Release Agent Command.
+ * bool releaseCommand( Command_t * pCommandToRelease );
+ *
+ * // Variables used in this example.
+ * AgentMessageInterface_t messageInterface;
+ * MQTTAgentContext_t agentContext;
+ * TransportInterface_t transport;
+ * // Buffer for storing outgoing and incoming MQTT packets.
+ * MQTTFixedBuffer_t fixedBuffer;
+ * uint8_t buffer[ 1024 ];
+ * MQTTStatus_t status;
+ *
+ * // Clear context.
+ * memset( ( void * ) &agentContext, 0x00, sizeof( MQTTAgentContext_t ) );
+ *
+ * // Set transport interface members.
+ * transport.pNetworkContext = &someTransportContext;
+ * transport.send = networkSend;
+ * transport.recv = networkRecv;
+ *
+ * // Set agent message interface members.
+ * messageInterface.pMsgCtx = NULL;
+ * messageInterface.send = agentSendMessage;
+ * messageInterface.recv = agentReceiveMessage;
+ * messageInterface.getCommand = getCommand;
+ * messageInterface.releaseCommand = releaseCommand;
+ *
+ * // Set buffer members.
+ * fixedBuffer.pBuffer = buffer;
+ * fixedBuffer.size = 1024;
+ *
+ * status = MQTTAgent_Init( &agentContext,
+ *                          &messageInterface,
+ *                          &networkBuffer,
+ *                          &transportInterface,
+ *                          stubGetTime,
+ *                          stubPublishCallback,
+ *                          incomingPacketContext );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *      // Do something with agentContext. The transport and message interfaces, and
+ *      // fixedBuffer structs were copied into the context, so the original structs
+ *      // do not need to stay in scope.
+ * }
+ * @endcode
  */
 /* @[declare_mqtt_agent_init] */
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
@@ -251,6 +322,39 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return appropriate error code, or #MQTTSuccess from a successful disconnect
  * or termination.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTStatus_t status;
+ * MQTTAgentContext_t mqttAgentContext;
+ *
+ * status = MQTTAgent_CommandLoop( &mqttAgentContext );
+ *
+ * // The function returns on either receiving a terminate command,
+ * // undergoing network disconnection OR encountering an error.
+ * if( ( status == MQTTSuccess ) && ( mqttAgentContext.mqttContext.connectStatus == MQTTNotConnected ) )
+ * {
+ *    // A terminate command was processed and MQTT connection was closed.
+ *    // Need to close socket connection.
+ *    Platform_DisconnectNetwork( mqttAgentContext.mqttContext.transportInterface.pNetworkContext );
+ * }
+ * else if( status == MQTTSuccess )
+ * {
+ *    // Terminate command was processed but MQTT connection was not
+ *    // closed. Thus, need to close both MQTT and socket connections.
+ *    status = MQTT_Disconnect( &( mqttAgentContext.mqttContext ) );
+ *    configASSERT( status == MQTTSuccess );
+ *    Platform_DisconnectNetwork( mqttAgentContext.mqttContext.transportInterface.pNetworkContext );
+ * }
+ * else
+ * {
+ *     // Handle error.
+ * }
+ *
+ * @endcode
+ *
  */
 /* @[declare_mqtt_agent_commandloop] */
 MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
@@ -268,6 +372,25 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  *
  * @return #MQTTSuccess if it succeeds in resending publishes, else an
  * appropriate error code from `MQTT_Publish()`
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTStatus_t status;
+ * MQTTAgentContext_t mqttAgentContext;
+ * // Value obtained from server through #MQTT_Connect call.
+ * bool sessionPresent;
+ *
+ * status = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *    // Do something with the connection.
+ * }
+ *
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_resumesession] */
 MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
@@ -292,6 +415,41 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ * MQTTSubscribeInfo_t subscribeInfo = { 0 };
+ * MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
+ *
+ * // Function for command complete callback.
+ * void subscribeCmdCompleteCb( void * pCmdCallbackContext,
+ *                              MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.CmdCompleteCallback = subscribeCmdCompleteCb;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * // Fill the information for topic filters to subscribe to.
+ * subscribeInfo.qos = Qos1;
+ * subscribeInfo.pTopicFilter = "/foo/bar";
+ * subscribeInfo.topicFilterLength = strlen("/foo/bar");
+ * subscribeArgs.pSubscribeInfo = &subscribeInfo;
+ * subscribeArgs.numSubscriptions = 1U;
+ *
+ * status = MQTTAgent_Subscribe( &agentContext, &subscribeArgs, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *    // If the broker accepts the subscription we can now receive publishes
+ *    // on the requested topics.
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_subscribe] */
 MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
@@ -317,6 +475,40 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ * MQTTSubscribeInfo_t unsubscribeInfo = { 0 };
+ * MQTTAgentSubscribeArgs_t unsubscribeArgs = { 0 };
+ *
+ * // Function for command complete callback.
+ * void unsubscribeCmdCompleteCb( void * pCmdCallbackContext,
+ *                                MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = unsubscribeCmdCompleteCb;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * // Fill the information for topics to unsubscribe from.
+ * unsubscribeInfo.pTopicFilter = "/foo/bar";
+ * unsubscribeInfo.topicFilterLength = strlen("/foo/bar");
+ * unsubscribeArgs.pSubscribeInfo = &unsubscribeInfo;
+ * unsubscribeArgs.numSubscriptions = 1U;
+ *
+ * status = MQTTAgent_Unsubscribe( &agentContext, &unsubscribeArgs, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *    // If the broker accepts the unsubscription, we will no longer receive publishes
+ *    // from the topics.
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_unsubscribe] */
 MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext,
@@ -342,6 +534,40 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ * MQTTPublishInfo_t publishInfo = { 0 };
+ *
+ * // Function for command complete callback.
+ * void publishCmdCompleteCb( void * pCmdCallbackContext,
+ *                            MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = publishCmdCompleteCb;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * // Fill the information for publish operation.
+ * publishInfo.qos = MQTTQoS1;
+ * publishInfo.pTopicName = "/some/topic/name";
+ * publishInfo.topicNameLength = strlen( publishInfo.pTopicName );
+ * publishInfo.pPayload = "Hello World!";
+ * publishInfo.payloadLength = strlen( "Hello World!" );
+ *
+ * status = MQTTAgent_Publish( &agentContext, &publishInfo, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *    // If the broker receives the publish, proceed with rest of the application
+ *    // logic like waiting for response from broker.
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_publish] */
 MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
@@ -365,6 +591,32 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ *
+ * // Function for command complete callback.
+ * void cmdCompleteCb( void * pCmdCallbackContext,
+ *                     MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = cmdCompleteCb;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * status = MQTTAgent_ProcessLoop( &agentContext, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *    // Proceed with application logic, like processing information
+ *    // from an incoming PUBLISH, if received from the network.
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_processloop] */
 MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext,
@@ -373,6 +625,12 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
 
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
+ *
+ * @note This API function ONLY enques a command to send a ping request to the server,
+ * and DOES NOT wait for a ping response to be received from the server. To detect whether
+ * a Ping Response, has not been received from the server, the @ref MQTTAgent_CommandLoop
+ * function SHOULD be used, which returns the #MQTTKeepAliveTimeout return code on a ping
+ * response (or keep-alive) timeout.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in] pCommandInfo The information pertaining to the command, including:
@@ -388,6 +646,33 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ *
+ * // Function for command complete callback.
+ * void pingRequestCompleteCb( void * pCmdCallbackContext,
+ *                             MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = pingRequestCompleteCb;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * status = MQTTAgent_Ping( &agentContext, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *   // Command for sending request has been queued. Application can
+ *   // handle keep-alive timeout if detected through return value of
+ *   // MQTTAgent_CommandLoop in the task running the agent.
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_ping] */
 MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
@@ -398,8 +683,15 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * @brief Add a command to call MQTT_Connect() for an MQTT connection. If a session
  * is resumed with the broker, it will also resend the necessary QoS1/2 publishes.
  *
+ * @note The MQTTAgent_Connect function is provided to give a thread safe equivalent
+ * to the cirresponding MQTT_Connect APIs. However, it is unlikely to be used as
+ * the MQTT connection is likely to be created by the agent task before calling
+ * MQTTAgent_CommandLoop().
+ *
  * @param[in] pMqttAgentContext The MQTT agent to use.
- * @param[in] pConnectArgs Struct holding args for MQTT_Connect().
+ * @param[in, out] pConnectArgs Struct holding args for MQTT_Connect(). On a successful
+ * connection after the command is processed, the sessionPresent member will be filled
+ * to indicate whether the broker resumed an existing session.
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
  *  - pCmdCompleteCallbackContext Optional completion callback context.
@@ -413,6 +705,64 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * MQTTConnectInfo_t connectInfo = { 0 };
+ * MQTTPublishInfo_t willInfo = { 0 };
+ * MQTTAgentConnectArgs_t connectionArgs;
+ * bool sessionPresent;
+ * CommandInfo_t commandInfo = { 0 };
+ *
+ * // True for creating a new session with broker, false if we want to resume an old one.
+ * connectInfo.cleanSession = true;
+ * // Client ID must be unique to broker. This field is required.
+ * connectInfo.pClientIdentifier = "someClientID";
+ * connectInfo.clientIdentifierLength = strlen( connectInfo.pClientIdentifier );
+ *
+ * // Value for keep alive.
+ * connectInfo.keepAliveSeconds = 60;
+ * // The following fields are optional.
+ * // Optional username and password.
+ * connectInfo.pUserName = "someUserName";
+ * connectInfo.userNameLength = strlen( connectInfo.pUserName );
+ * connectInfo.pPassword = "somePassword";
+ * connectInfo.passwordLength = strlen( connectInfo.pPassword );
+ *
+ * // The last will and testament is optional, it will be published by the broker
+ * // should this client disconnect without sending a DISCONNECT packet.
+ * willInfo.qos = MQTTQoS0;
+ * willInfo.pTopicName = "/lwt/topic/name";
+ * willInfo.topicNameLength = strlen( willInfo.pTopicName );
+ * willInfo.pPayload = "LWT Message";
+ * willInfo.payloadLength = strlen( "LWT Message" );
+ *
+ * // Fill the MQTTAgentConnectArgs_t structure.
+ * connectArgs.pConnectInfo = &connectInfo;
+ * connectArgs.pWillInfo = &willInfo;
+ * connectArgs.timeoutMs = 500;
+ *
+ * // Function for command complete callback.
+ * void connectCallback( void * pCmdCallbackContext,
+ *                       MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = connectCallback;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * status = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *   // Command for creating the MQTT connection has been queued.
+ *   // The MQTT connection event will be notified through the
+ *   // invocation of disconnectCallback().
+ * }
+ * @endcode
  */
 /* @[declare_mqtt_agent_connect] */
 MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
@@ -423,6 +773,13 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
 /**
  * @brief Add a command to disconnect an MQTT connection.
  *
+ * @note The MQTTAgent_Disconnect function is provided to give a thread safe
+ * equivalent to the MQTT_Disconnect API. However, if the agent task is responsible
+ * for creating the MQTT connection (before calling MQTTAgent_CommandLoop()), then
+ * it is RECOMMENDED that an application task (i.e. a task other than the agent task)
+ * use MQTTAgent_Terminate to terminate the command loop in the agent, and the agent
+ * task be responsible for disconnecting the MQTT connection.
+ *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
@@ -437,6 +794,33 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ *
+ * // Function for command complete callback.
+ * void disconnectCallback( void * pCmdCallbackContext,
+ *                             MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = disconnectCallback;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * status = MQTTAgent_Disconnect( &agentContext, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *   // Command for closing the MQTT connection has been queued.
+ *   // The MQTT disconnection event will be notified through the
+ *   // invocation of disconnectCallback().
+ * }
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_disconnect] */
 MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
@@ -446,6 +830,11 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 /**
  * @brief Add a termination command to the command queue.
  *
+ * @note We RECOMMEND that this function is used from application task(s),
+ * that is a task not running the agent, to terminate the agent loop instead
+ * of calling MQTTAgent_Disconnect, so that the logic for creating and closing
+ * MQTT connection is owned by the agent task.
+ *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
@@ -460,6 +849,32 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTAgentContext_t agentContext;
+ * MQTTStatus_t status;
+ * CommandInfo_t commandInfo = { 0 };
+ *
+ * // Function for command complete callback.
+ * void terminateCallback( void * pCmdCallbackContext,
+ *                         MQTTAgentReturnInfo_t * pReturnInfo );
+ *
+ * // Fill the command information.
+ * commandInfo.cmdCompleteCallback = terminateCallback;
+ * commandInfo.blockTimeMs = 500;
+ *
+ * status = MQTTAgent_Terminate( &agentContext, &commandInfo );
+ *
+ * if( status == MQTTSuccess )
+ * {
+ *   // Command for terminate the agent loop has been queued.
+ * }
+ *
+ * @endcode
+ *
  */
 /* @[declare_mqtt_agent_terminate] */
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
