@@ -378,14 +378,22 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * // Variables used in this example.
  * MQTTStatus_t status;
  * MQTTAgentContext_t mqttAgentContext;
- * // Value obtained from server through #MQTT_Connect call.
+ * MQTTConnectInfo_t connectInfo = { 0 };
+ * MQTTPublishInfo_t willInfo = { 0 };
  * bool sessionPresent;
  *
- * status = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
+ * // The example assumes that all variables have been filled with
+ * // data for the MQTT_Connect call
+ * // Refer to the MQTT_Connect API for a more detailed example.
+ *
+ * // Attempt to resume session with the broker.
+ * status = MQTT_Connect( mqttAgentContext.mqttContext, &connectInfo, &willInfo, 100, &sessionPresent )
  *
  * if( status == MQTTSuccess )
  * {
- *    // Do something with the connection.
+ *     // Process the session present status sent by the broker.
+ *     status = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
+ *     assert( status == MQTTSuccess );
  * }
  * @endcode
  */
@@ -686,8 +694,12 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * is resumed with the broker, it will also resend the necessary QoS1/2 publishes.
  *
  * @note The MQTTAgent_Connect function is provided to give a thread safe equivalent
- * to the MQTT_Connect API. However, it is unlikely to be used as the MQTT connection
- * is likely to be created by the agent task before calling MQTTAgent_CommandLoop().
+ * to the MQTT_Connect API. However, it is RECOMMENDED that instead of the application
+ * tasks (i.e. tasks other than the agent task), the agent be responsible for creating
+ * the MQTT connection (by calling MQTT_Connect) before starting the command loop (with
+ * the MQTTAgent_CommandLoop() call). In that case, the agent SHOULD also be responsible
+ * for disconnecting the MQTT connection after the command loop has terminated (through
+ * a MQTTAgent_Terminate() call from an application task).
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in, out] pConnectArgs Struct holding args for MQTT_Connect(). On a successful
