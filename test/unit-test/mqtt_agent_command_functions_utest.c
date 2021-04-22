@@ -529,9 +529,9 @@ void test_MQTTAgentCommand_Connect_failure( void )
 }
 
 /**
- * @brief Test that MQTTAgentMQTTAgentCommand_terminate() works as intended.
+ * @brief Test that MQTTAgentCommand_Terminate() works as intended.
  */
-void test_MQTTAgentMQTTAgentCommand_terminate( void )
+void test_MQTTAgentCommand_Terminate( void )
 {
     MQTTAgentContext_t mqttAgentContext = { 0 };
     MQTTStatus_t mqttStatus;
