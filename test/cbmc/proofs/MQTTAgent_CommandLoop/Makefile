@@ -34,9 +34,9 @@ INCLUDES +=
 REMOVE_FUNCTION_BODY +=
 
 UNWINDSET += MQTTAgent_CommandLoop.0:$(MAX_BOUND_FOR_COMMAND_LOOP)
-UNWINDSET += __CPROVER_file_local_mqtt_agent_c_addAwaitingOperation.0:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
-UNWINDSET += __CPROVER_file_local_mqtt_agent_c_getAwaitingOperation.0:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
-UNWINDSET += __CPROVER_file_local_mqtt_agent_c_processCommand.0:$(MAX_BOUND_FOR_PROCESS_COMMAND_LOOP)
+UNWINDSET += __CPROVER_file_local_core_mqtt_agent_c_addAwaitingOperation.0:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
+UNWINDSET += __CPROVER_file_local_core_mqtt_agent_c_getAwaitingOperation.0:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
+UNWINDSET += __CPROVER_file_local_core_mqtt_agent_c_processCommand.0:$(MAX_BOUND_FOR_PROCESS_COMMAND_LOOP)
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/sources/mqtt_agent_cbmc_state.c
@@ -48,6 +48,6 @@ PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_message_stubs.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_command_functions_stub.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/core_mqtt_stubs.c
 
-PROJECT_SOURCES += $(SRCDIR)/source/mqtt_agent.c
+PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent.c
 
 include ../Makefile.common

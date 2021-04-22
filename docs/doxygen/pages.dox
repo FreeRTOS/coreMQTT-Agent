@@ -41,43 +41,43 @@ Configuration settings are C preprocessor constants. They can be set with a `#de
 @subpage mqtt_agent_resume_function <br><br>
 
 @page mqtt_agent_init_function MQTTAgent_Init
-@snippet mqtt_agent.h declare_mqtt_agent_init
+@snippet core_mqtt_agent.h declare_mqtt_agent_init
 @copydoc MQTTAgent_Init
 
 @page mqtt_agent_command_function MQTTAgent_CommandLoop
-@snippet mqtt_agent.h declare_mqtt_agent_commandloop
+@snippet core_mqtt_agent.h declare_mqtt_agent_commandloop
 @copydoc MQTTAgent_CommandLoop
 
 @page mqtt_agent_resume_function MQTTAgent_ResumeSession
-@snippet mqtt_agent.h declare_mqtt_agent_resumesession
+@snippet core_mqtt_agent.h declare_mqtt_agent_resumesession
 @copydoc MQTTAgent_ResumeSession
 
 @page mqtt_agent_publish_function MQTTAgent_Publish
-@snippet mqtt_agent.h declare_mqtt_agent_publish
+@snippet core_mqtt_agent.h declare_mqtt_agent_publish
 @copydoc MQTTAgent_Publish
 
 @page mqtt_agent_subscribe_function MQTTAgent_Subscribe
-@snippet mqtt_agent.h declare_mqtt_agent_subscribe
+@snippet core_mqtt_agent.h declare_mqtt_agent_subscribe
 @copydoc MQTTAgent_Subscribe
 
 @page mqtt_agent_unsubscribe_function MQTTAgent_Unsubscribe
-@snippet mqtt_agent.h declare_mqtt_agent_unsubscribe
+@snippet core_mqtt_agent.h declare_mqtt_agent_unsubscribe
 @copydoc MQTTAgent_Unsubscribe
 
 @page mqtt_agent_connect_function MQTTAgent_Connect
-@snippet mqtt_agent.h declare_mqtt_agent_connect
+@snippet core_mqtt_agent.h declare_mqtt_agent_connect
 @copydoc MQTTAgent_Connect
 
 @page mqtt_agent_disconnect_function MQTTAgent_Disconnect
-@snippet mqtt_agent.h declare_mqtt_agent_disconnect
+@snippet core_mqtt_agent.h declare_mqtt_agent_disconnect
 @copydoc MQTTAgent_Disconnect
 
 @page mqtt_agent_ping_function MQTTAgent_Ping
-@snippet mqtt_agent.h declare_mqtt_agent_ping
+@snippet core_mqtt_agent.h declare_mqtt_agent_ping
 @copydoc MQTTAgent_Ping
 
 @page mqtt_agent_terminate_function MQTTAgent_Terminate
-@snippet mqtt_agent.h declare_mqtt_agent_terminate
+@snippet core_mqtt_agent.h declare_mqtt_agent_terminate
 @copydoc MQTTAgent_Terminate
 
 */

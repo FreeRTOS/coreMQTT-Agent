@@ -25,7 +25,7 @@
  * @brief Stub functions to interact with queues.
  */
 
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 #include "agent_message_stubs.h"
 
 static void commandCompleteCallbackStub( void * pCmdCallbackContext,
@@ -35,13 +35,13 @@ static void commandCompleteCallbackStub( void * pCmdCallbackContext,
                       "Command complete return info is not NULL." );
 }
 
-static Command_t * allocateCommand()
+static MQTTAgentCommand_t * allocateCommand()
 {
     MQTTAgentSubscribeArgs_t * pSubscribeArgs;
     MQTTPublishInfo_t * pPublishInfo;
     static bool terminate = false;
 
-    Command_t * command = malloc( sizeof( Command_t ) );
+    MQTTAgentCommand_t * command = malloc( sizeof( MQTTAgentCommand_t ) );
 
     /* Second command always is TERMINATE to keep the MQTTAgent_CommandLoop unwind bound. */
     if( terminate == true )
@@ -76,7 +76,7 @@ static Command_t * allocateCommand()
     return command;
 }
 
-bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
+bool AgentMessageSendStub( MQTTAgentMessageContext_t * pMsgCtx,
                            const void * pData,
                            uint32_t blockTimeMs )
 {
@@ -85,11 +85,11 @@ bool AgentMessageSendStub( AgentMessageContext_t * pMsgCtx,
     return nondet_bool();
 }
 
-bool AgentMessageRecvStub( AgentMessageContext_t * pMsgCtx,
+bool AgentMessageRecvStub( MQTTAgentMessageContext_t * pMsgCtx,
                            void * pBuffer,
                            uint32_t blockTimeMs )
 {
-    Command_t * command;
+    MQTTAgentCommand_t * command;
     bool returnStatus;
 
     __CPROVER_assert( pBuffer != NULL,
@@ -102,7 +102,7 @@ bool AgentMessageRecvStub( AgentMessageContext_t * pMsgCtx,
         returnStatus = false;
     }
 
-    *( ( Command_t ** ) pBuffer ) = command;
+    *( ( MQTTAgentCommand_t ** ) pBuffer ) = command;
 
     return returnStatus;
 }

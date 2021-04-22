@@ -21,7 +21,7 @@
  */
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 #include "mqtt_agent_cbmc_state.h"
 
@@ -29,18 +29,18 @@ void harness()
 {
     MQTTAgentContext_t * pMqttAgentContext;
     MQTTAgentSubscribeArgs_t * pSubscriptionArgs;
-    CommandInfo_t * pCommandInfo;
+    MQTTAgentCommandInfo_t * pCommandInfo;
     MQTTStatus_t mqttStatus;
 
     pMqttAgentContext = allocateMqttAgentContext( NULL );
     __CPROVER_assume( isValidMqttAgentContext( pMqttAgentContext ) );
 
-    /* CommandInfo and MQTTAgentSubscribeArgs_t are only added to Queue
+    /* MQTTAgentCommandInfo and MQTTAgentSubscribeArgs_t are only added to Queue
      * in MQTTAgent_Subscribe and non deterministic values for the members
-     * of CommandInfo_t and MQTTAgentSubscribeArgs_t type will be sufficient
+     * of MQTTAgentCommandInfo_t and MQTTAgentSubscribeArgs_t type will be sufficient
      * for this proof.*/
     pSubscriptionArgs = malloc( sizeof( MQTTAgentSubscribeArgs_t ) );
-    pCommandInfo = malloc( sizeof( CommandInfo_t ) );
+    pCommandInfo = malloc( sizeof( MQTTAgentCommandInfo_t ) );
 
     mqttStatus = MQTTAgent_Subscribe( pMqttAgentContext,
                                       pSubscriptionArgs,

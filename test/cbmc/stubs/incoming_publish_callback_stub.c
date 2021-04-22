@@ -25,7 +25,7 @@
  * @brief A stub for the incoming publish callback.
  */
 
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 #include "incoming_publish_callback_stub.h"
 
 void IncomingPublishCallbackStub( MQTTAgentContext_t * pMqttAgentContext,

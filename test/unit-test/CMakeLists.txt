@@ -7,13 +7,13 @@ set(project_name "mqtt_agent")
 list(APPEND mock_list
             "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt.h"
             "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt_state.h"
-            "${MODULE_ROOT_DIR}/source/include/mqtt_agent_command_functions.h"
+            "${MODULE_ROOT_DIR}/source/include/core_mqtt_agent_command_functions.h"
         )
 
 list(APPEND mock_list_command_functions
             "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt.h"
             "${MODULE_ROOT_DIR}/source/dependency/coreMQTT/source/include/core_mqtt_state.h"
-            "${MODULE_ROOT_DIR}/source/include/mqtt_agent.h"
+            "${MODULE_ROOT_DIR}/source/include/core_mqtt_agent.h"
         )
 
 # list the directories your mocks need
