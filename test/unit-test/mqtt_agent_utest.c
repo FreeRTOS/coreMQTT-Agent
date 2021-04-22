@@ -94,6 +94,11 @@ static uint8_t packetType;
 static uint16_t packetIdentifier;
 
 /**
+ * @brief Mock Counter variable for calling stubReceive multiple times.
+ */
+static uint32_t receiveCounter;
+
+/**
  * @brief Return flags to use for test.
  */
 static MQTTAgentCommandFuncReturns_t returnFlags;
@@ -110,6 +115,7 @@ void setUp()
     pCommandToReturn = NULL;
     commandCompleteCallbackCount = 0;
     packetIdentifier = 1U;
+    receiveCounter = 0;
     returnFlags.addAcknowledgment = false;
     returnFlags.runProcessLoop = false;
     returnFlags.endLoop = false;
@@ -169,6 +175,26 @@ static bool stubReceive( MQTTAgentMessageContext_t * pMsgCtx,
     ( void ) blockTimeMs;
     *pReceivedCommand = pMsgCtx->pSentCommand;
     return true;
+}
+
+/**
+ * @brief A mocked receive function for the agent to receive commands.
+ */
+static bool stubReceiveThenFail( MQTTAgentMessageContext_t * pMsgCtx,
+                                 MQTTAgentCommand_t ** pReceivedCommand,
+                                 uint32_t blockTimeMs )
+{
+    bool ret = false;
+
+    ( void ) blockTimeMs;
+
+    if( receiveCounter++ == 0 )
+    {
+        *pReceivedCommand = pMsgCtx->pSentCommand;
+        ret = true;
+    }
+
+    return ret;
 }
 
 /**
@@ -1675,6 +1701,8 @@ void test_MQTTAgent_CancelAll( void )
     mqttStatus = MQTTAgent_CancelAll( &mqttAgentContext );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 
+    /* Only receive a few commands to avoid infinite loop. */
+    mqttAgentContext.agentInterface.recv = stubReceiveThenFail;
     mqttAgentContext.agentInterface.pMsgCtx = &globalMessageContext;
     mqttStatus = MQTTAgent_CancelAll( &mqttAgentContext );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -1692,6 +1720,7 @@ void test_MQTTAgent_CancelAll( void )
     TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
 
     /* Test MQTTAgent_CancelAll() with commandCallback as null. */
+    receiveCounter = 0;
     commandCompleteCallbackCount = 0;
     commandReleaseCallCount = 0;
     command.pCommandCompleteCallback = NULL;
