@@ -21,14 +21,14 @@
  */
 
 /**
- * @file mqtt_agent_command_functions.h
+ * @file core_mqtt_agent_command_functions.h
  * @brief Functions for processing an MQTT agent command.
  */
-#ifndef MQTT_AGENT_COMMAND_FUNCTIONS_H
-#define MQTT_AGENT_COMMAND_FUNCTIONS_H
+#ifndef CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
+#define CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
 
 /* MQTT Agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 /**
  * @brief An array of function pointers mapping commands to a function to
@@ -52,7 +52,7 @@
     #else /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
 
 /* If not using designated initializers, this must correspond
- * to the order of CommandType_t commands. */
+ * to the order of MQTTAgentCommandType_t commands. */
         #define MQTT_AGENT_FUNCTION_TABLE \
     {                                     \
         MQTTAgentCommand_ProcessLoop,     \
@@ -201,4 +201,4 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
-#endif /* MQTT_AGENT_COMMAND_FUNCTIONS_H */
+#endif /* CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H */

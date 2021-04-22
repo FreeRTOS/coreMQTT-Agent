@@ -12,6 +12,6 @@ set( MQTT_AGENT_INCLUDE_PUBLIC_DIRS
 
 # MQTT Agent library source files.
 set( MQTT_AGENT_SOURCES
-     "${CMAKE_CURRENT_LIST_DIR}/source/mqtt_agent.c"
-     "${CMAKE_CURRENT_LIST_DIR}/source/mqtt_agent_command_functions.c" )
+     "${CMAKE_CURRENT_LIST_DIR}/source/core_mqtt_agent.c"
+     "${CMAKE_CURRENT_LIST_DIR}/source/core_mqtt_agent_command_functions.c" )
 

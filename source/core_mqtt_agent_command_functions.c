@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mqtt_agent_command_functions.c
+ * @file core_mqtt_agent_command_functions.c
  * @brief Implements functions to process MQTT agent commands.
  */
 
@@ -31,24 +31,24 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
+#include "core_mqtt_agent.h"
 
 /* Header include. */
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent_command_functions.h"
 
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Conclude a command and mark as an error. Copied from mqtt_agent.c
+ * @brief Conclude a command and mark as an error. Copied from core_mqtt_agent.c
  *
  * @param[in] pAgentContext Agent context for the MQTT connection.
  * @param[in] pCommand Command to complete.
  */
 static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    Command_t * pCommand );
+                                    MQTTAgentCommand_t * pCommand );
 
 static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    Command_t * pCommand )
+                                    MQTTAgentCommand_t * pCommand )
 {
     bool commandReleased = false;
     MQTTAgentReturnInfo_t returnInfo;
@@ -261,9 +261,9 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    Command_t * pReceivedCommand = NULL;
+    MQTTAgentCommand_t * pReceivedCommand = NULL;
     bool commandWasReceived = false;
-    AckInfo_t * pendingAcks;
+    MQTTAgentAckInfo_t * pendingAcks;
     size_t i;
 
     ( void ) pUnusedArg;
@@ -301,7 +301,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
             concludeCommandAsError( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand );
 
             /* Now remove it from the list. */
-            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
         }
     }
 

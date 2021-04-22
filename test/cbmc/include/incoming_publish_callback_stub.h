@@ -28,7 +28,7 @@
 #ifndef INCOMING_PUBLISH_CALLBACK_STUB_H_
 #define INCOMING_PUBLISH_CALLBACK_STUB_H_
 
-/* mqtt_agent.h must precede including this header. */
+/* core_mqtt_agent.h must precede including this header. */
 
 /**
  * @brief Callback function called when receiving a publish.

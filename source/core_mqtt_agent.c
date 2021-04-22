@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mqtt_agent.c
+ * @file core_mqtt_agent.c
  * @brief Implements an MQTT agent (or daemon task) to enable multithreaded access to
  * coreMQTT.
  *
@@ -43,8 +43,8 @@
 #include <assert.h>
 
 /* MQTT agent include. */
-#include "mqtt_agent.h"
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent.h"
+#include "core_mqtt_agent_command_functions.h"
 
 /*-----------------------------------------------------------*/
 
@@ -65,7 +65,7 @@
  */
 static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                           uint16_t packetId,
-                                          Command_t * pCommand );
+                                          MQTTAgentCommand_t * pCommand );
 
 /**
  * @brief Retrieve an operation from the list of pending acks, and optionally
@@ -77,11 +77,11 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * @return Pointer to stored information about the operation awaiting the ack.
  * Returns NULL if the packet ID is zero or original command does not exist.
  */
-static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                         uint16_t incomingPacketId );
+static MQTTAgentAckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                                  uint16_t incomingPacketId );
 
 /**
- * @brief Populate the parameters of a #Command struct.
+ * @brief Populate the parameters of a #MQTTAgentCommand struct.
  *
  * @param[in] commandType Type of command.  For example, publish or subscribe.
  * @param[in] pMqttAgentContext Pointer to MQTT context to use for command.
@@ -93,12 +93,12 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
  * @return #MQTTSuccess if all necessary fields for the command are passed,
  * else an enumerated error code.
  */
-static MQTTStatus_t createCommand( CommandType_t commandType,
+static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
                                    const MQTTAgentContext_t * pMqttAgentContext,
                                    void * pMqttInfoParam,
-                                   CommandCallback_t commandCompleteCallback,
-                                   CommandContext_t * pCommandCompleteCallbackContext,
-                                   Command_t * pCommand );
+                                   MQTTAgentCommandCallback_t commandCompleteCallback,
+                                   MQTTAgentCommandContext_t * pCommandCompleteCallbackContext,
+                                   MQTTAgentCommand_t * pCommand );
 
 /**
  * @brief Add a command to the global command queue.
@@ -113,11 +113,11 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
  * error code.
  */
 static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
-                                       Command_t * pCommand,
+                                       MQTTAgentCommand_t * pCommand,
                                        uint32_t blockTimeMs );
 
 /**
- * @brief Process a #Command struct.
+ * @brief Process a #MQTTAgentCommand struct.
  *
  * @note This agent does not check existing subscriptions before sending a
  * SUBSCRIBE or UNSUBSCRIBE packet. If a subscription already exists, then
@@ -131,7 +131,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
  * @return status of MQTT library API call.
  */
 static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
-                                    Command_t * pCommand,
+                                    MQTTAgentCommand_t * pCommand,
                                     bool * pEndLoop );
 
 /**
@@ -161,7 +161,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
 static void handleAcks( const MQTTAgentContext_t * pAgentContext,
                         const MQTTPacketInfo_t * pPacketInfo,
                         const MQTTDeserializedInfo_t * pDeserializedInfo,
-                        AckInfo_t * pAckInfo,
+                        MQTTAgentAckInfo_t * pAckInfo,
                         uint8_t packetType );
 
 /**
@@ -189,11 +189,11 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
  * @return #MQTTSuccess if the command was posted to the MQTT agent's event queue.
  * Otherwise an enumerated error code.
  */
-static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
+static MQTTStatus_t createAndAddCommand( MQTTAgentCommandType_t commandType,
                                          const MQTTAgentContext_t * pMqttAgentContext,
                                          void * pMqttInfoParam,
-                                         CommandCallback_t commandCompleteCallback,
-                                         CommandContext_t * pCommandCompleteCallbackContext,
+                                         MQTTAgentCommandCallback_t commandCompleteCallback,
+                                         MQTTAgentCommandContext_t * pCommandCompleteCallbackContext,
                                          uint32_t blockTimeMs );
 
 /**
@@ -206,7 +206,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
  * @param[in] pSubackCodes Pointer to suback array, if command is a SUBSCRIBE.
  */
 static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
-                             Command_t * pCommand,
+                             MQTTAgentCommand_t * pCommand,
                              MQTTStatus_t returnCode,
                              uint8_t * pSubackCodes );
 
@@ -234,16 +234,16 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
                                          bool clearOnlySubUnsubEntries );
 
 /**
- * @brief Validate an #MQTTAgentContext_t and a #CommandInfo_t from API
+ * @brief Validate an #MQTTAgentContext_t and a #MQTTAgentCommandInfo_t from API
  * functions.
  *
  * @param[in] pMqttAgentContext #MQTTAgentContext_t to validate.
- * @param[in] pCommandInfo #CommandInfo_t to validate.
+ * @param[in] pCommandInfo #MQTTAgentCommandInfo_t to validate.
  *
  * @return `true` if parameters are valid, else `false`.
  */
 static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
-                            const CommandInfo_t * pCommandInfo );
+                            const MQTTAgentCommandInfo_t * pCommandInfo );
 
 /**
  * @brief Validate the parameters for a CONNECT, SUBSCRIBE, UNSUBSCRIBE
@@ -254,7 +254,7 @@ static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * @return `true` if parameter structure is valid, else `false`.
  */
-static bool validateParams( CommandType_t commandType,
+static bool validateParams( MQTTAgentCommandType_t commandType,
                             const void * pParams );
 
 /**
@@ -280,7 +280,7 @@ static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext );
 
 static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 {
-    const AckInfo_t * pendingAcks;
+    const MQTTAgentAckInfo_t * pendingAcks;
     bool spaceFound = false;
     size_t i;
 
@@ -307,11 +307,11 @@ static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 
 static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
                                           uint16_t packetId,
-                                          Command_t * pCommand )
+                                          MQTTAgentCommand_t * pCommand )
 {
     size_t i = 0, unusedPos = MQTT_AGENT_MAX_OUTSTANDING_ACKS;
     MQTTStatus_t status = MQTTNoMemory;
-    AckInfo_t * pendingAcks = NULL;
+    MQTTAgentAckInfo_t * pendingAcks = NULL;
 
     assert( pAgentContext != NULL );
     assert( pCommand != NULL );
@@ -373,11 +373,11 @@ static MQTTStatus_t addAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
-                                         uint16_t incomingPacketId )
+static MQTTAgentAckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
+                                                  uint16_t incomingPacketId )
 {
     size_t i = 0;
-    AckInfo_t * pFoundAck = NULL;
+    MQTTAgentAckInfo_t * pFoundAck = NULL;
 
     assert( pAgentContext != NULL );
 
@@ -401,7 +401,7 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
         LogError( ( "Found ack had empty fields. PacketId=%hu, Original Command=%p",
                     ( unsigned short ) pFoundAck->packetId,
                     ( void * ) pFoundAck->pOriginalCommand ) );
-        ( void ) memset( pFoundAck, 0x00, sizeof( AckInfo_t ) );
+        ( void ) memset( pFoundAck, 0x00, sizeof( MQTTAgentAckInfo_t ) );
         pFoundAck = NULL;
     }
     else
@@ -414,12 +414,12 @@ static AckInfo_t * getAwaitingOperation( MQTTAgentContext_t * pAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t createCommand( CommandType_t commandType,
+static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
                                    const MQTTAgentContext_t * pMqttAgentContext,
                                    void * pMqttInfoParam,
-                                   CommandCallback_t commandCompleteCallback,
-                                   CommandContext_t * pCommandCompleteCallbackContext,
-                                   Command_t * pCommand )
+                                   MQTTAgentCommandCallback_t commandCompleteCallback,
+                                   MQTTAgentCommandContext_t * pCommandCompleteCallbackContext,
+                                   MQTTAgentCommand_t * pCommand )
 {
     bool isValid, isSpace = true;
     MQTTStatus_t statusReturn;
@@ -430,7 +430,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
     assert( pMqttAgentContext != NULL );
     assert( pCommand != NULL );
 
-    ( void ) memset( pCommand, 0x00, sizeof( Command_t ) );
+    ( void ) memset( pCommand, 0x00, sizeof( MQTTAgentCommand_t ) );
 
     /* Determine if required parameters are present in context. */
     switch( commandType )
@@ -506,7 +506,7 @@ static MQTTStatus_t createCommand( CommandType_t commandType,
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
-                                       Command_t * pCommand,
+                                       MQTTAgentCommand_t * pCommand,
                                        uint32_t blockTimeMs )
 {
     bool queueStatus;
@@ -515,7 +515,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
     assert( pCommand != NULL );
 
     /* The application called an API function.  The API function was validated and
-     * packed into a Command_t structure.  Now post a reference to the Command_t
+     * packed into a MQTTAgentCommand_t structure.  Now post a reference to the MQTTAgentCommand_t
      * structure to the MQTT agent for processing. */
     queueStatus = pAgentContext->agentInterface.send(
         pAgentContext->agentInterface.pMsgCtx,
@@ -529,7 +529,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
-                                    Command_t * pCommand,
+                                    MQTTAgentCommand_t * pCommand,
                                     bool * pEndLoop )
 {
     const MQTTAgentCommandFunc_t pCommandFunctionTable[ NUM_COMMANDS ] = MQTT_AGENT_FUNCTION_TABLE;
@@ -597,7 +597,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 static void handleAcks( const MQTTAgentContext_t * pAgentContext,
                         const MQTTPacketInfo_t * pPacketInfo,
                         const MQTTDeserializedInfo_t * pDeserializedInfo,
-                        AckInfo_t * pAckInfo,
+                        MQTTAgentAckInfo_t * pAckInfo,
                         uint8_t packetType )
 {
     uint8_t * pSubackCodes = NULL;
@@ -614,7 +614,7 @@ static void handleAcks( const MQTTAgentContext_t * pAgentContext,
                      pSubackCodes );
 
     /* Clear the entry from the list. */
-    ( void ) memset( pAckInfo, 0x00, sizeof( AckInfo_t ) );
+    ( void ) memset( pAckInfo, 0x00, sizeof( MQTTAgentAckInfo_t ) );
 }
 
 /*-----------------------------------------------------------*/
@@ -632,7 +632,7 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
                                MQTTPacketInfo_t * pPacketInfo,
                                MQTTDeserializedInfo_t * pDeserializedInfo )
 {
-    AckInfo_t * pAckInfo;
+    MQTTAgentAckInfo_t * pAckInfo;
     uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
     MQTTAgentContext_t * pAgentContext;
     const uint8_t upperNibble = ( uint8_t ) 0xF0;
@@ -699,15 +699,15 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
+static MQTTStatus_t createAndAddCommand( MQTTAgentCommandType_t commandType,
                                          const MQTTAgentContext_t * pMqttAgentContext,
                                          void * pMqttInfoParam,
-                                         CommandCallback_t commandCompleteCallback,
-                                         CommandContext_t * pCommandCompleteCallbackContext,
+                                         MQTTAgentCommandCallback_t commandCompleteCallback,
+                                         MQTTAgentCommandContext_t * pCommandCompleteCallbackContext,
                                          uint32_t blockTimeMs )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
-    Command_t * pCommand;
+    MQTTAgentCommand_t * pCommand;
     bool commandReleased = false;
 
     /* If the packet ID is zero then the MQTT context has not been initialized as 0
@@ -745,7 +745,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
         }
         else
         {
-            /* Ran out of Command_t structures - pool is empty. */
+            /* Ran out of MQTTAgentCommand_t structures - pool is empty. */
             statusReturn = MQTTNoMemory;
         }
     }
@@ -760,7 +760,7 @@ static MQTTStatus_t createAndAddCommand( CommandType_t commandType,
 /*-----------------------------------------------------------*/
 
 static void concludeCommand( const MQTTAgentContext_t * pAgentContext,
-                             Command_t * pCommand,
+                             MQTTAgentCommand_t * pCommand,
                              MQTTStatus_t returnCode,
                              uint8_t * pSubackCodes )
 {
@@ -797,7 +797,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
     MQTTStatus_t statusResult = MQTTSuccess;
     MQTTStateCursor_t cursor = MQTT_STATE_CURSOR_INITIALIZER;
     uint16_t packetId = MQTT_PACKET_ID_INVALID;
-    AckInfo_t * pFoundAck = NULL;
+    MQTTAgentAckInfo_t * pFoundAck = NULL;
     MQTTPublishInfo_t * pOriginalPublish = NULL;
     MQTTContext_t * pMqttContext;
 
@@ -821,7 +821,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
             if( statusResult != MQTTSuccess )
             {
                 concludeCommand( pMqttAgentContext, pFoundAck->pOriginalCommand, statusResult, NULL );
-                ( void ) memset( pFoundAck, 0x00, sizeof( AckInfo_t ) );
+                ( void ) memset( pFoundAck, 0x00, sizeof( MQTTAgentAckInfo_t ) );
                 LogError( ( "Failed to resend publishes. Error code=%s\n", MQTT_Status_strerror( statusResult ) ) );
                 break;
             }
@@ -839,7 +839,7 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
                                          bool clearOnlySubUnsubEntries )
 {
     size_t i = 0;
-    AckInfo_t * pendingAcks;
+    MQTTAgentAckInfo_t * pendingAcks;
 
     assert( pMqttAgentContext != NULL );
 
@@ -867,7 +867,7 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
                 concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
 
                 /* Now remove it from the list. */
-                ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( AckInfo_t ) );
+                ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
             }
         }
     }
@@ -876,7 +876,7 @@ static void clearPendingAcknowledgments( MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
-                            const CommandInfo_t * pCommandInfo )
+                            const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     bool ret = false;
 
@@ -905,7 +905,7 @@ static bool validateStruct( const MQTTAgentContext_t * pMqttAgentContext,
 
 /*-----------------------------------------------------------*/
 
-static bool validateParams( CommandType_t commandType,
+static bool validateParams( MQTTAgentCommandType_t commandType,
                             const void * pParams )
 {
     bool ret = false;
@@ -944,11 +944,11 @@ static bool validateParams( CommandType_t commandType,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
-                             const AgentMessageInterface_t * pMsgInterface,
+                             const MQTTAgentMessageInterface_t * pMsgInterface,
                              const MQTTFixedBuffer_t * pNetworkBuffer,
                              const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
-                             IncomingPublishCallback_t incomingCallback,
+                             MQTTAgentIncomingPublishCallback_t incomingCallback,
                              void * pIncomingPacketContext )
 {
     MQTTStatus_t returnStatus;
@@ -995,7 +995,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
 
 MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
 {
-    Command_t * pCommand;
+    MQTTAgentCommand_t * pCommand;
     MQTTStatus_t operationStatus = MQTTSuccess;
     bool endLoop = false;
 
@@ -1080,7 +1080,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
 
 MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                  const CommandInfo_t * pCommandInfo )
+                                  const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1105,7 +1105,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
 
 MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                    const CommandInfo_t * pCommandInfo )
+                                    const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1130,7 +1130,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
 
 MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
-                                const CommandInfo_t * pCommandInfo )
+                                const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1154,7 +1154,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext,
-                                    const CommandInfo_t * pCommandInfo )
+                                    const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1178,7 +1178,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
 
 MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTAgentConnectArgs_t * pConnectArgs,
-                                const CommandInfo_t * pCommandInfo )
+                                const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1202,7 +1202,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
-                                   const CommandInfo_t * pCommandInfo )
+                                   const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1225,7 +1225,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
-                             const CommandInfo_t * pCommandInfo )
+                             const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
@@ -1248,7 +1248,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
-                                  const CommandInfo_t * pCommandInfo )
+                                  const MQTTAgentCommandInfo_t * pCommandInfo )
 {
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;

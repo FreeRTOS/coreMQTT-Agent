@@ -28,7 +28,6 @@ com
 commandcallback
 commandcompletecallback
 commandcontext
-commandinfo
 commandloop
 commandtype
 cond
@@ -87,6 +86,7 @@ misra
 mqtt
 mqttagent
 mqttagentcommand
+mqttagentcommandinfo
 mqttagentcontext
 mqttagentsubscribeargs
 mqttbadparameter

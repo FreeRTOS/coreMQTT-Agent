@@ -29,7 +29,7 @@
 
 #include <stdbool.h>
 
-/* mqtt_agent.h must precede including this header. */
+/* core_mqtt_agent.h must precede including this header. */
 
 /**
  * @brief Allocate a #MQTTFixedBuffer_t object.

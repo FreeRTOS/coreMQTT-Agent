@@ -26,7 +26,7 @@
  */
 
 /* MQTT Agent command functions include. */
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent_command_functions.h"
 
 static MQTTStatus_t MQTTAgentCommand_Stub( MQTTAgentContext_t * pMqttAgentContext,
                                            void * pArg,

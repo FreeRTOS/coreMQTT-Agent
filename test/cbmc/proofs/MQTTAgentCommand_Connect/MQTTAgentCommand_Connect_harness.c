@@ -26,7 +26,7 @@
  */
 
 /* MQTT agent include. */
-#include "mqtt_agent_command_functions.h"
+#include "core_mqtt_agent_command_functions.h"
 #include "mqtt_agent_cbmc_state.h"
 
 void harness()
