@@ -299,9 +299,9 @@ typedef struct CommandInfo
  *
  * if( status == MQTTSuccess )
  * {
- *      // Do something with agentContext. The transport and message interfaces, and
- *      // fixedBuffer structs were copied into the context, so the original structs
- *      // do not need to stay in scope.
+ *    // Do something with agentContext. The transport and message interfaces, and
+ *    // fixedBuffer structs were copied into the context, so the original structs
+ *    // do not need to stay in scope.
  * }
  * @endcode
  */
@@ -345,7 +345,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  *    // Terminate command was processed but MQTT connection was not
  *    // closed. Thus, need to close both MQTT and socket connections.
  *    status = MQTT_Disconnect( &( mqttAgentContext.mqttContext ) );
- *    configASSERT( status == MQTTSuccess );
+ *    assert( status == MQTTSuccess );
  *    Platform_DisconnectNetwork( mqttAgentContext.mqttContext.transportInterface.pNetworkContext );
  * }
  * else
@@ -354,7 +354,6 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  * }
  *
  * @endcode
- *
  */
 /* @[declare_mqtt_agent_commandloop] */
 MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
@@ -388,8 +387,6 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * {
  *    // Do something with the connection.
  * }
- *
- *
  * @endcode
  */
 /* @[declare_mqtt_agent_resumesession] */
@@ -445,8 +442,9 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  *
  * if( status == MQTTSuccess )
  * {
- *    // If the broker accepts the subscription we can now receive publishes
- *    // on the requested topics.
+ *   // Command to send subscribe request to the server has been queued. Notification
+ *   // about completion of the subscribe operation will be notified to application
+ *   // through invocation of subscribeCmdCompleteCb().
  * }
  *
  * @endcode
@@ -504,8 +502,9 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * if( status == MQTTSuccess )
  * {
- *    // If the broker accepts the unsubscription, we will no longer receive publishes
- *    // from the topics.
+ *   // Command to send Unsubscribe request to the server has been queued. Notification
+ *   // about completion of the Unsubscribe operation will be notified to application
+ *   // through invocation of unsubscribeCompleteCb().
  * }
  *
  * @endcode
@@ -563,8 +562,9 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  *
  * if( status == MQTTSuccess )
  * {
- *    // If the broker receives the publish, proceed with rest of the application
- *    // logic like waiting for response from broker.
+ *    // Command to publish message to broker has been queued.
+ *    // The event of publish operation completion will be notified with
+ *    // the invocation of the publishCmdCompleteCb().
  * }
  *
  * @endcode
@@ -612,8 +612,10 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * if( status == MQTTSuccess )
  * {
- *    // Proceed with application logic, like processing information
- *    // from an incoming PUBLISH, if received from the network.
+ *    // Command to call MQTT_ProcessLoop() has been queued.
+ *    // After processing the command, if an incoming publish is received,
+ *    // the event will be notified with invocation of the incoming publish
+ *    // callback configured in the agent context.
  * }
  *
  * @endcode
@@ -626,7 +628,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
 /**
  * @brief Add a command to call MQTT_Ping() for an MQTT connection.
  *
- * @note This API function ONLY enques a command to send a ping request to the server,
+ * @note This API function ONLY enqueues a command to send a ping request to the server,
  * and DOES NOT wait for a ping response to be received from the server. To detect whether
  * a Ping Response, has not been received from the server, the @ref MQTTAgent_CommandLoop
  * function SHOULD be used, which returns the #MQTTKeepAliveTimeout return code on a ping
@@ -684,9 +686,8 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * is resumed with the broker, it will also resend the necessary QoS1/2 publishes.
  *
  * @note The MQTTAgent_Connect function is provided to give a thread safe equivalent
- * to the cirresponding MQTT_Connect APIs. However, it is unlikely to be used as
- * the MQTT connection is likely to be created by the agent task before calling
- * MQTTAgent_CommandLoop().
+ * to the MQTT_Connect API. However, it is unlikely to be used as the MQTT connection
+ * is likely to be created by the agent task before calling MQTTAgent_CommandLoop().
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in, out] pConnectArgs Struct holding args for MQTT_Connect(). On a successful
@@ -747,11 +748,11 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * connectArgs.timeoutMs = 500;
  *
  * // Function for command complete callback.
- * void connectCallback( void * pCmdCallbackContext,
- *                       MQTTAgentReturnInfo_t * pReturnInfo );
+ * void connectCmdCallback( void * pCmdCallbackContext,
+ *                          MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
- * commandInfo.cmdCompleteCallback = connectCallback;
+ * commandInfo.cmdCompleteCallback = connectCmdCallback;
  * commandInfo.blockTimeMs = 500;
  *
  * status = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
@@ -760,7 +761,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * {
  *   // Command for creating the MQTT connection has been queued.
  *   // The MQTT connection event will be notified through the
- *   // invocation of disconnectCallback().
+ *   // invocation of connectCmdCallback().
  * }
  * @endcode
  */
@@ -804,11 +805,11 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * CommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
- * void disconnectCallback( void * pCmdCallbackContext,
+ * void disconnectCmdCallback( void * pCmdCallbackContext,
  *                             MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
- * commandInfo.cmdCompleteCallback = disconnectCallback;
+ * commandInfo.cmdCompleteCallback = disconnectCmdCallback;
  * commandInfo.blockTimeMs = 500;
  *
  * status = MQTTAgent_Disconnect( &agentContext, &commandInfo );
@@ -817,7 +818,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * {
  *   // Command for closing the MQTT connection has been queued.
  *   // The MQTT disconnection event will be notified through the
- *   // invocation of disconnectCallback().
+ *   // invocation of disconnectCmdCallback().
  * }
  *
  * @endcode
