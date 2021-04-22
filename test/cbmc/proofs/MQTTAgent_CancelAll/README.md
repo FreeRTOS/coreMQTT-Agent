@@ -3,6 +3,9 @@ MQTTAgent_CancelAll proof
 
 This directory contains a memory safety proof for MQTTAgent_CancelAll.
 
+The proof runs within 3 minutes on a t2.2xlarge. It provides complete coverage of:
+ * MQTTAgent_CancelAll()
+
 To run the proof.
 -------------
 
