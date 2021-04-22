@@ -275,6 +275,21 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
 /* @[declare_mqtt_agent_resumesession] */
 
 /**
+ * @brief Cancel all enqueued commands and those awaiting acknowledgment
+ * while the command loop is not running.
+ *
+ * @param[in] pMqttAgentContext The MQTT agent to use.
+ *
+ * @note This function is NOT thread-safe and should only be called
+ * from the context of the task responsible for #MQTTAgent_CommandLoop.
+ *
+ * @return #MQTTSuccess.
+ */
+/* @[declare_mqtt_agent_cancelall] */
+MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext );
+/* @[declare_mqtt_agent_cancelall] */
+
+/**
  * @brief Add a command to call MQTT_Subscribe() for an MQTT connection.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.

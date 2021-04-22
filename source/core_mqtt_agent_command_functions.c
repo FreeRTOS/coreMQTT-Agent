@@ -38,45 +38,6 @@
 
 /*-----------------------------------------------------------*/
 
-/**
- * @brief Conclude a command and mark as an error. Copied from core_mqtt_agent.c
- *
- * @param[in] pAgentContext Agent context for the MQTT connection.
- * @param[in] pCommand Command to complete.
- */
-static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    MQTTAgentCommand_t * pCommand );
-
-static void concludeCommandAsError( const MQTTAgentContext_t * pAgentContext,
-                                    MQTTAgentCommand_t * pCommand )
-{
-    bool commandReleased = false;
-    MQTTAgentReturnInfo_t returnInfo;
-
-    ( void ) memset( &returnInfo, 0x00, sizeof( MQTTAgentReturnInfo_t ) );
-    assert( pAgentContext != NULL );
-    assert( pAgentContext->agentInterface.releaseCommand != NULL );
-    assert( pCommand != NULL );
-
-    returnInfo.returnCode = MQTTBadResponse;
-
-    if( pCommand->pCommandCompleteCallback != NULL )
-    {
-        pCommand->pCommandCompleteCallback( pCommand->pCmdContext, &returnInfo );
-    }
-
-    commandReleased = pAgentContext->agentInterface.releaseCommand( pCommand );
-
-    if( !commandReleased )
-    {
-        LogError( ( "Failed to release command %p of type %d.",
-                    ( void * ) pCommand,
-                    pCommand->commandType ) );
-    }
-}
-
-/*-----------------------------------------------------------*/
-
 MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
                                            void * pUnusedArg,
                                            MQTTAgentCommandFuncReturns_t * pReturnFlags )
@@ -261,10 +222,7 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    MQTTAgentCommand_t * pReceivedCommand = NULL;
-    bool commandWasReceived = false;
-    MQTTAgentAckInfo_t * pendingAcks;
-    size_t i;
+    MQTTStatus_t ret;
 
     ( void ) pUnusedArg;
 
@@ -272,40 +230,13 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
     assert( pMqttAgentContext->agentInterface.releaseCommand != NULL );
     assert( pReturnFlags != NULL );
 
-    pendingAcks = pMqttAgentContext->pPendingAcks;
-
     LogInfo( ( "Terminating command loop.\n" ) );
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->endLoop = true;
 
-    /* Cancel all operations waiting in the queue. */
-    do
-    {
-        pReceivedCommand = NULL;
-        commandWasReceived = pMqttAgentContext->agentInterface.recv(
-            pMqttAgentContext->agentInterface.pMsgCtx,
-            &( pReceivedCommand ),
-            0U );
+    ret = MQTTAgent_CancelAll( pMqttAgentContext );
 
-        if( pReceivedCommand != NULL )
-        {
-            concludeCommandAsError( pMqttAgentContext, pReceivedCommand );
-        }
-    } while( commandWasReceived );
-
-    /* Cancel any operations awaiting an acknowledgment. */
-    for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
-    {
-        if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
-        {
-            concludeCommandAsError( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand );
-
-            /* Now remove it from the list. */
-            ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
-        }
-    }
-
-    return MQTTSuccess;
+    return ret;
 }
 
 /*-----------------------------------------------------------*/

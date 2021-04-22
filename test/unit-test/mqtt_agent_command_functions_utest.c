@@ -131,24 +131,6 @@ static bool stubReleaseCommand( MQTTAgentCommand_t * pCommandToRelease )
     return true;
 }
 
-/**
- * @brief A mocked callback function used for testing.
- */
-static void stubCompletionCallback( void * pCommandCompletionContext,
-                                    MQTTAgentReturnInfo_t * pReturnInfo )
-{
-    MQTTAgentCommandContext_t * pCastContext;
-
-    pCastContext = ( MQTTAgentCommandContext_t * ) pCommandCompletionContext;
-
-    if( pCastContext != NULL )
-    {
-        pCastContext->returnStatus = pReturnInfo->returnCode;
-    }
-
-    commandCompleteCallbackCount++;
-}
-
 /* ============================   UNITY FIXTURES ============================ */
 
 /* Called before each test method. */
@@ -536,8 +518,6 @@ void test_MQTTAgentCommand_Terminate( void )
     MQTTAgentContext_t mqttAgentContext = { 0 };
     MQTTStatus_t mqttStatus;
     MQTTAgentCommandFuncReturns_t returnFlags = { 0 };
-    MQTTAgentCommand_t command = { 0 };
-    MQTTAgentCommandContext_t commandContext = { 0 };
 
     mqttAgentContext.agentInterface.pMsgCtx = &globalMessageContext;
     mqttAgentContext.agentInterface.send = stubSend;
@@ -545,44 +525,7 @@ void test_MQTTAgentCommand_Terminate( void )
     mqttAgentContext.agentInterface.releaseCommand = stubReleaseCommand;
     mqttAgentContext.agentInterface.getCommand = stubGetCommand;
 
-    command.pCommandCompleteCallback = stubCompletionCallback;
-    command.pCmdContext = &commandContext;
-    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
-
-    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
-    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
-
-    mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
-
-
-    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
-    /* Ensure that returnFlags are set as intended. */
-    TEST_ASSERT_EQUAL( 0, returnFlags.packetId );
-    TEST_ASSERT_TRUE( returnFlags.endLoop );
-    TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
-    TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
-
-    /* Ensure that callback is invoked. */
-    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
-    TEST_ASSERT_EQUAL( MQTTBadResponse, command.pCmdContext->returnStatus );
-
-
-    /* Ensure that acknowledgment is cleared. */
-    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
-    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
-
-    /* Ensure that command is released. */
-    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
-
-    /* Test MQTTAgentCommand_Terminate() with commandCallback as null. */
-    receiveCounter = 0;
-    commandCompleteCallbackCount = 0;
-    commandReleaseCallCount = 0;
-    command.pCommandCompleteCallback = NULL;
-    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
-    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
-    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
-
+    MQTTAgent_CancelAll_ExpectAnyArgsAndReturn( MQTTSuccess );
     mqttStatus = MQTTAgentCommand_Terminate( &mqttAgentContext, NULL, &returnFlags );
 
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
@@ -591,14 +534,4 @@ void test_MQTTAgentCommand_Terminate( void )
     TEST_ASSERT_TRUE( returnFlags.endLoop );
     TEST_ASSERT_FALSE( returnFlags.addAcknowledgment );
     TEST_ASSERT_FALSE( returnFlags.runProcessLoop );
-
-    /* Ensure that callback is not invoked. */
-    TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
-
-    /* Ensure that acknowledgment is cleared. */
-    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
-    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
-
-    /* Ensure that command is released. */
-    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
 }
