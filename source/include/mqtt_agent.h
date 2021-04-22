@@ -240,7 +240,7 @@ typedef struct CommandInfo
  * // Function for obtaining a timestamp.
  * uint32_t getTimeStampMs();
  * // Callback function for receiving packets.
- * void incomingPublishCallback( struct MQTTAgentContext * pMqttAgentContext,
+ * void incomingPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
  *                               uint16_t packetId,
  *                               MQTTPublishInfo_t * pPublishInfo );
  * // Platform function for network send interface.
@@ -249,20 +249,20 @@ typedef struct CommandInfo
  * int32_t networkRecv( NetworkContext_t * pContext, void * pBuffer, size_t bytes );
  *
  * // Platform function for Agent Message Send.
- * bool agentSendMessage( AgentMessageContext_t * pMsgCtx,
- *                        Command_t * const * pCommandToSend,
+ * bool agentSendMessage( MQTTAgentMessageContext_t * pMsgCtx,
+ *                        MQTTAgentCommand_t * const * pCommandToSend,
  *                        uint32_t blockTimeMs );
  * // Platform function for Agent Message Receive.
  * bool agentReceiveMessage( AgentMessageContext_t * pMsgCtx,
- *                           Command_t * const * pCommandToSend,
+ *                           MQTTAgentCommand_t ** pCommandToSend,
  *                           uint32_t blockTimeMs );
  * // Platform function to Get Agent Command.
- * Command_t * getCommand( uint32_t blockTimeMs );
+ * MQTTAgentCommand_t * getCommand( uint32_t blockTimeMs );
  * // Platform function to Release Agent Command.
- * bool releaseCommand( Command_t * pCommandToRelease );
+ * bool releaseCommand( MQTTAgentCommand_t * pCommandToRelease );
  *
  * // Variables used in this example.
- * AgentMessageInterface_t messageInterface;
+ * MQTTAgentMessageInterface_t messageInterface;
  * MQTTAgentContext_t agentContext;
  * TransportInterface_t transport;
  * // Buffer for storing outgoing and incoming MQTT packets.
