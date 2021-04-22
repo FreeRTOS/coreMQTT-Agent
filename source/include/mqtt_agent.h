@@ -419,7 +419,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  * MQTTSubscribeInfo_t subscribeInfo = { 0 };
  * MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
  *
@@ -480,7 +480,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  * MQTTSubscribeInfo_t unsubscribeInfo = { 0 };
  * MQTTAgentSubscribeArgs_t unsubscribeArgs = { 0 };
  *
@@ -540,7 +540,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  * MQTTPublishInfo_t publishInfo = { 0 };
  *
  * // Function for command complete callback.
@@ -598,7 +598,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
  * void cmdCompleteCb( void * pCmdCallbackContext,
@@ -655,7 +655,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
  * void pingRequestCompleteCb( void * pCmdCallbackContext,
@@ -716,8 +716,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * MQTTConnectInfo_t connectInfo = { 0 };
  * MQTTPublishInfo_t willInfo = { 0 };
  * MQTTAgentConnectArgs_t connectionArgs;
- * bool sessionPresent;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // True for creating a new session with broker, false if we want to resume an old one.
  * connectInfo.cleanSession = true;
@@ -745,6 +744,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * // Fill the MQTTAgentConnectArgs_t structure.
  * connectArgs.pConnectInfo = &connectInfo;
  * connectArgs.pWillInfo = &willInfo;
+ * // Time to block for CONNACK response when command is processed.
  * connectArgs.timeoutMs = 500;
  *
  * // Function for command complete callback.
@@ -802,7 +802,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
  * void disconnectCmdCallback( void * pCmdCallbackContext,
@@ -857,7 +857,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  * // Variables used in this example.
  * MQTTAgentContext_t agentContext;
  * MQTTStatus_t status;
- * CommandInfo_t commandInfo = { 0 };
+ * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
  * void terminateCallback( void * pCmdCallbackContext,

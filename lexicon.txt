@@ -116,6 +116,7 @@ mit
 mqtt
 mqttagent
 mqttagentcommand
+mqttagentcommandinfo
 mqttagentcontext
 mqttagentsubscribeargs
 mqttbadparameter
