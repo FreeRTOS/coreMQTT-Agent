@@ -31,15 +31,14 @@
 
 void harness()
 {
+    MQTTAgentContext_t * pMqttAgentContext;
 
-  MQTTAgentContext_t * pMqttAgentContext;
+    pMqttAgentContext = allocateMqttAgentContext( NULL );
 
-  pMqttAgentContext = allocateMqttAgentContext( NULL );
+    if( pMqttAgentContext != NULL )
+    {
+        addPendingAcks( pMqttAgentContext );
+    }
 
-  if( pMqttAgentContext != NULL )
-  {
-    addPendingAcks( pMqttAgentContext );
-  }
-
-  MQTTAgent_CancelAll( pMqttAgentContext );
+    MQTTAgent_CancelAll( pMqttAgentContext );
 }
