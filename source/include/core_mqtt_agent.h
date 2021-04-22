@@ -24,8 +24,8 @@
  * @file core_mqtt_agent.h
  * @brief Functions for running a coreMQTT client in a dedicated thread.
  */
-#ifndef MQTT_AGENT_H
-#define MQTT_AGENT_H
+#ifndef CORE_MQTT_AGENT_H
+#define CORE_MQTT_AGENT_H
 
 /* MQTT library includes. */
 #include "core_mqtt.h"
@@ -466,4 +466,4 @@ MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
                                   const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
 
-#endif /* MQTT_AGENT_H */
+#endif /* CORE_MQTT_AGENT_H */

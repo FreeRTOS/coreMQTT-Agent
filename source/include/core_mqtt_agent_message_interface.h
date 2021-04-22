@@ -24,8 +24,8 @@
  * @file core_mqtt_agent_message_interface.h
  * @brief Functions to interact with queues.
  */
-#ifndef AGENT_MESSAGE_H
-#define AGENT_MESSAGE_H
+#ifndef CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
+#define CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -121,4 +121,4 @@ typedef struct MQTTAgentMessageInterface
     MQTTAgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
 } MQTTAgentMessageInterface_t;
 
-#endif /* AGENT_MESSAGE_H */
+#endif /* CORE_MQTT_AGENT_MESSAGE_INTERFACE_H */

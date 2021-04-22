@@ -24,8 +24,8 @@
  * @file core_mqtt_agent_command_functions.h
  * @brief Functions for processing an MQTT agent command.
  */
-#ifndef MQTT_AGENT_COMMAND_FUNCTIONS_H
-#define MQTT_AGENT_COMMAND_FUNCTIONS_H
+#ifndef CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
+#define CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
 
 /* MQTT Agent include. */
 #include "core_mqtt_agent.h"
@@ -201,4 +201,4 @@ MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
-#endif /* MQTT_AGENT_COMMAND_FUNCTIONS_H */
+#endif /* CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H */
