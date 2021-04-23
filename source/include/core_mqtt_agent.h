@@ -263,6 +263,7 @@ typedef struct MQTTAgentCommandInfo
  *
  * // Variables used in this example.
  * MQTTAgentMessageInterface_t messageInterface;
+ * MQTTAgentMessageContext_t messageContext;
  * MQTTAgentContext_t agentContext;
  * TransportInterface_t transport;
  * // Buffer for storing outgoing and incoming MQTT packets.
@@ -276,7 +277,7 @@ typedef struct MQTTAgentCommandInfo
  * transport.recv = networkRecv;
  *
  * // Set agent message interface members.
- * messageInterface.pMsgCtx = NULL;
+ * messageInterface.pMsgCtx = &messageContext;
  * messageInterface.send = agentSendMessage;
  * messageInterface.recv = agentReceiveMessage;
  * messageInterface.getCommand = getCommand;
