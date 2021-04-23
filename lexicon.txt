@@ -191,6 +191,7 @@ statusreturn
 struct
 structs
 stubreceive
+stubreceivethenfail
 suback
 sublicense
 timeoutms

@@ -1078,6 +1078,55 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
 
 /*-----------------------------------------------------------*/
 
+MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext )
+{
+    MQTTStatus_t statusReturn = MQTTSuccess;
+    MQTTAgentCommand_t * pReceivedCommand = NULL;
+    bool commandWasReceived = false;
+    MQTTAgentAckInfo_t * pendingAcks;
+    size_t i;
+
+    if( ( pMqttAgentContext == NULL ) || ( pMqttAgentContext->agentInterface.pMsgCtx == NULL ) )
+    {
+        statusReturn = MQTTBadParameter;
+    }
+    else
+    {
+        /* Cancel all operations waiting in the queue. */
+        do
+        {
+            pReceivedCommand = NULL;
+            commandWasReceived = pMqttAgentContext->agentInterface.recv(
+                pMqttAgentContext->agentInterface.pMsgCtx,
+                &( pReceivedCommand ),
+                0U );
+
+            if( pReceivedCommand != NULL )
+            {
+                concludeCommand( pMqttAgentContext, pReceivedCommand, MQTTRecvFailed, NULL );
+            }
+        } while( commandWasReceived );
+
+        pendingAcks = pMqttAgentContext->pPendingAcks;
+
+        /* Cancel any operations awaiting an acknowledgment. */
+        for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
+        {
+            if( pendingAcks[ i ].packetId != MQTT_PACKET_ID_INVALID )
+            {
+                concludeCommand( pMqttAgentContext, pendingAcks[ i ].pOriginalCommand, MQTTRecvFailed, NULL );
+
+                /* Now remove it from the list. */
+                ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
+            }
+        }
+    }
+
+    return statusReturn;
+}
+
+/*-----------------------------------------------------------*/
+
 MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
                                   MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
                                   const MQTTAgentCommandInfo_t * pCommandInfo )

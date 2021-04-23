@@ -94,6 +94,11 @@ static uint8_t packetType;
 static uint16_t packetIdentifier;
 
 /**
+ * @brief Mock Counter variable for calling stubReceiveThenFail multiple times.
+ */
+static uint32_t receiveCounter;
+
+/**
  * @brief Return flags to use for test.
  */
 static MQTTAgentCommandFuncReturns_t returnFlags;
@@ -110,6 +115,7 @@ void setUp()
     pCommandToReturn = NULL;
     commandCompleteCallbackCount = 0;
     packetIdentifier = 1U;
+    receiveCounter = 0;
     returnFlags.addAcknowledgment = false;
     returnFlags.runProcessLoop = false;
     returnFlags.endLoop = false;
@@ -169,6 +175,26 @@ static bool stubReceive( MQTTAgentMessageContext_t * pMsgCtx,
     ( void ) blockTimeMs;
     *pReceivedCommand = pMsgCtx->pSentCommand;
     return true;
+}
+
+/**
+ * @brief A mocked receive function for the agent to receive commands.
+ */
+static bool stubReceiveThenFail( MQTTAgentMessageContext_t * pMsgCtx,
+                                 MQTTAgentCommand_t ** pReceivedCommand,
+                                 uint32_t blockTimeMs )
+{
+    bool ret = false;
+
+    ( void ) blockTimeMs;
+
+    if( receiveCounter++ == 0 )
+    {
+        *pReceivedCommand = pMsgCtx->pSentCommand;
+        ret = true;
+    }
+
+    return ret;
 }
 
 /**
@@ -1649,4 +1675,70 @@ void test_MQTTAgent_CommandLoop_failure_executing_second_command( void )
     TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
     /* Ensure that callback is invoked. */
     TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+}
+
+void test_MQTTAgent_CancelAll( void )
+{
+    MQTTAgentContext_t mqttAgentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    MQTTAgentCommand_t command = { 0 };
+    MQTTAgentCommandContext_t commandContext = { 0 };
+
+    setupAgentContext( &mqttAgentContext );
+
+    command.pCommandCompleteCallback = stubCompletionCallback;
+    command.pCmdContext = &commandContext;
+    globalMessageContext.pSentCommand = &command;
+
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    /* Invalid parameters. */
+    mqttStatus = MQTTAgent_CancelAll( NULL );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttAgentContext.agentInterface.pMsgCtx = NULL;
+    mqttStatus = MQTTAgent_CancelAll( &mqttAgentContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /* Only receive a few commands to avoid infinite loop. */
+    mqttAgentContext.agentInterface.recv = stubReceiveThenFail;
+    mqttAgentContext.agentInterface.pMsgCtx = &globalMessageContext;
+    mqttStatus = MQTTAgent_CancelAll( &mqttAgentContext );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+    TEST_ASSERT_EQUAL( MQTTRecvFailed, command.pCmdContext->returnStatus );
+
+
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+    /* Ensure that command is released. */
+    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
+
+    /* Test MQTTAgent_CancelAll() with commandCallback as null. */
+    receiveCounter = 0;
+    commandCompleteCallbackCount = 0;
+    commandReleaseCallCount = 0;
+    command.pCommandCompleteCallback = NULL;
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &command;
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    mqttStatus = MQTTAgent_CancelAll( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+    /* Ensure that callback is not invoked. */
+    TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
+
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+    /* Ensure that command is released. */
+    TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
 }

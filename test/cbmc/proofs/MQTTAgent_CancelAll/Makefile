@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 HARNESS_ENTRY = harness
-HARNESS_FILE = MQTTAgentCommand_Terminate_harness
+HARNESS_FILE = MQTTAgent_CancelAll_harness
 
 # This should be a unique identifier for this proof, and will appear on the
 # Litani dashboard. It can be human-readable and contain spaces if you wish.
-PROOF_UID = MQTTAgentCommand_Terminate
+PROOF_UID = MQTTAgent_CancelAll
 
 # MQTT_AGENT_MAX_OUTSTANDING_ACKS set the maximum number of acknowledgments
 # that can be outstanding at any one time. A small number 2 will be enough
@@ -25,8 +25,10 @@ DEFINES += -DMQTT_AGENT_MAX_OUTSTANDING_ACKS=$(MQTT_AGENT_MAX_OUTSTANDING_ACKS)
 DEFINES +=
 INCLUDES +=
 
-REMOVE_FUNCTION_BODY +=	MQTTAgent_CancelAll
+REMOVE_FUNCTION_BODY +=
 UNWINDSET += addPendingAcks.0:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
+UNWINDSET += MQTTAgent_CancelAll.0:$(MAX_BOUND_FOR_RECEIVE_COMMAND_LOOP)
+UNWINDSET += MQTTAgent_CancelAll.1:$(MAX_BOUND_FOR_PENDING_ACK_LOOPS)
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/sources/mqtt_agent_cbmc_state.c
@@ -36,7 +38,6 @@ PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/get_time_stub.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_command_pool_stubs.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_message_stubs.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/core_mqtt_stubs.c
-PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent_command_functions.c
 PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent.c
 
 include ../Makefile.common
