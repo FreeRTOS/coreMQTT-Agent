@@ -94,7 +94,7 @@ static uint8_t packetType;
 static uint16_t packetIdentifier;
 
 /**
- * @brief Mock Counter variable for calling stubReceive multiple times.
+ * @brief Mock Counter variable for calling stubReceiveThenFail multiple times.
  */
 static uint32_t receiveCounter;
 

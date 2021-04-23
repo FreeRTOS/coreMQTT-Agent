@@ -283,7 +283,7 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * @note This function is NOT thread-safe and should only be called
  * from the context of the task responsible for #MQTTAgent_CommandLoop.
  *
- * @return #MQTTSuccess.
+ * @return #MQTTBadParameter if an invalid context is given, else #MQTTSuccess.
  */
 /* @[declare_mqtt_agent_cancelall] */
 MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext );
