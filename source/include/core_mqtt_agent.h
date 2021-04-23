@@ -697,7 +697,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * the MQTT connection (by calling MQTT_Connect) before starting the command loop (with
  * the MQTTAgent_CommandLoop() call). In that case, the agent SHOULD also be responsible
  * for disconnecting the MQTT connection after the command loop has terminated (through
- * a MQTTAgent_Terminate() call from an application task).
+ * an MQTTAgent_Terminate() call from an application task).
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  * @param[in, out] pConnectArgs Struct holding args for MQTT_Connect(). On a successful
@@ -881,7 +881,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  *
  * if( status == MQTTSuccess )
  * {
- *   // Command for terminate the agent loop has been queued.
+ *   // Command to terminate the agent loop has been queued.
  * }
  *
  * @endcode

@@ -105,6 +105,7 @@ logwarn
 lwt
 mainpage
 memset
+messagecontext
 messageinterface
 metadata
 microcontroller
