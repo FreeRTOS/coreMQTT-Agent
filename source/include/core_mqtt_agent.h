@@ -253,7 +253,7 @@ typedef struct MQTTAgentCommandInfo
  *                        MQTTAgentCommand_t * const * pCommandToSend,
  *                        uint32_t blockTimeMs );
  * // Platform function for Agent Message Receive.
- * bool agentReceiveMessage( AgentMessageContext_t * pMsgCtx,
+ * bool agentReceiveMessage( MQTTAgentMessageContext_t * pMsgCtx,
  *                           MQTTAgentCommand_t ** pCommandToSend,
  *                           uint32_t blockTimeMs );
  * // Platform function to Get Agent Command.
@@ -269,9 +269,6 @@ typedef struct MQTTAgentCommandInfo
  * MQTTFixedBuffer_t fixedBuffer;
  * uint8_t buffer[ 1024 ];
  * MQTTStatus_t status;
- *
- * // Clear context.
- * memset( ( void * ) &agentContext, 0x00, sizeof( MQTTAgentContext_t ) );
  *
  * // Set transport interface members.
  * transport.pNetworkContext = &someTransportContext;
@@ -387,7 +384,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * // Refer to the MQTT_Connect API for a more detailed example.
  *
  * // Attempt to resume session with the broker.
- * status = MQTT_Connect( mqttAgentContext.mqttContext, &connectInfo, &willInfo, 100, &sessionPresent )
+ * status = MQTT_Connect( &( mqttAgentContext.mqttContext ), &connectInfo, &willInfo, 100, &sessionPresent )
  *
  * if( status == MQTTSuccess )
  * {
