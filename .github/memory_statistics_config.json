@@ -1,5 +1,5 @@
 {
-    "lib_name": "MQTT Agent",
+    "lib_name": "coreMQTT Agent",
     "src": [
         "source/core_mqtt_agent.c",
         "source/core_mqtt_agent_command_functions.c",
