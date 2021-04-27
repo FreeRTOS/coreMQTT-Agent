@@ -87,5 +87,5 @@ See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for information on contributing
 
 ## License
 
-This library is licensed under the MIT License. See the [LICENSE](LICENSE.md) file.
+This library is licensed under the MIT License. See the [LICENSE](LICENSE) file.
 
