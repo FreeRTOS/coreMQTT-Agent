@@ -104,6 +104,7 @@ loginfo
 logwarn
 lwt
 mainpage
+malloc
 memset
 messagecontext
 messageinterface
@@ -115,8 +116,10 @@ mit
 mqtt
 mqttagent
 mqttagentcommand
+mqttagentcommandcontext
 mqttagentcommandinfo
 mqttagentcontext
+mqttagentmessagecontext
 mqttagentsubscribeargs
 mqttbadparameter
 mqttconnectinfo
@@ -137,6 +140,11 @@ mqttsubscribeinfo
 mqttsuccess
 multithreaded
 multithreading
+mutex
+mygetcommandimplementation
+mymessagerecvimplementation
+mymessagesendimplementation
+myreleasecommandimplementation
 networkbuffer
 networkinterfacereceivestub
 networkinterfacesendstub
@@ -203,6 +211,7 @@ ppendingacks
 ppublisharg
 ppublishinfo
 preceivedcommand
+preceivedpointer
 preturnflags
 preturninfo
 printf
@@ -211,7 +220,7 @@ psubackcodes
 psubscribeargs
 psubscribeinfo
 psubscriptionargs
-ptopicfilter
+pthread
 ptopicfilter
 ptopicname
 ptopicname
@@ -233,6 +242,7 @@ recv
 releasecommand
 resending
 resumesession
+ret
 returncode
 returnflags
 runprocessloop
@@ -256,11 +266,13 @@ sublicense
 subscribeargs
 subscribecmdcompletecb
 subscribeinfo
+td
 terminatecallback
 timeoutms
 todo
 topicfilterlength
 topicnamelength
+tr
 transportinterface
 uint
 unsuback

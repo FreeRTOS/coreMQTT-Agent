@@ -42,22 +42,28 @@
  * at are still waiting to be acknowledged.  MQTT_AGENT_MAX_OUTSTANDING_ACKS set
  * the maximum number of acknowledgments that can be outstanding at any one time.
  * The higher this number is the greater the agent's RAM consumption will be.
+ *
+ * <b>Possible values:</b> Any positive integer up to SIZE_MAX. <br>
+ * <b>Default value:</b> `20`
  */
 #ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
     #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20U )
 #endif
 
 /**
- * @brief Time in MS that the MQTT agent task will wait in the Blocked state (so
+ * @brief Time in milliseconds that the MQTT agent task will wait in the Blocked state (so
  * not using any CPU time) for a command to arrive in its command queue before
  * exiting the blocked state so it can call MQTT_ProcessLoop().
  *
  * @note It is important MQTT_ProcessLoop() is called often if there is known
  * MQTT traffic, but calling it too often can take processing time away from
  * lower priority tasks and waste CPU time and power.
+ *
+ * <b>Possible values:</b> Any positive 32 bit integer. <br>
+ * <b>Default value:</b> `1000`
  */
 #ifndef MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
-    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME    ( 1000 )
+    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME    ( 1000U )
 #endif
 
 /*-----------------------------------------------------------*/
@@ -391,7 +397,6 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * {
  *     // Process the session present status sent by the broker.
  *     status = MQTTAgent_ResumeSession( &mqttAgentContext, sessionPresent );
- *     assert( status == MQTTSuccess );
  * }
  * @endcode
  */
@@ -404,12 +409,35 @@ MQTTStatus_t MQTTAgent_ResumeSession( MQTTAgentContext_t * pMqttAgentContext,
  * @brief Cancel all enqueued commands and those awaiting acknowledgment
  * while the command loop is not running.
  *
+ * Canceled commands will be terminated with return code #MQTTRecvFailed.
+ *
  * @param[in] pMqttAgentContext The MQTT agent to use.
  *
  * @note This function is NOT thread-safe and should only be called
  * from the context of the task responsible for #MQTTAgent_CommandLoop.
  *
  * @return #MQTTBadParameter if an invalid context is given, else #MQTTSuccess.
+ *
+ * <b>Example</b>
+ * @code{c}
+ *
+ * // Variables used in this example.
+ * MQTTStatus_t status;
+ * MQTTAgentContext_t mqttAgentContext;
+ *
+ * status = MQTTAgent_CommandLoop( &mqttAgentContext );
+ *
+ * //An error was returned, but reconnection is not desired. Cancel all commands
+ * //that are in the queue or awaiting an acknowledgment.
+ * if( status != MQTTSuccess )
+ * {
+ *    //Cancel commands so any completion callbacks will be invoked.
+ *    status = MQTTAgent_CancelAll( &mqttAgentContext );
+ * }
+ *
+ * Platform_DisconnectNetwork( mqttAgentContext.mqttContext.transportInterface.pNetworkContext );
+ *
+ * @endcode
  */
 /* @[declare_mqtt_agent_cancelall] */
 MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext );
@@ -799,6 +827,11 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
 /**
  * @brief Add a command to disconnect an MQTT connection.
  *
+ * @note #MQTTAgent_CommandLoop will return after processing a #DISCONNECT
+ * command to allow the network connection to be disconnected. However, any
+ * pending commands in the queue, as well as those waiting for an acknowledgment,
+ * will NOT be terminated.
+ *
  * @note The MQTTAgent_Disconnect function is provided to give a thread safe
  * equivalent to the MQTT_Disconnect API. However, if the agent task is responsible
  * for creating the MQTT connection (before calling MQTTAgent_CommandLoop()), then
@@ -855,6 +888,15 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 
 /**
  * @brief Add a termination command to the command queue.
+ *
+ * On command loop termination, all pending commands in the queue, as well
+ * as those waiting for an acknowledgment, will be terminated with error code
+ * #MQTTRecvFailed.
+ *
+ * @note Commands may still be posted to the command queue after #MQTTAgent_CommandLoop
+ * has returned. It is the responsibility of the application to cancel any
+ * commands that are posted while the command loop is not running, such as by
+ * invoking #MQTTAgent_CancelAll.
  *
  * @note We RECOMMEND that this function is used from application task(s),
  * that is a task not running the agent, to terminate the agent loop instead
