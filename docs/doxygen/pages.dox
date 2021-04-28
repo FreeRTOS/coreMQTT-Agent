@@ -80,9 +80,8 @@ struct MQTTAgentCommandContext
 <br>
 The completion callback using such a context could be:
 @code{c}
-void commandCompleteCallback( void * pContext, MQTTAgentReturnInfo_t * pReturnInfo )
+void commandCompleteCallback( MQTTAgentCommandContext_t * pCmdContext, MQTTAgentReturnInfo_t * pReturnInfo )
 {
-    MQTTAgentCommandContext_t * pCmdContext = ( MQTTAgentCommandContext_t * ) pContext;
     pthread_mutex_lock( &( pCmdContext->lock ) );
     //Set return code so the thread that created the command can view.
     pCmdContext->returnCode = pReturnInfo->returnCode;
