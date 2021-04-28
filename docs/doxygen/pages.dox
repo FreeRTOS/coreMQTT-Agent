@@ -8,6 +8,10 @@ The coreMQTT Agent is a thread-safe library to serialize calls to coreMQTT, to b
 @section coreMQTT_brief Why is there a higher level library based on coreMQTT?
 coreMQTT is an MIT licensed open source C MQTT client library for microcontroller and small microprocessor based IoT devices. Its design is intentionally simple to ensure it has no dependency on any other library or operating system, and to better enable static analysis including memory safety proofs. That simplicity and lack of operating system dependency (coreMQTT does not require multithreading at all) means coreMQTT does not build thread safety directly into its implementation. Instead, thread safety must be provided by higher level software. The coreMQTT Agent library is a coreMQTT extension that provides that higher level functionality in the form of an MQTT agent (or MQTT daemon).
 
+@section core_mqtt_agent_memory_requirements Memory Requirements
+@brief Memory requirements of the coreMQTT Agent library, including the coreMQTT library.
+
+@include{doc} size_table.html
 */
 
 /**
