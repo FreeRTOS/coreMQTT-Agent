@@ -35,7 +35,7 @@ To provide custom values for the configuration values, they must be either:
 
 ## Building the Library
 
-The [mqttAgentFilePaths.cmake](mqttAgentFilePaths.cmake) file contains the information of all source files and the header include path from this repository. In addition to these files, the coreMQTT library is required to build the MQTT Agent library.
+The [mqttAgentFilePaths.cmake](mqttAgentFilePaths.cmake) file contains the information of all source files and the header include path from this repository. In addition to these files, the MQTT Agent library requires the coreMQTT library, whose file information can be obtained from `mqttFilePaths.cmake` in the [coreMQTT submodule](source/dependency/).
 
 For a CMake example of building the MQTT Agent library with the `mqttAgentFilePaths.cmake` file, refer to the `coverity_analysis` library target in [test/CMakeLists.txt](test/CMakeLists.txt) file.
 
