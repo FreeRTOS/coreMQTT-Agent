@@ -230,16 +230,12 @@ static void stubPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
     publishCallbackCount++;
 }
 
-static void stubCompletionCallback( void * pCommandCompletionContext,
+static void stubCompletionCallback( MQTTAgentCommandContext_t * pCommandCompletionContext,
                                     MQTTAgentReturnInfo_t * pReturnInfo )
 {
-    MQTTAgentCommandContext_t * pCastContext;
-
-    pCastContext = ( MQTTAgentCommandContext_t * ) pCommandCompletionContext;
-
-    if( pCastContext != NULL )
+    if( pCommandCompletionContext != NULL )
     {
-        pCastContext->returnStatus = pReturnInfo->returnCode;
+        pCommandCompletionContext->returnStatus = pReturnInfo->returnCode;
     }
 
     commandCompleteCallbackCount++;
