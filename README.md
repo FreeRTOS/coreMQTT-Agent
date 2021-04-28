@@ -1,8 +1,6 @@
-## coreMQTT Agent - Using coreMQTT
+## coreMQTT Agent Library
 
-The coreMQTT Agent library is a high level API that adds thread safety to the [coreMQTT](https://github.com/FreeRTOS/coreMQTT) library. It lets you create a dedicated MQTT agent task that manages an MQTT connection in the background as a standalone task. The library provides thread safe equivalents to the coreMQTT's APIs, so it can be used in multi-threaded environments.
-
-coreMQTT is an MIT licensed open source C MQTT client library for microcontrollers and small microprocessor based IoT devices. Its design is intentionally simple to ensure it has no dependency on any other library or operating system, and to better enable static analysis including [memory safety proofs](https://www.freertos.org/2020/02/ensuring-the-memory-safety-of-freertos-part-1.html). That simplicity and lack of operating system dependency (coreMQTT does not require multithreading at all) means coreMQTT does not build thread safety directly into its implementation. Instead thread safety must be provided by higher level software.
+The coreMQTT Agent library is a high level API that adds thread safety to the [coreMQTT](https://github.com/FreeRTOS/coreMQTT) library. The library provides thread safe equivalents to the coreMQTT's APIs, so it can be used in multi-threaded environments. The coreMQTT Agent library manages the MQTT connection by serializing the access to the coreMQTT library and reducing implementation overhead (e.g., the need for repeated calls to the process loop from the application). This allows your multi-threaded applications to share the same MQTT connection, and enables you to design an embedded application without having to worry about thread safety.
 
 This library has gone through code quality checks including verification that no function has a [GNU Complexity](https://www.gnu.org/software/complexity/manual/complexity.html) score over 8, and checks against deviations from mandatory rules in the [MISRA coding standard](https://www.misra.org.uk/MISRAHome/MISRAC2012/tabid/196/Default.aspx).  Deviations from the MISRA C:2012 guidelines are documented under [MISRA Deviations](MISRA.md). This library has also undergone both static code analysis from [Coverity static analysis](https://scan.coverity.com/), and validation of memory safety and proof of functional correctness through the [CBMC automated reasoning tool](https://www.cprover.org/cbmc/).
 
@@ -75,7 +73,7 @@ Please refer to the demos of the MQTT Agent library in the following locations f
 | Location |
 | :-: |
 | [coreMQTT Agent Demos](https://github.com/FreeRTOS/coreMQTT-Agent-Demos) |
-| [FreeRTOS/FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo) |
+| [FreeRTOS/FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo/coreMQTT_Windows_Simulator/MQTT_Multitask) |
 
 
 ## Generating documentation
@@ -88,7 +86,7 @@ doxygen docs/doxygen/config.doxyfile
 ```
 
 ## Getting help
-You can use your Github login to get support from both the FreeRTOS community and directly from the primary FreeRTOS developers on our [active support forum](https://forums.freertos.org).  The [FAQ](https://www.freertos.org/FAQ.html) provides another support resource.
+You can use your Github login to get support from both the FreeRTOS community and directly from the primary FreeRTOS developers on our [active support forum](https://forums.freertos.org). You can find a list of [frequently asked questions](https://www.freertos.org/FAQ.html) here.
 
 ## Contributing
 
