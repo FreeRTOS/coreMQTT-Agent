@@ -11,6 +11,60 @@ The coreMQTT Agent is a thread-safe library to serialize calls to coreMQTT, to b
 */
 
 /**
+@page mqtt_agent_design Design
+@brief Architecture of the MQTT Agent library.
+
+@section mqtt_agent_task_thread_safety Thread Safe and Unsafe APIs
+
+The MQTT Agent APIs are designed to be used by two types of tasks:
+- An MQTT agent task that manages an MQTT connection and calls coreMQTT APIs. The APIs used by this task are not thread safe, and each agent task should use a unique @ref MQTTAgentContext_t (multiple agent tasks may be used to handle multiple simultaneous MQTT connections, but each must have a unique context). This task is expected to invoke @ref MQTTAgent_CommandLoop to process commands from other tasks to call coreMQTT APIs. The APIs for this task are:
+  - @ref MQTTAgent_Init
+  - @ref MQTTAgent_CommandLoop
+  - @ref MQTTAgent_ResumeSession
+  - @ref MQTTAgent_CancelAll
+- Application tasks that want to perform MQTT operations with thread safety. These tasks are any task that is <i>not</i> an MQTT agent task. The APIs used by application tasks are thread safe, and send commands that are processed by an MQTT agent task in @ref MQTTAgent_CommandLoop. These APIs are:
+  - @ref MQTTAgent_Publish
+  - @ref MQTTAgent_Subscribe
+  - @ref MQTTAgent_Unsubscribe
+  - @ref MQTTAgent_Ping
+  - @ref MQTTAgent_Connect
+  - @ref MQTTAgent_Disconnect
+  - @ref MQTTAgent_Terminate
+
+@section mqtt_agent_interfaces Interfaces and Callbacks
+Similar to coreMQTT, the MQTT Agent library relies on interfaces to dissociate itself from platform specific functionality. Interfaces used by the MQTT Agent library are simply function pointers with expectations of behavior.
+
+The MQTT Agent library expects the application to provide implementations for the following interfaces:
+
+<table>
+    <tr>
+        <td><b>Function Pointer</b></td>
+        <td><b>Use</b></td>
+    </tr>
+    <tr>
+        <td>@ref MQTTAgentMessageRecv_t</td>
+        <td>Receiving commands sent to the agent task.</td>
+    </tr>
+    <tr>
+        <td>@ref MQTTAgentMessageSend_t</td>
+        <td>Sending commands to the agent task from the application</td>
+    </tr>
+    <tr>
+        <td>@ref MQTTAgentCommandGet_t</td>
+        <td>Allocating storage for a command to be sent to the agent task.</td>
+    </tr>
+    <tr>
+        <td>@ref MQTTAgentCommandRelease_t</td>
+        <td>Releasing a command obtained from @ref MQTTAgentCommandGet_t.</td>
+    </tr>
+    <tr>
+        <td>@ref MQTTAgentIncomingPublishCallback_t</td>
+        <td>Accepting incoming publish messages, with the possibility of further distributing them to other tasks.</td>
+    </tr>
+</table>
+*/
+
+/**
 @page core_mqtt_agent_config Configurations
 @brief Configurations of the MQTT Agent.
 <!-- @par configpagestyle allows the @section titles to be styled according to style.css -->
