@@ -23,10 +23,10 @@ If you have downloaded the repo without using the `--recurse-submodules` argumen
 git submodule update --init --recursive
 ```
 
-## MQTT Config File
+## coreMQTT Agent Library Configurations
 
 The MQTT Agent library exposes build configuration macros that are required for building the library.
-However, the MQTT Agent library does not include its own configuration file, instead inheriting any macros defined in coreMQTT's `core_mqtt_config.h`. Lists of configurable macros and their default values can be found at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h).
+However, the MQTT Agent library does not include its own configuration file, but exposes configurable macros and their default values at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Also, the library inherits any macros defined in coreMQTT's `core_mqtt_config.h`.
 
 To provide custom values for the configuration values, they must be either:
 * Defined in `core_mqtt_config.h` used by coreMQTT
@@ -37,7 +37,7 @@ To provide custom values for the configuration values, they must be either:
 
 The [mqttAgentFilePaths.cmake](mqttAgentFilePaths.cmake) file contains the information of all source files and the header include path from this repository. In addition to these files, the coreMQTT library is required to build the MQTT Agent library.
 
-For a CMake example of building the MQTT library with the `mqttAgentFilePaths.cmake` file, refer to the `coverity_analysis` library target in [test/CMakeLists.txt](test/CMakeLists.txt) file.
+For a CMake example of building the MQTT Agent library with the `mqttAgentFilePaths.cmake` file, refer to the `coverity_analysis` library target in [test/CMakeLists.txt](test/CMakeLists.txt) file.
 
 ## Building Unit Tests
 
@@ -88,4 +88,3 @@ See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for information on contributing
 ## License
 
 This library is licensed under the MIT License. See the [LICENSE](LICENSE) file.
-
