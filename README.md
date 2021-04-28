@@ -68,6 +68,15 @@ git submodule update --checkout --init --recursive test/unit-test/CMock
 
 1. Run `cd build && ctest` to execute all tests and view the test run summary.
 
+## Reference examples
+
+Please refer to the demos of the MQTT Agent library in the following locations for reference examples on FreeRTOS platforms:
+
+| Location |
+| :-: |
+| [coreMQTT Agent Demos](https://github.com/FreeRTOS/coreMQTT-Agent-Demos) |
+| [FreeRTOS/FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo) |
+
 
 ## Generating documentation
 
