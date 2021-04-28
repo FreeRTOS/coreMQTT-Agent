@@ -124,7 +124,7 @@ typedef struct MQTTAgentCommandContext MQTTAgentCommandContext_t;
  * application wants to enqueue command(s) with non-zero blocking time, the
  * callback can notify a different task to enqueue command(s) to the MQTT agent.
  */
-typedef void (* MQTTAgentCommandCallback_t )( void * pCmdCallbackContext,
+typedef void (* MQTTAgentCommandCallback_t )( MQTTAgentCommandContext_t * pCmdCallbackContext,
                                               MQTTAgentReturnInfo_t * pReturnInfo );
 
 /**
@@ -473,7 +473,7 @@ MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext );
  * MQTTAgentSubscribeArgs_t subscribeArgs = { 0 };
  *
  * // Function for command complete callback.
- * void subscribeCmdCompleteCb( void * pCmdCallbackContext,
+ * void subscribeCmdCompleteCb( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                              MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -534,7 +534,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
  * MQTTAgentSubscribeArgs_t unsubscribeArgs = { 0 };
  *
  * // Function for command complete callback.
- * void unsubscribeCmdCompleteCb( void * pCmdCallbackContext,
+ * void unsubscribeCmdCompleteCb( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                                MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -593,7 +593,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  * MQTTPublishInfo_t publishInfo = { 0 };
  *
  * // Function for command complete callback.
- * void publishCmdCompleteCb( void * pCmdCallbackContext,
+ * void publishCmdCompleteCb( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                            MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -650,7 +650,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
  * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
- * void cmdCompleteCb( void * pCmdCallbackContext,
+ * void cmdCompleteCb( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                     MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -707,7 +707,7 @@ MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext
  * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
- * void pingRequestCompleteCb( void * pCmdCallbackContext,
+ * void pingRequestCompleteCb( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                             MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -801,7 +801,7 @@ MQTTStatus_t MQTTAgent_Ping( const MQTTAgentContext_t * pMqttAgentContext,
  * connectArgs.timeoutMs = 500;
  *
  * // Function for command complete callback.
- * void connectCmdCallback( void * pCmdCallbackContext,
+ * void connectCmdCallback( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                          MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -863,7 +863,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
- * void disconnectCmdCallback( void * pCmdCallbackContext,
+ * void disconnectCmdCallback( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                             MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
@@ -927,7 +927,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
  * MQTTAgentCommandInfo_t commandInfo = { 0 };
  *
  * // Function for command complete callback.
- * void terminateCallback( void * pCmdCallbackContext,
+ * void terminateCallback( MQTTAgentCommandContext_t * pCmdCallbackContext,
  *                         MQTTAgentReturnInfo_t * pReturnInfo );
  *
  * // Fill the command information.
