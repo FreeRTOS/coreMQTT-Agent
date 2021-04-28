@@ -23,8 +23,7 @@ git submodule update --init --recursive
 
 ## coreMQTT Agent Library Configurations
 
-The MQTT Agent library exposes build configuration macros that are required for building the library.
-However, the MQTT Agent library does not include its own configuration file, but exposes configurable macros and their default values at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Also, the library inherits any macros defined in coreMQTT's `core_mqtt_config.h`.
+The MQTT Agent library uses the same `core_mqtt_config.h` configuration file as coreMQTT, with the addition of configuration constants listed at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Documentation for these configurations can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/core_mqtt_agent_config.html).
 
 To provide custom values for the configuration values, they must be either:
 * Defined in `core_mqtt_config.h` used by coreMQTT
@@ -33,7 +32,9 @@ To provide custom values for the configuration values, they must be either:
 
 ## Building the Library
 
-The [mqttAgentFilePaths.cmake](mqttAgentFilePaths.cmake) file contains the information of all source files and the header include path from this repository. In addition to these files, the MQTT Agent library requires the coreMQTT library, whose file information can be obtained from `mqttFilePaths.cmake` in the [coreMQTT submodule](source/dependency/).
+You can build the MQTT Agent source files that are in the [source](source/) directory, and add [source/include](source/include) to your compiler's include path. Additionally, the MQTT Agent library requires the coreMQTT library, whose files follow the same `source/` and `source/include` pattern as the agent library; its build instructions can be found [here](https://github.com/FreeRTOS/coreMQTT#building-the-library).
+
+If using CMake, the [mqttAgentFilePaths.cmake](mqttAgentFilePaths.cmake) file contains the above information of the source files and the header include path from this repository. The same information is found for coreMQTT from `mqttFilePaths.cmake` in the [coreMQTT submodule](source/dependency/).
 
 For a CMake example of building the MQTT Agent library with the `mqttAgentFilePaths.cmake` file, refer to the `coverity_analysis` library target in [test/CMakeLists.txt](test/CMakeLists.txt) file.
 
@@ -46,7 +47,7 @@ To build unit tests, the submodule dependency of CMock is required. Use the foll
 git submodule update --checkout --init --recursive test/unit-test/CMock
 ```
 
-### Platform Prerequisites
+### Unit Test Platform Prerequisites
 
 - For running unit tests
     - **C90 compiler** like gcc
@@ -78,8 +79,10 @@ Please refer to the demos of the MQTT Agent library in the following locations f
 
 ## Generating documentation
 
+The MQTT Agent API documentation can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/index.html).
+
 The Doxygen references were created using Doxygen version 1.8.20. To generate the
-Doxygen pages, please run the following command from the root of this repository:
+Doxygen pages yourself, please run the following command from the root of this repository:
 
 ```shell
 doxygen docs/doxygen/config.doxyfile
