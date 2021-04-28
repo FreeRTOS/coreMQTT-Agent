@@ -22,7 +22,7 @@ The MQTT Agent APIs are designed to be used by two types of tasks:
   - @ref MQTTAgent_CommandLoop
   - @ref MQTTAgent_ResumeSession
   - @ref MQTTAgent_CancelAll
-- Application tasks that want to perform MQTT operations with thread safety. These tasks are any task that is <i>not</i> an MQTT agent task. The APIs used by application tasks are thread safe, and send commands that are processed by an MQTT agent task in @ref MQTTAgent_CommandLoop. These APIs are:
+- Application tasks that want to perform MQTT operations with thread safety. These tasks are any task that is <i>not</i> an MQTT agent task. The APIs used by application tasks are thread safe, and send commands that are processed by an MQTT agent task in @ref MQTTAgent_CommandLoop. These APIs can accept several structures used by either the command or completion callback, and these structures MUST remain in scope until the associated command has been completed, including @ref MQTTPublishInfo_t, @ref MQTTAgentSubscribeArgs_t, @ref MQTTAgentConnectArgs_t, and @ref MQTTAgentCommandContext_t. The APIs are asynchronous, so will return as soon as the command has been sent; they will <i>not</i> wait for the command to be processed. These APIs are:
   - @ref MQTTAgent_Publish
   - @ref MQTTAgent_Subscribe
   - @ref MQTTAgent_Unsubscribe
@@ -62,6 +62,37 @@ The MQTT Agent library expects the application to provide implementations for th
         <td>Accepting incoming publish messages, with the possibility of further distributing them to other tasks.</td>
     </tr>
 </table>
+
+@section mqtt_agent_command_completion Command Completion
+Commands do not have any timeout associated with them. The only way for a task to be aware of a command's completion is through the invocation of an optional @ref MQTTAgentCommandCallback_t completion callback.
+The completion callback will be invoked with an optional @ref MQTTAgentCommandContext_t, which is the incomplete type <b>struct MQTTAgentCommandContext</b>. This type must be defined by the application, and should contain information that would be useful in distinguishing commands.<br>
+<b>Example code:</b>
+@code{c}
+struct MQTTAgentCommandContext
+{
+    //Allow the calling thread to view the return code by copying it here.
+    MQTTStatus_t returnCode;
+    //pthread mutex and condition variables to signal to the thread that created the command.
+    pthread_mutex_t lock;
+    pthread_cond_t cond;
+};
+@endcode
+<br>
+The completion callback using such a context could be:
+@code{c}
+void commandCompleteCallback( void * pContext, MQTTAgentReturnInfo_t * pReturnInfo )
+{
+    MQTTAgentCommandContext_t * pCmdContext = ( MQTTAgentCommandContext_t * ) pContext;
+    pthread_mutex_lock( &( pCmdContext->lock ) );
+    //Set return code so the thread that created the command can view.
+    pCmdContext->returnCode = pReturnInfo->returnCode;
+    pthread_mutex_unlock( &( pCmdContext->lock ) );
+    //Signal the thread using the condition variable.
+    pthread_cond_broadcast( &( pCmdContext->cond ) );
+}
+@endcode
+<br>
+The completion callback and completion context are each optional, and passed at time of command creation in the @ref MQTTAgentCommandInfo_t parameter. If a command completion context is passed, it MUST remain in scope until the completion callback has been invoked.
 */
 
 /**
