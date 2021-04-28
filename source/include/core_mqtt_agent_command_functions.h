@@ -31,8 +31,29 @@
 #include "core_mqtt_agent.h"
 
 /**
- * @brief An array of function pointers mapping commands to a function to
- * execute.
+ * @brief An array of function pointers mapping command types to a function to
+ * execute. Configurable to allow a linker to remove unneeded functions.
+ *
+ * @note This array controls the behavior of each command. Altering the array
+ * would allow a linker to discard unused MQTT functions if desired. The size
+ * of this array MUST equal #NUM_COMMANDS and the order MUST correspond to
+ * #MQTTAgentCommandType_t commands if not using C99 designated initializers. If any
+ * function is desired not to be linked, it may be set to #MQTTAgentCommand_ProcessLoop
+ * or a custom function matching an #MQTTAgentCommandFunc_t prototype.
+ *
+ * <b>Default value:</b> @code{c}
+ * {
+ *     [ NONE ]        = MQTTAgentCommand_ProcessLoop,
+ *     [ PROCESSLOOP ] = MQTTAgentCommand_ProcessLoop,
+ *     [ PUBLISH ]     = MQTTAgentCommand_Publish,
+ *     [ SUBSCRIBE ]   = MQTTAgentCommand_Subscribe,
+ *     [ UNSUBSCRIBE ] = MQTTAgentCommand_Unsubscribe,
+ *     [ PING ]        = MQTTAgentCommand_Ping,
+ *     [ CONNECT ]     = MQTTAgentCommand_Connect,
+ *     [ DISCONNECT ]  = MQTTAgentCommand_Disconnect,
+ *     [ TERMINATE ]   = MQTTAgentCommand_Terminate
+ * }
+ * @endcode
  */
 #ifndef MQTT_AGENT_FUNCTION_TABLE
     /* Designated initializers are only in C99+. */
@@ -71,6 +92,7 @@
 /*-----------------------------------------------------------*/
 
 /**
+ * @ingroup mqtt_agent_struct_types
  * @brief A structure of values and flags expected to be returned
  * by command functions.
  */
@@ -85,6 +107,9 @@ typedef struct MQTTAgentCommandFuncReturns
 /**
  * @brief Function prototype for a command.
  *
+ * @note These functions should only be called from within
+ * #MQTTAgent_CommandLoop.
+ *
  * @param[in] pMqttAgentContext MQTT Agent context.
  * @param[in] pArgs Arguments for the command.
  * @param[out] pFlags Return flags set by the function.
@@ -98,13 +123,17 @@ typedef MQTTStatus_t (* MQTTAgentCommandFunc_t ) ( MQTTAgentContext_t * pMqttAge
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Function to execute for a NONE command.
+ * @brief Function to execute for a NONE command. This function does not call
+ * #MQTT_ProcessLoop itself, but instead sets a flag to indicate it should be called.
+ *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.runProcessLoop
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pUnusedArg Unused NULL argument.
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
- * @return Status code of MQTT_ProcessLoop().
+ * @return #MQTTSuccess.
  */
 MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
                                            void * pUnusedArg,
@@ -112,6 +141,10 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
 
 /**
  * @brief Function to execute for a PUBLISH command.
+ *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.runProcessLoop
+ * - MQTTAgentCommandFuncReturns_t.addAcknowledgment (for QoS > 0)
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pPublishArg Publish information for MQTT_Publish().
@@ -126,6 +159,10 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
 /**
  * @brief Function to execute for a SUBSCRIBE command.
  *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.runProcessLoop
+ * - MQTTAgentCommandFuncReturns_t.addAcknowledgment
+ *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pVoidSubscribeArgs Arguments for MQTT_Subscribe().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
@@ -138,6 +175,10 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
 
 /**
  * @brief Function to execute for an UNSUBSCRIBE command.
+ *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.runProcessLoop
+ * - MQTTAgentCommandFuncReturns_t.addAcknowledgment
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pVoidSubscribeArgs Arguments for MQTT_Unsubscribe().
@@ -152,6 +193,8 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
 /**
  * @brief Function to execute for a CONNECT command.
  *
+ * This sets all return flags to `false`.
+ *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pVoidConnectArgs Arguments for MQTT_Connect().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
@@ -164,6 +207,9 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
 
 /**
  * @brief Function to execute for a DISCONNECT command.
+ *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.endLoop
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pUnusedArg Unused NULL argument.
@@ -178,6 +224,9 @@ MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext
 /**
  * @brief Function to execute for a PING command.
  *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.runProcessLoop
+ *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pUnusedArg Unused NULL argument.
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
@@ -189,7 +238,11 @@ MQTTStatus_t MQTTAgentCommand_Ping( MQTTAgentContext_t * pMqttAgentContext,
                                     MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
 /**
- * @brief Function to execute for a TERMINATE command.
+ * @brief Function to execute for a TERMINATE command. Calls #MQTTAgent_CancelAll
+ * to terminate all unfinished commands with #MQTTRecvFailed.
+ *
+ * This sets the following flags to `true`:
+ * - MQTTAgentCommandFuncReturns_t.endLoop
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
  * @param[in] pUnusedArg Unused NULL argument.

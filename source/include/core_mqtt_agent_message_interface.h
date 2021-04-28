@@ -44,7 +44,9 @@ typedef struct MQTTAgentCommand          MQTTAgentCommand_t;
  * @ingroup mqtt_agent_struct_types
  * @brief Context with which tasks may deliver messages to the agent.
  */
+/* @[define_messagectx] */
 typedef struct MQTTAgentMessageContext   MQTTAgentMessageContext_t;
+/* @[define_messagectx] */
 
 /**
  * @brief Send a message to the specified context.
@@ -56,9 +58,11 @@ typedef struct MQTTAgentMessageContext   MQTTAgentMessageContext_t;
  *
  * @return `true` if send was successful, else `false`.
  */
+/* @[define_messagesend] */
 typedef bool ( * MQTTAgentMessageSend_t )( MQTTAgentMessageContext_t * pMsgCtx,
                                            MQTTAgentCommand_t * const * pCommandToSend,
                                            uint32_t blockTimeMs );
+/* @[define_messagesend] */
 
 /**
  * @brief Receive a message from the specified context.
@@ -70,9 +74,11 @@ typedef bool ( * MQTTAgentMessageSend_t )( MQTTAgentMessageContext_t * pMsgCtx,
  *
  * @return `true` if receive was successful, else `false`.
  */
+/* @[define_messagerecv] */
 typedef bool ( * MQTTAgentMessageRecv_t )( MQTTAgentMessageContext_t * pMsgCtx,
                                            MQTTAgentCommand_t ** pReceivedCommand,
                                            uint32_t blockTimeMs );
+/* @[define_messagerecv] */
 
 /**
  * @brief Obtain a MQTTAgentCommand_t structure.
@@ -89,7 +95,9 @@ typedef bool ( * MQTTAgentMessageRecv_t )( MQTTAgentMessageContext_t * pMsgCtx,
  * @return A pointer to a MQTTAgentCommand_t structure if one becomes available before
  * blockTimeMs time expired, otherwise NULL.
  */
+/* @[define_messageget] */
 typedef MQTTAgentCommand_t * ( * MQTTAgentCommandGet_t )( uint32_t blockTimeMs );
+/* @[define_messageget] */
 
 /**
  * @brief Give a MQTTAgentCommand_t structure back to the application.
@@ -105,13 +113,16 @@ typedef MQTTAgentCommand_t * ( * MQTTAgentCommandGet_t )( uint32_t blockTimeMs )
  *
  * @return true if the MQTTAgentCommand_t structure was returned to the application, otherwise false.
  */
+/* @[define_messagerelease] */
 typedef bool ( * MQTTAgentCommandRelease_t )( MQTTAgentCommand_t * pCommandToRelease );
+/* @[define_messagerelease] */
 
 /**
  * @ingroup mqtt_agent_struct_types
  * @brief Function pointers and contexts used for sending and receiving commands,
  * and allocating memory for them.
  */
+/* @[define_messageinterface] */
 typedef struct MQTTAgentMessageInterface
 {
     MQTTAgentMessageContext_t * pMsgCtx;      /**< Context with which tasks may deliver messages to the agent. */
@@ -120,5 +131,6 @@ typedef struct MQTTAgentMessageInterface
     MQTTAgentCommandGet_t getCommand;         /**< Function to obtain a pointer to an allocated command. */
     MQTTAgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
 } MQTTAgentMessageInterface_t;
+/* @[define_messageinterface] */
 
 #endif /* CORE_MQTT_AGENT_MESSAGE_INTERFACE_H */
