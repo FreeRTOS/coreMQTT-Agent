@@ -1,6 +1,6 @@
 ## coreMQTT Agent Library
 
-The coreMQTT Agent library is a high level API that adds thread safety to the [coreMQTT](https://github.com/FreeRTOS/coreMQTT) library. The library provides thread safe equivalents to the coreMQTT's APIs, so it can be used in multi-threaded environments. The coreMQTT Agent library manages the MQTT connection by serializing the access to the coreMQTT library and reducing implementation overhead (e.g., the need for repeated calls to the `MQTT_ProcessLoop` API from the application). This allows your multi-threaded applications to share the same MQTT connection, and enables you to design an embedded application without having to worry about thread safety.
+The coreMQTT Agent library is a high level API that adds thread safety to the [coreMQTT](https://github.com/FreeRTOS/coreMQTT) library. The library provides thread safe equivalents to the coreMQTT's APIs, greatly simplifying its use in multi-threaded environments. The coreMQTT Agent library manages the MQTT connection by serializing the access to the coreMQTT library and reducing implementation overhead (e.g., removing the need for the application to repeatedly call to `MQTT_ProcessLoop`). This allows your multi-threaded applications to share the same MQTT connection, and enables you to design an embedded application without having to worry about coreMQTT thread safety.
 
 This library has gone through code quality checks including verification that no function has a [GNU Complexity](https://www.gnu.org/software/complexity/manual/complexity.html) score over 8, and checks against deviations from mandatory rules in the [MISRA coding standard](https://www.misra.org.uk/MISRAHome/MISRAC2012/tabid/196/Default.aspx).  Deviations from the MISRA C:2012 guidelines are documented under [MISRA Deviations](MISRA.md). This library has also undergone both static code analysis from [Coverity static analysis](https://scan.coverity.com/), and validation of memory safety through the [CBMC automated reasoning tool](https://www.cprover.org/cbmc/).
 
@@ -27,7 +27,7 @@ git submodule update --init --recursive
 
 The MQTT Agent library uses the same `core_mqtt_config.h` configuration file as coreMQTT, with the addition of configuration constants listed at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Documentation for these configurations can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/core_mqtt_agent_config.html).
 
-To provide custom values for the configuration values, they must be either:
+To provide values for these configuration values, they must be either:
 * Defined in `core_mqtt_config.h` used by coreMQTT
 **OR**
 * Passed as compile time preprocessor macros
@@ -79,9 +79,11 @@ Please refer to the demos of the MQTT Agent library in the following locations f
 | [FreeRTOS/FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo/coreMQTT_Windows_Simulator/MQTT_Multitask) |
 
 
-## Generating documentation
+## Documentation
 
 The MQTT Agent API documentation can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/index.html).
+
+## Generating documentation
 
 The Doxygen references were created using Doxygen version 1.8.20. To generate the
 Doxygen pages yourself, please run the following command from the root of this repository:
