@@ -4,6 +4,8 @@ The coreMQTT Agent library is a high level API that adds thread safety to the [c
 
 This library has gone through code quality checks including verification that no function has a [GNU Complexity](https://www.gnu.org/software/complexity/manual/complexity.html) score over 8, and checks against deviations from mandatory rules in the [MISRA coding standard](https://www.misra.org.uk/MISRAHome/MISRAC2012/tabid/196/Default.aspx).  Deviations from the MISRA C:2012 guidelines are documented under [MISRA Deviations](MISRA.md). This library has also undergone both static code analysis from [Coverity static analysis](https://scan.coverity.com/), and validation of memory safety through the [CBMC automated reasoning tool](https://www.cprover.org/cbmc/).
 
+See memory requirements for this library [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/index.html#core_mqtt_agent_memory_requirements).
+
 ## Cloning this repository
 This repo uses [Git Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to bring in dependent components.
 
