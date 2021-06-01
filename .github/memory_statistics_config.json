@@ -3,9 +3,18 @@
     "src": [
         "source/core_mqtt_agent.c",
         "source/core_mqtt_agent_command_functions.c",
-        "source/dependency/coreMQTT/source/core_mqtt.c",
-        "source/dependency/coreMQTT/source/core_mqtt_state.c",
-        "source/dependency/coreMQTT/source/core_mqtt_serializer.c"
+        {
+          "file": "source/dependency/coreMQTT/source/core_mqtt.c",
+          "tag": "coreMQTT"
+        },
+        {
+          "file": "source/dependency/coreMQTT/source/core_mqtt_state.c",
+          "tag": "coreMQTT"
+        },
+        {
+          "file": "source/dependency/coreMQTT/source/core_mqtt_serializer.c",
+          "tag": "coreMQTT"
+        }
     ],
     "include": [
         "source/include",
