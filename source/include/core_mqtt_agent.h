@@ -27,6 +27,10 @@
 #ifndef CORE_MQTT_AGENT_H
 #define CORE_MQTT_AGENT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* MQTT library includes. */
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
@@ -948,5 +952,9 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
                                   const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CORE_MQTT_AGENT_H */
