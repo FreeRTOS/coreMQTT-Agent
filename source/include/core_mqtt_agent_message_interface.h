@@ -27,6 +27,12 @@
 #ifndef CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
 #define CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
 
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -132,5 +138,11 @@ typedef struct MQTTAgentMessageInterface
     MQTTAgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
 } MQTTAgentMessageInterface_t;
 /* @[define_messageinterface] */
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* CORE_MQTT_AGENT_MESSAGE_INTERFACE_H */

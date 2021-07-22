@@ -27,6 +27,12 @@
 #ifndef CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
 #define CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H
 
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
+
 /* MQTT Agent include. */
 #include "core_mqtt_agent.h"
 
@@ -253,5 +259,11 @@ MQTTStatus_t MQTTAgentCommand_Ping( MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgentCommand_Terminate( MQTTAgentContext_t * pMqttAgentContext,
                                          void * pUnusedArg,
                                          MQTTAgentCommandFuncReturns_t * pReturnFlags );
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* CORE_MQTT_AGENT_COMMAND_FUNCTIONS_H */
