@@ -27,15 +27,15 @@
 #ifndef CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
 #define CORE_MQTT_AGENT_MESSAGE_INTERFACE_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 /* *INDENT-OFF* */
 #ifdef __cplusplus
     extern "C" {
 #endif
 /* *INDENT-ON* */
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
 
 /* Declare here so interface functions can use. */
 struct MQTTAgentCommand;
