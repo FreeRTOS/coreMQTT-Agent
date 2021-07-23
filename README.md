@@ -32,6 +32,28 @@ To provide values for these configuration values, they must be either:
 **OR**
 * Passed as compile time preprocessor macros
 
+## Porting the coreMQTT Agent Library
+In order to use the MQTT Agent library on a platform, you need to supply thread safe functions for the agent's [messaging interface](source/include/core_mqtt_agent_message_interface.h).
+
+### Messaging Interface
+Each of the following functions must be thread safe.
+
+| Function Pointer | Description |
+| :-: | --- |
+| `MQTTAgentMessageSend_t` | A function that sends `MQTTAgentCommand_t *` pointers to be received by `MQTTAgent_CommandLoop`. This can be implemented by pushing to a thread safe queue. |
+| `MQTTAgentMessageRecv_t` | A function used by `MQTTAgent_CommandLoop` to receive `MQTTAgentCommand_t *` that were sent by API functions. This can be implemented by receiving from a thread safe queue. |
+| `MQTTAgentCommandGet_t` | A function that returns a pointer to an allocated `MQTTAgentCommand_t` structure, to be used for information and arguments for a command to be executed by `MQTTAgent_CommandLoop()`. If using dynamic memory, this can be implemented using `malloc()`. |
+| `MQTTAgentCommandRelease_t` | A function called to indicate that a command structure that had been allocated with the `MQTTAgentCommandGet_t` function pointer will no longer be used by the agent, so it may be freed or marked as not in use. If using dynamic memory, this can be implemented with `free()`. |
+
+Reference implementations for the interface functions can be found in the [reference examples](#reference-examples) below.
+### Additional Considerations
+
+#### Static Memory
+If only static allocation is used, then the `MQTTAgentCommandGet_t` and `MQTTAgentCommandRelease_t` could instead be implemented with a pool of `MQTTAgentCommand_t` structures, with a queue or semaphore used to control access and provide thread safety. The below [reference examples](#reference-examples) use static memory with a command pool.
+
+#### Subscription Management
+The MQTT Agent does not track subscriptions for MQTT topics. The receipt of any incoming PUBLISH packet will result in the invocation of a single `MQTTAgentIncomingPublishCallback_t` callback, which is passed to `MQTTAgent_Init()` for initialization. If it is desired for different functions to be invoked for different incoming topics, then the publish callback will have manage subscriptions and fan out messages. A platform independent subscription manager example is implemented in the [reference examples](#reference-examples) below.
+
 ## Building the Library
 
 You can build the MQTT Agent source files that are in the [source](source/) directory, and add [source/include](source/include) to your compiler's include path. Additionally, the MQTT Agent library requires the coreMQTT library, whose files follow the same `source/` and `source/include` pattern as the agent library; its build instructions can be found [here](https://github.com/FreeRTOS/coreMQTT#building-the-library).
