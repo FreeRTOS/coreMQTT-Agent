@@ -52,7 +52,7 @@ Reference implementations for the interface functions can be found in the [refer
 If only static allocation is used, then the `MQTTAgentCommandGet_t` and `MQTTAgentCommandRelease_t` could instead be implemented with a pool of `MQTTAgentCommand_t` structures, with a queue or semaphore used to control access and provide thread safety. The below [reference examples](#reference-examples) use static memory with a command pool.
 
 #### Subscription Management
-The MQTT Agent does not track subscriptions for MQTT topics. The receipt of any incoming PUBLISH packet will result in the invocation of a single `MQTTAgentIncomingPublishCallback_t` callback, which is passed to `MQTTAgent_Init()` for initialization. If it is desired for different functions to be invoked for different incoming topics, then the publish callback will have manage subscriptions and fan out messages. A platform independent subscription manager example is implemented in the [reference examples](#reference-examples) below.
+The MQTT Agent does not track subscriptions for MQTT topics. The receipt of any incoming PUBLISH packet will result in the invocation of a single `MQTTAgentIncomingPublishCallback_t` callback, which is passed to `MQTTAgent_Init()` for initialization. If it is desired for different handlers to be invoked for different incoming topics, then the publish callback will have to manage subscriptions and fan out messages. A platform independent subscription manager example is implemented in the [reference examples](#reference-examples) below.
 
 ## Building the Library
 
