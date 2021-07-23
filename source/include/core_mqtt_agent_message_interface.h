@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent v1.0.0
+ * coreMQTT Agent v1.0.1
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -30,6 +30,12 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /* Declare here so interface functions can use. */
 struct MQTTAgentCommand;
@@ -132,5 +138,11 @@ typedef struct MQTTAgentMessageInterface
     MQTTAgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
 } MQTTAgentMessageInterface_t;
 /* @[define_messageinterface] */
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* CORE_MQTT_AGENT_MESSAGE_INTERFACE_H */

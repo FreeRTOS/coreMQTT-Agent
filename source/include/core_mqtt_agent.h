@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent v1.0.0
+ * coreMQTT Agent v1.0.1
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,6 +26,12 @@
  */
 #ifndef CORE_MQTT_AGENT_H
 #define CORE_MQTT_AGENT_H
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /* MQTT library includes. */
 #include "core_mqtt.h"
@@ -948,5 +954,11 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
                                   const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* CORE_MQTT_AGENT_H */
