@@ -40,9 +40,9 @@ Each of the following functions must be thread safe.
 
 | Function Pointer | Description |
 | :-: | --- |
-| `MQTTAgentMessageSend_t` | A function that sends `MQTTAgentCommand_t *` pointers to be received by `MQTTAgent_CommandLoop`. This can be implemented by pushing to a thread safe queue. |
-| `MQTTAgentMessageRecv_t` | A function used by `MQTTAgent_CommandLoop` to receive `MQTTAgentCommand_t *` that were sent by API functions. This can be implemented by receiving from a thread safe queue. |
-| `MQTTAgentCommandGet_t` | A function that returns a pointer to an allocated `MQTTAgentCommand_t` structure, to be used for information and arguments for a command to be executed by `MQTTAgent_CommandLoop()`. If using dynamic memory, this can be implemented using `malloc()`. |
+| `MQTTAgentMessageSend_t` | A function that sends commands (as `MQTTAgentCommand_t *` pointers) to be received by `MQTTAgent_CommandLoop`. This can be implemented by pushing to a thread safe queue. |
+| `MQTTAgentMessageRecv_t` | A function used by `MQTTAgent_CommandLoop` to receive `MQTTAgentCommand_t *` pointers that were sent by API functions. This can be implemented by receiving from a thread safe queue. |
+| `MQTTAgentCommandGet_t` | A function that returns a pointer to an allocated `MQTTAgentCommand_t` structure, which is used to hold information and arguments for a command to be executed in `MQTTAgent_CommandLoop()`. If using dynamic memory, this can be implemented using `malloc()`. |
 | `MQTTAgentCommandRelease_t` | A function called to indicate that a command structure that had been allocated with the `MQTTAgentCommandGet_t` function pointer will no longer be used by the agent, so it may be freed or marked as not in use. If using dynamic memory, this can be implemented with `free()`. |
 
 Reference implementations for the interface functions can be found in the [reference examples](#reference-examples) below.
