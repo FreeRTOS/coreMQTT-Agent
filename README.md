@@ -107,7 +107,7 @@ The MQTT Agent API documentation can be found [here](https://freertos.org/Docume
 
 ### Generating documentation
 
-The Doxygen references were created using Doxygen version 1.8.20. To generate the
+The Doxygen references were created using Doxygen version 1.9.2. To generate the
 Doxygen pages yourself, please run the following command from the root of this repository:
 
 ```shell
