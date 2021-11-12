@@ -1,5 +1,10 @@
 # Changelog for coreMQTT Agent Library
 
+## v1.1.0 (November 2021)
+
+### Changes
+ - [#59](https://github.com/FreeRTOS/coreMQTT-Agent/pull/59) Update doxygen version used for documentation to 1.9.2.
+
 ## v1.0.1 (July 2021)
 
 ### Changes
