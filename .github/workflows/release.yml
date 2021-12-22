@@ -126,6 +126,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.version_number }}
           add_release: "true"
+          generate_command: |
+            # generate coreMQTT docs
+            git submodule update --init --checkout source/dependency/coreMQTT
+            cd source/dependency/coreMQTT
+            doxygen docs/doxygen/config.doxyfile 2>&1 | tee doxyoutput.txt
+            cd ../../..
+            # generate coreMQTT-Agent docs
+            ( cat docs/doxygen/config.doxyfile;
+              echo "TAGFILES = source/dependency/coreMQTT/docs/doxygen/output/mqtt.tag=coreMQTT"
+            ) | doxygen - 2>&1 | tee -a doxyoutput.txt
+            mv source/dependency/coreMQTT/docs/doxygen/output/html docs/doxygen/output/html/coreMQTT
+            if [ "$(wc -c < doxyoutput.txt | bc)" = "0" ]; then exit 0; else exit 1; fi
   create-release:
     needs:
       - create-zip
