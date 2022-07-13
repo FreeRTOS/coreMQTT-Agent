@@ -1,1 +1,12 @@
-../../aws-templates-for-cbmc-proofs/template-for-repository/negative_tests/signed_overflow_check/signed_overflow_check_harness.c
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: MIT-0.
+ */
+
+/**
+ * A negative test for --signed-overflow-check flag
+ */
+void signed_overflow_check_harness() {
+    int overflow, offset;
+    overflow += offset;
+}

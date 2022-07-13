@@ -1,1 +1,13 @@
-../../aws-templates-for-cbmc-proofs/template-for-repository/negative_tests/nan_check/Makefile
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0.
+
+EXPECTED = FAILED
+
+HARNESS_ENTRY = nan_check_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(HARNESS_FILE)
+
+include ../Makefile.common

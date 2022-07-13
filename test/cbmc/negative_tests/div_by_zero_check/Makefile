@@ -1,1 +1,13 @@
-../../aws-templates-for-cbmc-proofs/template-for-repository/negative_tests/div_by_zero_check/Makefile
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0.
+
+EXPECTED = FAILED
+
+HARNESS_ENTRY = div_by_zero_check_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(HARNESS_FILE)
+
+include ../Makefile.common

@@ -1,1 +1,15 @@
-../../aws-templates-for-cbmc-proofs/template-for-repository/negative_tests/pointer_underflow_check/pointer_underflow_check_harness.c
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: MIT-0.
+ */
+
+#include <stddef.h>
+
+/**
+ * A negative test for --pointer-overflow-check flag
+ */
+void pointer_underflow_check_harness() {
+    size_t offset;
+    char *pointer;
+    pointer -= offset;
+}
