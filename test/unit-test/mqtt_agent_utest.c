@@ -302,8 +302,6 @@ MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pCont
     MQTTDeserializedInfo_t deserializedInfo;
     MQTTStatus_t status;
 
-    ( void ) timeoutMs;
-
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
 
