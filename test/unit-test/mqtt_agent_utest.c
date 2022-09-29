@@ -296,7 +296,6 @@ MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
  * @brief A stub for MQTT_ProcessLoop function which fails on second and later calls.
  */
 MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pContext,
-                                                           uint32_t timeoutMs,
                                                            int numCalls )
 {
     MQTTPacketInfo_t packetInfo;
