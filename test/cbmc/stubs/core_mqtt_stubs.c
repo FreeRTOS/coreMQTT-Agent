@@ -80,8 +80,7 @@ MQTTStatus_t MQTT_Init( MQTTContext_t * pContext,
     return status;
 }
 
-MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext,
-                               uint32_t timeoutMs )
+MQTTStatus_t MQTT_ProcessLoop( MQTTContext_t * pContext )
 {
     MQTTStatus_t status;
     MQTTPacketInfo_t * pPacketInfo;
