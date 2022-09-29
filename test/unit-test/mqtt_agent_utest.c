@@ -273,7 +273,7 @@ static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
 /**
  * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
  */
-MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext
+MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
                                           int numCalls )
 {
     MQTTPacketInfo_t packetInfo = { 0 };
