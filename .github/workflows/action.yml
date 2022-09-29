@@ -1,0 +1,44 @@
+name: Test private action
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+jobs:
+  do-something:
+    name: Test private action
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: read
+    steps:
+      - name: Checkout private action
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ secrets.PRIVATE_REPO_NAME }}
+          ref: refs/heads/anakos-issue-83-private-content
+          token: ${{ secrets.BOT_USER_PERSONAL_ACCESS_TOKEN }}
+          persist-credentials: false
+          path: .
+      - name: Test action
+        uses: "./"
+        with:
+          # required
+          bot-user-personal-access-token: ${{ secrets.BOT_USER_PERSONAL_ACCESS_TOKEN }}
+          cbmc-version: 5.67.0
+          cbmc-viewer-version: 3.6
+          github-repo-owner: ${{ github.repository_owner }}
+          github-repo-name: ${{ fromJson(toJson(github.event.repository)).name }}
+          github-sha-from-event: ${{ github.event.after }}
+          github-repo-visibility: ${{ fromJson(toJson(github.event.repository)).visibility }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          iam-role: ${{ secrets.IAM_ROLE }}
+          litani-version: 1.27.0
+          proof-container-image: ./actions/create-codebuild-docker-container/Dockerfile
+          proofs-command: ./run-cbmc-proofs.py
+          proofs-dir: test/cbmc/proofs
+          region: ${{ secrets.REGION }}
+          # not required
+          codebuild-compute-type: BUILD_GENERAL1_2XLARGE
+          codebuild-environment-type: LINUX_CONTAINER
+          external-sat-solver: kissat
+
