@@ -46,6 +46,9 @@
 #include "core_mqtt_agent.h"
 #include "core_mqtt_agent_command_functions.h"
 
+/* MQTT Agent default logging configuration include. */
+#include "core_mqtt_agent_default_logging.h"
+
 /*-----------------------------------------------------------*/
 
 /**

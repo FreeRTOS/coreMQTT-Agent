@@ -36,6 +36,9 @@
 /* Header include. */
 #include "core_mqtt_agent_command_functions.h"
 
+/* MQTT Agent default logging configuration include. */
+#include "core_mqtt_agent_default_logging.h"
+
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContext,
