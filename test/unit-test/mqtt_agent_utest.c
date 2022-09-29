@@ -338,6 +338,8 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
     messageInterface.getCommand = stubGetCommand;
 
     MQTT_Init_Stub( MQTT_Init_CustomStub );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTSuccess );
+
     mqttStatus = MQTTAgent_Init( pAgentContext,
                                  &messageInterface,
                                  &networkBuffer,
@@ -345,6 +347,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
                                  stubGetTime,
                                  stubPublishCallback,
                                  incomingPacketContext );
+
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Set packet ID nonzero to indicate initialization. */
     pAgentContext->mqttContext.nextPacketId = 1U;
@@ -411,7 +414,6 @@ static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgen
 /**
  * @brief Test that MQTTAgent_Init is able to update the context object correctly.
  */
-
 void test_MQTTAgent_Init_Happy_Path( void )
 {
     MQTTAgentContext_t mqttAgentContext;
@@ -429,11 +431,64 @@ void test_MQTTAgent_Init_Happy_Path( void )
     msgInterface.getCommand = stubGetCommand;
 
     MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTSuccess );
+
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     TEST_ASSERT_EQUAL_PTR( stubPublishCallback, mqttAgentContext.pIncomingCallback );
     TEST_ASSERT_EQUAL_PTR( incomingPacketContext, mqttAgentContext.pIncomingCallbackContext );
     TEST_ASSERT_EQUAL_MEMORY( &msgInterface, &mqttAgentContext.agentInterface, sizeof( msgInterface ) );
+}
+
+/**
+ * @brief Test that MQTTAgent_Init is able to update the context object correctly.
+ */
+void test_MQTTAgent_Init_BadParameter1( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
+    MQTTFixedBuffer_t networkBuffer = { 0 };
+    TransportInterface_t transportInterface = { 0 };
+    void * incomingPacketContext = NULL;
+    MQTTAgentMessageContext_t msg;
+    MQTTStatus_t mqttStatus;
+
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.releaseCommand = stubReleaseCommand;
+    msgInterface.getCommand = stubGetCommand;
+
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTBadParameter );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Init fails due to bad parameter.
+ */
+void test_MQTTAgent_Init_BadParameter2( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
+    MQTTFixedBuffer_t networkBuffer = { 0 };
+    TransportInterface_t transportInterface = { 0 };
+    void * incomingPacketContext = NULL;
+    MQTTAgentMessageContext_t msg;
+    MQTTStatus_t mqttStatus;
+
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.releaseCommand = stubReleaseCommand;
+    msgInterface.getCommand = stubGetCommand;
+
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTBadParameter );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 }
 
 /**
