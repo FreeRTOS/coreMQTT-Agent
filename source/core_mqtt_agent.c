@@ -569,6 +569,8 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         }
         else
         {
+            LogWarn( ( "An incorrect command type was received by the processCommand function."
+                       " Type = %d.", pCommand->commandType ) );
             commandFunction = pCommandFunctionTable[ NONE ];
         }
     }
