@@ -22,6 +22,7 @@
         "source/dependency/coreMQTT/source/interface"
     ],
     "compiler_flags": [
-        "MQTT_DO_NOT_USE_CUSTOM_CONFIG"
+        "MQTT_DO_NOT_USE_CUSTOM_CONFIG",
+        "MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG"
     ]
 }
