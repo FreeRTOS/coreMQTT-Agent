@@ -28,8 +28,8 @@
  * @note This file SHOULD NOT be modified. If custom values are needed for
  * any configuration macro, a core_mqtt_agent_config.h file should be provided to
  * the MQTT-Agent library to override the default values defined in this file.
- * To use the custom config file, the MQTT_AGENT_USE_CUSTOM_CONFIG
- * preprocessor macro SHOULD be set.
+ * To use the custom config file, the MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG
+ * preprocessor macro SHOULD NOT be set.
  */
 
 #ifndef CORE_MQTT_AGENT_CONFIG_DEFAULTS_H_
@@ -41,15 +41,15 @@
 #endif
 /* *INDENT-ON* */
 
-/* MQTT_AGENT_USE_CUSTOM_CONFIG allows building the MQTT library
+/* MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG allows building the MQTT library
  * without a custom config. If a custom config is provided, the
- * MQTT_AGENT_USE_CUSTOM_CONFIG macro should be defined. */
-#ifdef MQTT_AGENT_USE_CUSTOM_CONFIG
+ * MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG macro should be defined. */
+#ifndef MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG
     /* Include custom config file before other headers. */
     #include "core_mqtt_agent_config.h"
 #endif
 
-/* The macro definition for MQTT_AGENT_USE_CUSTOM_CONFIG is for Doxygen
+/* The macro definition for MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG is for Doxygen
  * documentation only. */
 
 /**
@@ -59,11 +59,11 @@
  * Without the custom config, the MQTT library builds with
  * default values of config macros defined in core_mqtt_agent_config_defaults.h file.
  *
- * If a custom config is provided, then MQTT_AGENT_USE_CUSTOM_CONFIG should
+ * If a custom config is provided, then MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG should
  * be defined.
  */
 #ifdef DOXYGEN
-    #define MQTT_AGENT_USE_CUSTOM_CONFIG
+    #define MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG
 #endif
 
 /**
