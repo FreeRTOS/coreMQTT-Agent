@@ -102,12 +102,12 @@
  * @brief Whether the agent should configure the coreMQTT library to be used with publishes
  * greater than QoS0. Setting this to 0 will disallow the coreMQTT library to send publishes
  * with QoS > 0.
- * 
+ *
  * <b>Possible values:</b> 0 or 1 <br>
  * <b>Default value:</b> `1`
  */
 #ifndef MQTT_AGENT_USE_QOS_1_2_PUBLISH
-    #define MQTT_AGENT_USE_QOS_1_2_PUBLISH          ( 1 )
+    #define MQTT_AGENT_USE_QOS_1_2_PUBLISH    ( 1 )
 #endif
 
 /* *INDENT-OFF* */
