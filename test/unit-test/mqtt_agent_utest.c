@@ -274,14 +274,12 @@ static MQTTStatus_t MQTT_Init_CustomStub( MQTTContext_t * pContext,
  * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
  */
 MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
-                                          uint32_t timeoutMs,
                                           int numCalls )
 {
     MQTTPacketInfo_t packetInfo = { 0 };
     MQTTDeserializedInfo_t deserializedInfo = { 0 };
     MQTTAgentContext_t * pMqttAgentContext;
 
-    ( void ) timeoutMs;
     ( void ) numCalls;
 
     packetInfo.type = packetType;
@@ -295,17 +293,36 @@ MQTTStatus_t MQTT_ProcessLoop_CustomStub( MQTTContext_t * pContext,
 }
 
 /**
+ * @brief A stub for MQTT_ProcessLoop function to be used to test the event callback.
+ */
+MQTTStatus_t MQTT_ProcessLoop_NeedMoreBytes( MQTTContext_t * pContext,
+                                             int numCalls )
+{
+    MQTTAgentContext_t * pMqttAgentContext;
+
+    pMqttAgentContext = ( MQTTAgentContext_t * ) pContext;
+
+    if( numCalls == 0 )
+    {
+        pMqttAgentContext->packetReceivedInLoop = true;
+    }
+    else
+    {
+        pMqttAgentContext->packetReceivedInLoop = false;
+    }
+
+    return MQTTNeedMoreBytes;
+}
+
+/**
  * @brief A stub for MQTT_ProcessLoop function which fails on second and later calls.
  */
 MQTTStatus_t MQTT_ProcessLoop_FailSecondAndLaterCallsStub( MQTTContext_t * pContext,
-                                                           uint32_t timeoutMs,
                                                            int numCalls )
 {
     MQTTPacketInfo_t packetInfo;
     MQTTDeserializedInfo_t deserializedInfo;
     MQTTStatus_t status;
-
-    ( void ) timeoutMs;
 
     packetInfo.type = packetType;
     deserializedInfo.packetIdentifier = packetIdentifier;
@@ -343,6 +360,8 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
     messageInterface.getCommand = stubGetCommand;
 
     MQTT_Init_Stub( MQTT_Init_CustomStub );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTSuccess );
+
     mqttStatus = MQTTAgent_Init( pAgentContext,
                                  &messageInterface,
                                  &networkBuffer,
@@ -350,6 +369,7 @@ static void setupAgentContext( MQTTAgentContext_t * pAgentContext )
                                  stubGetTime,
                                  stubPublishCallback,
                                  incomingPacketContext );
+
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Set packet ID nonzero to indicate initialization. */
     pAgentContext->mqttContext.nextPacketId = 1U;
@@ -416,7 +436,6 @@ static void invalidParamsTestFunc( MQTTStatus_t ( * FuncToTest )( const MQTTAgen
 /**
  * @brief Test that MQTTAgent_Init is able to update the context object correctly.
  */
-
 void test_MQTTAgent_Init_Happy_Path( void )
 {
     MQTTAgentContext_t mqttAgentContext;
@@ -434,11 +453,64 @@ void test_MQTTAgent_Init_Happy_Path( void )
     msgInterface.getCommand = stubGetCommand;
 
     MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTSuccess );
+
     mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     TEST_ASSERT_EQUAL_PTR( stubPublishCallback, mqttAgentContext.pIncomingCallback );
     TEST_ASSERT_EQUAL_PTR( incomingPacketContext, mqttAgentContext.pIncomingCallbackContext );
     TEST_ASSERT_EQUAL_MEMORY( &msgInterface, &mqttAgentContext.agentInterface, sizeof( msgInterface ) );
+}
+
+/**
+ * @brief Test that MQTTAgent_Init is able to update the context object correctly.
+ */
+void test_MQTTAgent_Init_BadParameter1( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
+    MQTTFixedBuffer_t networkBuffer = { 0 };
+    TransportInterface_t transportInterface = { 0 };
+    void * incomingPacketContext = NULL;
+    MQTTAgentMessageContext_t msg;
+    MQTTStatus_t mqttStatus;
+
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.releaseCommand = stubReleaseCommand;
+    msgInterface.getCommand = stubGetCommand;
+
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTT_InitStatefulQoS_ExpectAnyArgsAndReturn( MQTTBadParameter );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
+
+/**
+ * @brief Test that MQTTAgent_Init fails due to bad parameter.
+ */
+void test_MQTTAgent_Init_BadParameter2( void )
+{
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentMessageInterface_t msgInterface = { 0 };
+    MQTTFixedBuffer_t networkBuffer = { 0 };
+    TransportInterface_t transportInterface = { 0 };
+    void * incomingPacketContext = NULL;
+    MQTTAgentMessageContext_t msg;
+    MQTTStatus_t mqttStatus;
+
+    msgInterface.pMsgCtx = &msg;
+    msgInterface.send = stubSend;
+    msgInterface.recv = stubReceive;
+    msgInterface.releaseCommand = stubReleaseCommand;
+    msgInterface.getCommand = stubGetCommand;
+
+    MQTT_Init_ExpectAnyArgsAndReturn( MQTTBadParameter );
+
+    mqttStatus = MQTTAgent_Init( &mqttAgentContext, &msgInterface, &networkBuffer, &transportInterface, stubGetTime, stubPublishCallback, incomingPacketContext );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 }
 
 /**
@@ -1600,6 +1672,88 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
     /* Ensure that callback is not invoked. */
     TEST_ASSERT_EQUAL( 0, commandCompleteCallbackCount );
+}
+
+/**
+ * @brief Test mqttEventCallback invocation via MQTT_ProcessLoop.
+ * TODO: Split this function up.
+ */
+void test_MQTTAgent_CommandLoop_InvalidCommand1( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommand_t commandToSend = { 0 };
+
+    /* Setting up MQTT Agent Context. */
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = true;
+
+    MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = NONE - 1;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBREL packet type.
+     * MQTT_PACKET_TYPE_PUBREC packet type code path will also be covered
+     * by this test case. */
+    packetType = MQTT_PACKET_TYPE_PUBREL;
+
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+}
+
+/**
+ * @brief Test when only half data is received by the process loop.
+ * TODO: Split this function up.
+ */
+void test_MQTTAgent_CommandLoop_NoCommand_NoData( void )
+{
+    MQTTStatus_t mqttStatus;
+    MQTTAgentContext_t mqttAgentContext;
+    MQTTAgentCommand_t commandToSend = { 0 };
+
+    /* Setting up MQTT Agent Context. */
+    setupAgentContext( &mqttAgentContext );
+
+    mqttAgentContext.mqttContext.connectStatus = MQTTConnected;
+    returnFlags.addAcknowledgment = false;
+    returnFlags.runProcessLoop = true;
+    returnFlags.endLoop = true;
+
+    MQTTAgentCommand_ProcessLoop_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_ProcessLoop_ReturnThruPtr_pReturnFlags( &returnFlags );
+
+    /* Initializing command to be sent to the commandLoop. */
+    commandToSend.commandType = NONE - 1;
+    commandToSend.pCommandCompleteCallback = stubCompletionCallback;
+    commandToSend.pCmdContext = NULL;
+    commandToSend.pArgs = NULL;
+
+    mqttAgentContext.agentInterface.pMsgCtx->pSentCommand = &commandToSend;
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBREL packet type.
+     * MQTT_PACKET_TYPE_PUBREC packet type code path will also be covered
+     * by this test case. */
+    packetType = MQTT_PACKET_TYPE_PUBREL;
+
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_NeedMoreBytes );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTNeedMoreBytes, mqttStatus );
 }
 
 /**
