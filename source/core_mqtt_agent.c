@@ -51,18 +51,19 @@
 
 /*-----------------------------------------------------------*/
 
-/**
- * @brief Array used to maintain the outgoing publish records and their
- * state by the coreMQTT library.
- */
-static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+#if( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
+    /**
+     * @brief Array used to maintain the outgoing publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
 
-/**
- * @brief Array used to maintain the incoming publish records and their
- * state by the coreMQTT library.
- */
-static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-
+    /**
+     * @brief Array used to maintain the incoming publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+#endif
 /**
  * @brief Track an operation by adding it to a list, indicating it is anticipating
  * an acknowledgment.
@@ -1002,14 +1003,18 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                                   mqttEventCallback,
                                   pNetworkBuffer );
 
-        if( returnStatus == MQTTSuccess )
+        #if( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
         {
-            returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
-                                                 pOutgoingPublishRecords,
-                                                 MQTT_AGENT_MAX_OUTSTANDING_ACKS,
-                                                 pIncomingPublishRecords,
-                                                 MQTT_AGENT_MAX_OUTSTANDING_ACKS );
+            if( returnStatus == MQTTSuccess )
+            {
+                returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
+                                                     pOutgoingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS,
+                                                     pIncomingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS );
+            }
         }
+        #endif
 
         if( returnStatus == MQTTSuccess )
         {
