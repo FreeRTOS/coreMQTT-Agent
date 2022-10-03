@@ -648,9 +648,10 @@ static void handleAcks( const MQTTAgentContext_t * pAgentContext,
 
 static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext )
 {
-    size_t offset = ( ( size_t ) &( ( ( MQTTAgentContext_t * ) 0 )->mqttContext ) );
+    MQTTAgentContext_t ctx = { 0 };
+    ptrdiff_t offset = ( ( uint8_t * ) &( ctx.mqttContext ) ) - ( ( uint8_t * ) &ctx );
 
-    return ( MQTTAgentContext_t * ) &pMQTTContext[ 0U - offset ];
+    return ( MQTTAgentContext_t * ) &( ( ( uint8_t * ) pMQTTContext )[ 0 - offset ] );
 }
 
 /*-----------------------------------------------------------*/
