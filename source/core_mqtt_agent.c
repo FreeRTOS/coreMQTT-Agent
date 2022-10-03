@@ -46,7 +46,25 @@
 #include "core_mqtt_agent.h"
 #include "core_mqtt_agent_command_functions.h"
 
+/* MQTT Agent default logging configuration include. */
+#include "core_mqtt_agent_default_logging.h"
+
 /*-----------------------------------------------------------*/
+
+#if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
+
+/**
+ * @brief Array used to maintain the outgoing publish records and their
+ * state by the coreMQTT library.
+ */
+    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+
+/**
+ * @brief Array used to maintain the incoming publish records and their
+ * state by the coreMQTT library.
+ */
+    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+#endif
 
 /**
  * @brief Track an operation by adding it to a list, indicating it is anticipating
@@ -537,7 +555,6 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     bool ackAdded = false;
     MQTTAgentCommandFunc_t commandFunction = NULL;
     void * pCommandArgs = NULL;
-    const uint32_t processLoopTimeoutMs = 0U;
     MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
     assert( pMqttAgentContext != NULL );
@@ -546,8 +563,18 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     if( pCommand != NULL )
     {
         assert( pCommand->commandType < NUM_COMMANDS );
-        commandFunction = pCommandFunctionTable[ pCommand->commandType ];
-        pCommandArgs = pCommand->pArgs;
+
+        if( ( pCommand->commandType >= NONE ) && ( pCommand->commandType < NUM_COMMANDS ) )
+        {
+            commandFunction = pCommandFunctionTable[ pCommand->commandType ];
+            pCommandArgs = pCommand->pArgs;
+        }
+        else
+        {
+            LogWarn( ( "An incorrect command type was received by the processCommand function."
+                       " Type = %d.", pCommand->commandType ) );
+            commandFunction = pCommandFunctionTable[ NONE ];
+        }
     }
     else
     {
@@ -578,10 +605,10 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         {
             pMqttAgentContext->packetReceivedInLoop = false;
 
-            if( ( operationStatus == MQTTSuccess ) &&
+            if( ( ( operationStatus == MQTTSuccess ) || ( operationStatus == MQTTNeedMoreBytes ) ) &&
                 ( pMqttAgentContext->mqttContext.connectStatus == MQTTConnected ) )
             {
-                operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ), processLoopTimeoutMs );
+                operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ) );
             }
         } while( pMqttAgentContext->packetReceivedInLoop );
     }
@@ -621,9 +648,10 @@ static void handleAcks( const MQTTAgentContext_t * pAgentContext,
 
 static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext )
 {
-    void * ret = pMQTTContext;
+    MQTTAgentContext_t ctx = { 0 };
+    ptrdiff_t offset = ( ( uint8_t * ) &( ctx.mqttContext ) ) - ( ( uint8_t * ) &ctx );
 
-    return ( MQTTAgentContext_t * ) ret;
+    return ( MQTTAgentContext_t * ) &( ( ( uint8_t * ) pMQTTContext )[ 0 - offset ] );
 }
 
 /*-----------------------------------------------------------*/
@@ -979,6 +1007,19 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                                   getCurrentTimeMs,
                                   mqttEventCallback,
                                   pNetworkBuffer );
+
+        #if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
+            {
+                if( returnStatus == MQTTSuccess )
+                {
+                    returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
+                                                         pOutgoingPublishRecords,
+                                                         MQTT_AGENT_MAX_OUTSTANDING_ACKS,
+                                                         pIncomingPublishRecords,
+                                                         MQTT_AGENT_MAX_OUTSTANDING_ACKS );
+                }
+            }
+        #endif /* if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 ) */
 
         if( returnStatus == MQTTSuccess )
         {
