@@ -106,11 +106,12 @@ $(document).ready(function(){initNavTree('core__mqtt__agent__command__functions_
 <code>#include &lt;assert.h&gt;</code><br />
 <code>#include &quot;<a class="el" href="core__mqtt__agent_8h_source.html">core_mqtt_agent.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="core__mqtt__agent__command__functions_8h_source.html">core_mqtt_agent_command_functions.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="core__mqtt__agent__default__logging_8h_source.html">core_mqtt_agent_default_logging.h</a>&quot;</code><br />
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ae2a8b7caae9b06f36f9784663c8f8a49"><td class="memItemLeft" align="right" valign="top"><a class="elRef" href="coreMQTT/group__mqtt__enum__types.html#gaba7ec045874a1c3432f99173367f735c">MQTTStatus_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent__command__functions_8c.html#ae2a8b7caae9b06f36f9784663c8f8a49">MQTTAgentCommand_ProcessLoop</a> (<a class="el" href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a> *pMqttAgentContext, void *pUnusedArg, <a class="el" href="struct_m_q_t_t_agent_command_func_returns__t.html">MQTTAgentCommandFuncReturns_t</a> *pReturnFlags)</td></tr>
-<tr class="memdesc:ae2a8b7caae9b06f36f9784663c8f8a49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function to execute for a NONE command. This function does not call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop</a> itself, but instead sets a flag to indicate it should be called.  <a href="core__mqtt__agent__command__functions_8c.html#ae2a8b7caae9b06f36f9784663c8f8a49">More...</a><br /></td></tr>
+<tr class="memdesc:ae2a8b7caae9b06f36f9784663c8f8a49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function to execute for a NONE command. This function does not call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#ab95d3d6b3eed98a6184fb2018c5b55d7">MQTT_ProcessLoop</a> itself, but instead sets a flag to indicate it should be called.  <a href="core__mqtt__agent__command__functions_8c.html#ae2a8b7caae9b06f36f9784663c8f8a49">More...</a><br /></td></tr>
 <tr class="separator:ae2a8b7caae9b06f36f9784663c8f8a49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b4be57b6b6a55054e94850c805fd943"><td class="memItemLeft" align="right" valign="top"><a class="elRef" href="coreMQTT/group__mqtt__enum__types.html#gaba7ec045874a1c3432f99173367f735c">MQTTStatus_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent__command__functions_8c.html#a5b4be57b6b6a55054e94850c805fd943">MQTTAgentCommand_Publish</a> (<a class="el" href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a> *pMqttAgentContext, void *pPublishArg, <a class="el" href="struct_m_q_t_t_agent_command_func_returns__t.html">MQTTAgentCommandFuncReturns_t</a> *pReturnFlags)</td></tr>
 <tr class="memdesc:a5b4be57b6b6a55054e94850c805fd943"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function to execute for a PUBLISH command.  <a href="core__mqtt__agent__command__functions_8c.html#a5b4be57b6b6a55054e94850c805fd943">More...</a><br /></td></tr>
@@ -169,7 +170,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Function to execute for a NONE command. This function does not call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop</a> itself, but instead sets a flag to indicate it should be called. </p>
+<p>Function to execute for a NONE command. This function does not call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#ab95d3d6b3eed98a6184fb2018c5b55d7">MQTT_ProcessLoop</a> itself, but instead sets a flag to indicate it should be called. </p>
 <p >This sets the following flags to <code>true</code>:</p><ul>
 <li><a class="el" href="struct_m_q_t_t_agent_command_func_returns__t.html#aae5a1d50a22df21950d586f5584e8994" title="Flag to indicate MQTT_ProcessLoop() should be called after this command.">MQTTAgentCommandFuncReturns_t.runProcessLoop</a></li>
 </ul>

@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['mqtt_5fagent_5ffunction_5ftable_0',['MQTT_AGENT_FUNCTION_TABLE',['../core__mqtt__agent__command__functions_8h.html#adf96732c68dea38cfc3b325639304bba',1,'core_mqtt_agent_command_functions.h']]],
-  ['mqtt_5fagent_5fmax_5fevent_5fqueue_5fwait_5ftime_1',['MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME',['../core__mqtt__agent_8h.html#a9fbd3d9f02a4cabb01e900cfa4d01980',1,'core_mqtt_agent.h']]],
-  ['mqtt_5fagent_5fmax_5foutstanding_5facks_2',['MQTT_AGENT_MAX_OUTSTANDING_ACKS',['../core__mqtt__agent_8h.html#afc749954a2c0c3a81bcf1e2eb5fecaad',1,'core_mqtt_agent.h']]]
+  ['logdebug_0',['LogDebug',['../core__mqtt__agent__default__logging_8h.html#af60e8ffc327d136e5d0d8441ed98c98d',1,'core_mqtt_agent_default_logging.h']]],
+  ['logerror_1',['LogError',['../core__mqtt__agent__default__logging_8h.html#a8d9dbaaa88129137a4c68ba0456a18b1',1,'core_mqtt_agent_default_logging.h']]],
+  ['loginfo_2',['LogInfo',['../core__mqtt__agent__default__logging_8h.html#a00810b1cb9d2f25d25ce2d4d93815fba',1,'core_mqtt_agent_default_logging.h']]],
+  ['logwarn_3',['LogWarn',['../core__mqtt__agent__default__logging_8h.html#a7da92048aaf0cbfcacde9539c98a0e05',1,'core_mqtt_agent_default_logging.h']]]
 ];

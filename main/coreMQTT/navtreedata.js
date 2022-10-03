@@ -39,7 +39,6 @@ var NAVTREE =
     ] ],
     [ "Configurations", "core_mqtt_config.html", [
       [ "MQTT_DO_NOT_USE_CUSTOM_CONFIG", "core_mqtt_config.html#MQTT_DO_NOT_USE_CUSTOM_CONFIG", null ],
-      [ "MQTT_STATE_ARRAY_MAX_COUNT", "core_mqtt_config.html#MQTT_STATE_ARRAY_MAX_COUNT", null ],
       [ "MQTT_PINGRESP_TIMEOUT_MS", "core_mqtt_config.html#MQTT_PINGRESP_TIMEOUT_MS", null ],
       [ "MQTT_RECV_POLLING_TIMEOUT_MS", "core_mqtt_config.html#MQTT_RECV_POLLING_TIMEOUT_MS", null ],
       [ "MQTT_SEND_RETRY_TIMEOUT_MS", "core_mqtt_config.html#MQTT_SEND_RETRY_TIMEOUT_MS", null ],
@@ -76,7 +75,7 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "core__mqtt_8c.html",
-"group__mqtt__enum__types.html#ggaba7ec045874a1c3432f99173367f735cafd06b63fe9677fa2af06b0f4c7d4ad55"
+"group__mqtt__enum__types.html#gga0480de7552eedd739a26a23fa8e6fd94a5d2ee2709c6dc7a1eb8b9c40f318909b"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

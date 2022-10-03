@@ -1,7 +1,5 @@
 var core__mqtt__agent_8h =
 [
-    [ "MQTT_AGENT_MAX_OUTSTANDING_ACKS", "core__mqtt__agent_8h.html#afc749954a2c0c3a81bcf1e2eb5fecaad", null ],
-    [ "MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME", "core__mqtt__agent_8h.html#a9fbd3d9f02a4cabb01e900cfa4d01980", null ],
     [ "MQTTAgentCommandContext_t", "group__mqtt__agent__struct__types.html#ga953da1618097a29381f3fc38f576055c", null ],
     [ "MQTTAgentCommandCallback_t", "group__mqtt__agent__callback__types.html#gaa2497c28b3fb55b8dc38b0873f749eef", null ],
     [ "MQTTAgentIncomingPublishCallback_t", "group__mqtt__agent__callback__types.html#gacdfb8687b1217d321e7cc58e365ec6a1", null ],

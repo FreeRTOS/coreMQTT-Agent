@@ -9,7 +9,9 @@ var searchData=
   ['transport_5finterface_2eh_6',['transport_interface.h',['coreMQTT/transport__interface_8h.html',1,'']]],
   ['transportinterface_7',['transportInterface',['coreMQTT/struct_m_q_t_t_context__t.html#a87ab9d61e7711325c2c85ce3ce63386a',1,'MQTTContext_t']]],
   ['transportinterface_5ft_8',['TransportInterface_t',['coreMQTT/struct_transport_interface__t.html',1,'']]],
-  ['transportrecv_5ft_9',['TransportRecv_t',['coreMQTT/group__mqtt__callback__types.html#ga227df31d6daf07e5d833537c12130167',1,]]],
-  ['transportsend_5ft_10',['TransportSend_t',['coreMQTT/group__mqtt__callback__types.html#ga2a39853ff952edd715ab07b33ab2a7c5',1,]]],
-  ['type_11',['type',['coreMQTT/struct_m_q_t_t_packet_info__t.html#a7fef40548c1aa0f0e7f812a6a7243758',1,'MQTTPacketInfo_t']]]
+  ['transportoutvector_5ft_9',['TransportOutVector_t',['coreMQTT/struct_transport_out_vector__t.html',1,'']]],
+  ['transportrecv_5ft_10',['TransportRecv_t',['coreMQTT/group__mqtt__callback__types.html#ga227df31d6daf07e5d833537c12130167',1,]]],
+  ['transportsend_5ft_11',['TransportSend_t',['coreMQTT/group__mqtt__callback__types.html#ga2a39853ff952edd715ab07b33ab2a7c5',1,]]],
+  ['transportwritev_5ft_12',['TransportWritev_t',['coreMQTT/group__mqtt__callback__types.html#ga47e779557b0c2db95949ef9526861dfb',1,]]],
+  ['type_13',['type',['coreMQTT/struct_m_q_t_t_packet_info__t.html#a7fef40548c1aa0f0e7f812a6a7243758',1,'MQTTPacketInfo_t']]]
 ];

@@ -95,7 +95,6 @@ $(document).ready(function(){initNavTree('core__mqtt__agent_8h.html',''); initRe
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Data Structures</a> &#124;
-<a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
 <a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a>  </div>
@@ -107,6 +106,7 @@ $(document).ready(function(){initNavTree('core__mqtt__agent_8h.html',''); initRe
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &quot;<a class="elRef" href="coreMQTT/core__mqtt_8h.html">core_mqtt.h</a>&quot;</code><br />
 <code>#include &quot;<a class="elRef" href="coreMQTT/core__mqtt__state_8h.html">core_mqtt_state.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="core__mqtt__agent__config__defaults_8h_source.html">core_mqtt_agent_config_defaults.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="core__mqtt__agent__message__interface_8h_source.html">core_mqtt_agent_message_interface.h</a>&quot;</code><br />
 </div>
 <p><a href="core__mqtt__agent_8h_source.html">Go to the source code of this file.</a></p>
@@ -134,15 +134,6 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_m_q_t_t_agent_command_info__t.html">MQTTAgentCommandInfo_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Struct holding arguments that are common to every command.  <a href="struct_m_q_t_t_agent_command_info__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
-Macros</h2></td></tr>
-<tr class="memitem:afc749954a2c0c3a81bcf1e2eb5fecaad"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent_8h.html#afc749954a2c0c3a81bcf1e2eb5fecaad">MQTT_AGENT_MAX_OUTSTANDING_ACKS</a>&#160;&#160;&#160;( 20U )</td></tr>
-<tr class="memdesc:afc749954a2c0c3a81bcf1e2eb5fecaad"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximum number of pending acknowledgments to track for a single connection.  <a href="core__mqtt__agent_8h.html#afc749954a2c0c3a81bcf1e2eb5fecaad">More...</a><br /></td></tr>
-<tr class="separator:afc749954a2c0c3a81bcf1e2eb5fecaad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9fbd3d9f02a4cabb01e900cfa4d01980"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent_8h.html#a9fbd3d9f02a4cabb01e900cfa4d01980">MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME</a>&#160;&#160;&#160;( 1000U )</td></tr>
-<tr class="memdesc:a9fbd3d9f02a4cabb01e900cfa4d01980"><td class="mdescLeft">&#160;</td><td class="mdescRight">Time in milliseconds that the MQTT agent task will wait in the Blocked state (so not using any CPU time) for a command to arrive in its command queue before exiting the blocked state so it can call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop()</a>.  <a href="core__mqtt__agent_8h.html#a9fbd3d9f02a4cabb01e900cfa4d01980">More...</a><br /></td></tr>
-<tr class="separator:a9fbd3d9f02a4cabb01e900cfa4d01980"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -200,7 +191,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:afea2405ab859324cb241ea47e6a5ab81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a command to call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#a1d8217e9d30fb2aed002060a8c97c63e">MQTT_Publish()</a> for an MQTT connection.  <a href="core__mqtt__agent_8h.html#afea2405ab859324cb241ea47e6a5ab81">More...</a><br /></td></tr>
 <tr class="separator:afea2405ab859324cb241ea47e6a5ab81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa14c9c86e036d0b1f5c04a538597cc46"><td class="memItemLeft" align="right" valign="top"><a class="elRef" href="coreMQTT/group__mqtt__enum__types.html#gaba7ec045874a1c3432f99173367f735c">MQTTStatus_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent_8h.html#aa14c9c86e036d0b1f5c04a538597cc46">MQTTAgent_ProcessLoop</a> (const <a class="el" href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a> *pMqttAgentContext, const <a class="el" href="struct_m_q_t_t_agent_command_info__t.html">MQTTAgentCommandInfo_t</a> *pCommandInfo)</td></tr>
-<tr class="memdesc:aa14c9c86e036d0b1f5c04a538597cc46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a call to <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop()</a>. This function can be used to wake the MQTT agent task when it is known data may be available on the connected socket.  <a href="core__mqtt__agent_8h.html#aa14c9c86e036d0b1f5c04a538597cc46">More...</a><br /></td></tr>
+<tr class="memdesc:aa14c9c86e036d0b1f5c04a538597cc46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a call to <a class="elRef" href="coreMQTT/core__mqtt_8h.html#ab95d3d6b3eed98a6184fb2018c5b55d7">MQTT_ProcessLoop()</a>. This function can be used to wake the MQTT agent task when it is known data may be available on the connected socket.  <a href="core__mqtt__agent_8h.html#aa14c9c86e036d0b1f5c04a538597cc46">More...</a><br /></td></tr>
 <tr class="separator:aa14c9c86e036d0b1f5c04a538597cc46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae260e29f31d51953cbab2e1437f645ed"><td class="memItemLeft" align="right" valign="top"><a class="elRef" href="coreMQTT/group__mqtt__enum__types.html#gaba7ec045874a1c3432f99173367f735c">MQTTStatus_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="core__mqtt__agent_8h.html#ae260e29f31d51953cbab2e1437f645ed">MQTTAgent_Ping</a> (const <a class="el" href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a> *pMqttAgentContext, const <a class="el" href="struct_m_q_t_t_agent_command_info__t.html">MQTTAgentCommandInfo_t</a> *pCommandInfo)</td></tr>
 <tr class="memdesc:ae260e29f31d51953cbab2e1437f645ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a command to call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#a66eced0c62ace790354ae3de40fc0959">MQTT_Ping()</a> for an MQTT connection.  <a href="core__mqtt__agent_8h.html#ae260e29f31d51953cbab2e1437f645ed">More...</a><br /></td></tr>
@@ -217,46 +208,7 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >Functions for running a coreMQTT client in a dedicated thread. </p>
-</div><h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="afc749954a2c0c3a81bcf1e2eb5fecaad" name="afc749954a2c0c3a81bcf1e2eb5fecaad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afc749954a2c0c3a81bcf1e2eb5fecaad">&#9670;&nbsp;</a></span>MQTT_AGENT_MAX_OUTSTANDING_ACKS</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MQTT_AGENT_MAX_OUTSTANDING_ACKS&#160;&#160;&#160;( 20U )</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The maximum number of pending acknowledgments to track for a single connection. </p>
-<dl class="section note"><dt>Note</dt><dd>The MQTT agent tracks MQTT commands (such as PUBLISH and SUBSCRIBE) th at are still waiting to be acknowledged. MQTT_AGENT_MAX_OUTSTANDING_ACKS set the maximum number of acknowledgments that can be outstanding at any one time. The higher this number is the greater the agent's RAM consumption will be.</dd></dl>
-<p><b>Possible values:</b> Any positive integer up to SIZE_MAX. <br  />
- <b>Default value:</b> <code>20</code> </p>
-
-</div>
-</div>
-<a id="a9fbd3d9f02a4cabb01e900cfa4d01980" name="a9fbd3d9f02a4cabb01e900cfa4d01980"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9fbd3d9f02a4cabb01e900cfa4d01980">&#9670;&nbsp;</a></span>MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME&#160;&#160;&#160;( 1000U )</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Time in milliseconds that the MQTT agent task will wait in the Blocked state (so not using any CPU time) for a command to arrive in its command queue before exiting the blocked state so it can call <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop()</a>. </p>
-<dl class="section note"><dt>Note</dt><dd>It is important <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop()</a> is called often if there is known MQTT traffic, but calling it too often can take processing time away from lower priority tasks and waste CPU time and power.</dd></dl>
-<p><b>Possible values:</b> Any positive 32 bit integer. <br  />
- <b>Default value:</b> <code>1000</code> </p>
-
-</div>
-</div>
-<h2 class="groupheader">Function Documentation</h2>
+</div><h2 class="groupheader">Function Documentation</h2>
 <a id="a584863528e72229f35003485f7ee0edd" name="a584863528e72229f35003485f7ee0edd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a584863528e72229f35003485f7ee0edd">&#9670;&nbsp;</a></span>MQTTAgent_Init()</h2>
 
@@ -392,12 +344,12 @@ Functions</h2></td></tr>
 <div class="line">   <span class="comment">// fixedBuffer structs were copied into the context, so the original structs</span></div>
 <div class="line">   <span class="comment">// do not need to stay in scope.</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a584863528e72229f35003485f7ee0edd"><div class="ttname"><a href="core__mqtt__agent_8c.html#a584863528e72229f35003485f7ee0edd">MQTTAgent_Init</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Init(MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentMessageInterface_t *pMsgInterface, const MQTTFixedBuffer_t *pNetworkBuffer, const TransportInterface_t *pTransportInterface, MQTTGetCurrentTimeFunc_t getCurrentTimeMs, MQTTAgentIncomingPublishCallback_t incomingCallback, void *pIncomingPacketContext)</div><div class="ttdoc">Perform any initialization the MQTT agent requires before it can be used. Must be called before any o...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:946</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a584863528e72229f35003485f7ee0edd"><div class="ttname"><a href="core__mqtt__agent_8c.html#a584863528e72229f35003485f7ee0edd">MQTTAgent_Init</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Init(MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentMessageInterface_t *pMsgInterface, const MQTTFixedBuffer_t *pNetworkBuffer, const TransportInterface_t *pTransportInterface, MQTTGetCurrentTimeFunc_t getCurrentTimeMs, MQTTAgentIncomingPublishCallback_t incomingCallback, void *pIncomingPacketContext)</div><div class="ttdoc">Perform any initialization the MQTT agent requires before it can be used. Must be called before any o...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:974</div></div>
 <div class="ttc" id="agroup__mqtt__agent__struct__types_html_ga3c47f2ebcec2e1150e40d039639e5a3b"><div class="ttname"><a href="group__mqtt__agent__struct__types.html#ga3c47f2ebcec2e1150e40d039639e5a3b">MQTTAgentMessageContext_t</a></div><div class="ttdeci">struct MQTTAgentMessageContext MQTTAgentMessageContext_t</div><div class="ttdoc">Context with which tasks may deliver messages to the agent.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent_message_interface.h:54</div></div>
 <div class="ttc" id="agroup__mqtt__enum__types_html_gaba7ec045874a1c3432f99173367f735c"><div class="ttname"><a href="coreMQTT/group__mqtt__enum__types.html#gaba7ec045874a1c3432f99173367f735c">MQTTStatus_t</a></div><div class="ttdeci">MQTTStatus_t</div></div>
 <div class="ttc" id="agroup__mqtt__enum__types_html_ggaba7ec045874a1c3432f99173367f735ca484e062cb4f3fccc1858dd25cfeee056"><div class="ttname"><a href="coreMQTT/group__mqtt__enum__types.html#ggaba7ec045874a1c3432f99173367f735ca484e062cb4f3fccc1858dd25cfeee056">MQTTSuccess</a></div><div class="ttdeci">MQTTSuccess</div></div>
 <div class="ttc" id="agroup__mqtt__struct__types_html_ga7769e434e7811caed8cd6fd7f9ec26ec"><div class="ttname"><a href="coreMQTT/group__mqtt__struct__types.html#ga7769e434e7811caed8cd6fd7f9ec26ec">NetworkContext_t</a></div><div class="ttdeci">struct NetworkContext NetworkContext_t</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_context__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a></div><div class="ttdoc">Information used by each MQTT agent. A context will be initialized by MQTTAgent_Init(),...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:185</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_context__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_context__t.html">MQTTAgentContext_t</a></div><div class="ttdoc">Information used by each MQTT agent. A context will be initialized by MQTTAgent_Init(),...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:153</div></div>
 <div class="ttc" id="astruct_m_q_t_t_agent_message_interface__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_message_interface__t.html">MQTTAgentMessageInterface_t</a></div><div class="ttdoc">Function pointers and contexts used for sending and receiving commands, and allocating memory for the...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent_message_interface.h:133</div></div>
 <div class="ttc" id="astruct_m_q_t_t_agent_message_interface__t_html_a00cad3c3514a03d5deed20609ffdc94b"><div class="ttname"><a href="struct_m_q_t_t_agent_message_interface__t.html#a00cad3c3514a03d5deed20609ffdc94b">MQTTAgentMessageInterface_t::pMsgCtx</a></div><div class="ttdeci">MQTTAgentMessageContext_t * pMsgCtx</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent_message_interface.h:134</div></div>
 <div class="ttc" id="astruct_m_q_t_t_agent_message_interface__t_html_a19e00e6431f53e595837d8ac7e4f744b"><div class="ttname"><a href="struct_m_q_t_t_agent_message_interface__t.html#a19e00e6431f53e595837d8ac7e4f744b">MQTTAgentMessageInterface_t::recv</a></div><div class="ttdeci">MQTTAgentMessageRecv_t recv</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent_message_interface.h:136</div></div>
@@ -466,9 +418,9 @@ Functions</h2></td></tr>
 <div class="line">    <span class="comment">// Handle error.</span></div>
 <div class="line">}</div>
 <div class="ttc" id="acore__mqtt_8c_html_ac79c366acbc3dddd88072d99ccb9140c"><div class="ttname"><a href="coreMQTT/core__mqtt_8c.html#ac79c366acbc3dddd88072d99ccb9140c">MQTT_Disconnect</a></div><div class="ttdeci">MQTTStatus_t MQTT_Disconnect(MQTTContext_t *pContext)</div></div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a9dafeb1701b1a0ee897b626a09cfcff7"><div class="ttname"><a href="core__mqtt__agent_8c.html#a9dafeb1701b1a0ee897b626a09cfcff7">MQTTAgent_CommandLoop</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_CommandLoop(MQTTAgentContext_t *pMqttAgentContext)</div><div class="ttdoc">Process commands from the command queue in a loop.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:996</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a9dafeb1701b1a0ee897b626a09cfcff7"><div class="ttname"><a href="core__mqtt__agent_8c.html#a9dafeb1701b1a0ee897b626a09cfcff7">MQTTAgent_CommandLoop</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_CommandLoop(MQTTAgentContext_t *pMqttAgentContext)</div><div class="ttdoc">Process commands from the command queue in a loop.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1037</div></div>
 <div class="ttc" id="agroup__mqtt__enum__types_html_gga9f84d003695205cf10a7bd0bafb3dbf6a0320177ebf1f1b2e24646b44702cec69"><div class="ttname"><a href="coreMQTT/group__mqtt__enum__types.html#gga9f84d003695205cf10a7bd0bafb3dbf6a0320177ebf1f1b2e24646b44702cec69">MQTTNotConnected</a></div><div class="ttdeci">MQTTNotConnected</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_context__t_html_aec01b2b61213956dc2219f620964a055"><div class="ttname"><a href="struct_m_q_t_t_agent_context__t.html#aec01b2b61213956dc2219f620964a055">MQTTAgentContext_t::mqttContext</a></div><div class="ttdeci">MQTTContext_t mqttContext</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:186</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_context__t_html_aec01b2b61213956dc2219f620964a055"><div class="ttname"><a href="struct_m_q_t_t_agent_context__t.html#aec01b2b61213956dc2219f620964a055">MQTTAgentContext_t::mqttContext</a></div><div class="ttdeci">MQTTContext_t mqttContext</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:154</div></div>
 <div class="ttc" id="astruct_m_q_t_t_context__t_html_a4e38c4dc77e7751a0ad8730a41bee47f"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_context__t.html#a4e38c4dc77e7751a0ad8730a41bee47f">MQTTContext_t::connectStatus</a></div><div class="ttdeci">MQTTConnectionStatus_t connectStatus</div></div>
 <div class="ttc" id="astruct_m_q_t_t_context__t_html_a87ab9d61e7711325c2c85ce3ce63386a"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_context__t.html#a87ab9d61e7711325c2c85ce3ce63386a">MQTTContext_t::transportInterface</a></div><div class="ttdeci">TransportInterface_t transportInterface</div></div>
 </div><!-- fragment --> 
@@ -530,7 +482,7 @@ Functions</h2></td></tr>
 <div class="line">    status = <a class="code hl_function" href="core__mqtt__agent_8c.html#a75065d6bff5f2d32831f2c74922296fb">MQTTAgent_ResumeSession</a>( &amp;mqttAgentContext, sessionPresent );</div>
 <div class="line">}</div>
 <div class="ttc" id="acore__mqtt_8c_html_aed1e4dc123a8ba79ac569cb17c69bfa0"><div class="ttname"><a href="coreMQTT/core__mqtt_8c.html#aed1e4dc123a8ba79ac569cb17c69bfa0">MQTT_Connect</a></div><div class="ttdeci">MQTTStatus_t MQTT_Connect(MQTTContext_t *pContext, const MQTTConnectInfo_t *pConnectInfo, const MQTTPublishInfo_t *pWillInfo, uint32_t timeoutMs, bool *pSessionPresent)</div></div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a75065d6bff5f2d32831f2c74922296fb"><div class="ttname"><a href="core__mqtt__agent_8c.html#a75065d6bff5f2d32831f2c74922296fb">MQTTAgent_ResumeSession</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_ResumeSession(MQTTAgentContext_t *pMqttAgentContext, bool sessionPresent)</div><div class="ttdoc">Resume a session by resending publishes if a session is present in the broker, or clear state informa...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1038</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a75065d6bff5f2d32831f2c74922296fb"><div class="ttname"><a href="core__mqtt__agent_8c.html#a75065d6bff5f2d32831f2c74922296fb">MQTTAgent_ResumeSession</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_ResumeSession(MQTTAgentContext_t *pMqttAgentContext, bool sessionPresent)</div><div class="ttdoc">Resume a session by resending publishes if a session is present in the broker, or clear state informa...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1079</div></div>
 <div class="ttc" id="astruct_m_q_t_t_connect_info__t_html"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_connect_info__t.html">MQTTConnectInfo_t</a></div></div>
 </div><!-- fragment --> 
 </div>
@@ -576,7 +528,7 @@ Functions</h2></td></tr>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line">Platform_DisconnectNetwork( mqttAgentContext.<a class="code hl_variable" href="struct_m_q_t_t_agent_context__t.html#aec01b2b61213956dc2219f620964a055">mqttContext</a>.<a class="code hl_variableRef" href="coreMQTT/struct_m_q_t_t_context__t.html#a87ab9d61e7711325c2c85ce3ce63386a">transportInterface</a>.<a class="code hl_variableRef" href="coreMQTT/struct_transport_interface__t.html#aaf4702050bef8d62714a4d3900e95087">pNetworkContext</a> );</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a0362d7d3d68628413f01b32ec2ff4ab6"><div class="ttname"><a href="core__mqtt__agent_8c.html#a0362d7d3d68628413f01b32ec2ff4ab6">MQTTAgent_CancelAll</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_CancelAll(MQTTAgentContext_t *pMqttAgentContext)</div><div class="ttdoc">Cancel all enqueued commands and those awaiting acknowledgment while the command loop is not running.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1081</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a0362d7d3d68628413f01b32ec2ff4ab6"><div class="ttname"><a href="core__mqtt__agent_8c.html#a0362d7d3d68628413f01b32ec2ff4ab6">MQTTAgent_CancelAll</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_CancelAll(MQTTAgentContext_t *pMqttAgentContext)</div><div class="ttdoc">Cancel all enqueued commands and those awaiting acknowledgment while the command loop is not running.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1122</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
@@ -658,14 +610,14 @@ Functions</h2></td></tr>
 <div class="line">  <span class="comment">// about completion of the subscribe operation will be notified to application</span></div>
 <div class="line">  <span class="comment">// through invocation of subscribeCmdCompleteCb().</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a651cf10182392ecea5e8609af8855d49"><div class="ttname"><a href="core__mqtt__agent_8c.html#a651cf10182392ecea5e8609af8855d49">MQTTAgent_Subscribe</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Subscribe(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentSubscribeArgs_t *pSubscriptionArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Subscribe() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1130</div></div>
-<div class="ttc" id="agroup__mqtt__agent__struct__types_html_ga953da1618097a29381f3fc38f576055c"><div class="ttname"><a href="group__mqtt__agent__struct__types.html#ga953da1618097a29381f3fc38f576055c">MQTTAgentCommandContext_t</a></div><div class="ttdeci">struct MQTTAgentCommandContext MQTTAgentCommandContext_t</div><div class="ttdoc">Struct containing context for a specific command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:115</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html">MQTTAgentCommandInfo_t</a></div><div class="ttdoc">Struct holding arguments that are common to every command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:221</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html_aa0f490187c1199c2d31d4c04a01d4637"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html#aa0f490187c1199c2d31d4c04a01d4637">MQTTAgentCommandInfo_t::blockTimeMs</a></div><div class="ttdeci">uint32_t blockTimeMs</div><div class="ttdoc">Maximum block time for enqueueing the command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:224</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_return_info__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_return_info__t.html">MQTTAgentReturnInfo_t</a></div><div class="ttdoc">Struct holding return codes and outputs from a command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:103</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html">MQTTAgentSubscribeArgs_t</a></div><div class="ttdoc">Struct holding arguments for a SUBSCRIBE or UNSUBSCRIBE call.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:199</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html_a27e21bfcf0184a4a168a6170a60fc026"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html#a27e21bfcf0184a4a168a6170a60fc026">MQTTAgentSubscribeArgs_t::pSubscribeInfo</a></div><div class="ttdeci">MQTTSubscribeInfo_t * pSubscribeInfo</div><div class="ttdoc">List of MQTT subscriptions.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:200</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html_ae30aaa33e7a0e67a5989c2d15170de95"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html#ae30aaa33e7a0e67a5989c2d15170de95">MQTTAgentSubscribeArgs_t::numSubscriptions</a></div><div class="ttdeci">size_t numSubscriptions</div><div class="ttdoc">Number of elements in pSubscribeInfo.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:201</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a651cf10182392ecea5e8609af8855d49"><div class="ttname"><a href="core__mqtt__agent_8c.html#a651cf10182392ecea5e8609af8855d49">MQTTAgent_Subscribe</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Subscribe(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentSubscribeArgs_t *pSubscriptionArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Subscribe() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1171</div></div>
+<div class="ttc" id="agroup__mqtt__agent__struct__types_html_ga953da1618097a29381f3fc38f576055c"><div class="ttname"><a href="group__mqtt__agent__struct__types.html#ga953da1618097a29381f3fc38f576055c">MQTTAgentCommandContext_t</a></div><div class="ttdeci">struct MQTTAgentCommandContext MQTTAgentCommandContext_t</div><div class="ttdoc">Struct containing context for a specific command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:83</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html">MQTTAgentCommandInfo_t</a></div><div class="ttdoc">Struct holding arguments that are common to every command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:189</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html_aa0f490187c1199c2d31d4c04a01d4637"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html#aa0f490187c1199c2d31d4c04a01d4637">MQTTAgentCommandInfo_t::blockTimeMs</a></div><div class="ttdeci">uint32_t blockTimeMs</div><div class="ttdoc">Maximum block time for enqueueing the command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:192</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_return_info__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_return_info__t.html">MQTTAgentReturnInfo_t</a></div><div class="ttdoc">Struct holding return codes and outputs from a command.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:71</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html">MQTTAgentSubscribeArgs_t</a></div><div class="ttdoc">Struct holding arguments for a SUBSCRIBE or UNSUBSCRIBE call.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:167</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html_a27e21bfcf0184a4a168a6170a60fc026"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html#a27e21bfcf0184a4a168a6170a60fc026">MQTTAgentSubscribeArgs_t::pSubscribeInfo</a></div><div class="ttdeci">MQTTSubscribeInfo_t * pSubscribeInfo</div><div class="ttdoc">List of MQTT subscriptions.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:168</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_subscribe_args__t_html_ae30aaa33e7a0e67a5989c2d15170de95"><div class="ttname"><a href="struct_m_q_t_t_agent_subscribe_args__t.html#ae30aaa33e7a0e67a5989c2d15170de95">MQTTAgentSubscribeArgs_t::numSubscriptions</a></div><div class="ttdeci">size_t numSubscriptions</div><div class="ttdoc">Number of elements in pSubscribeInfo.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:169</div></div>
 <div class="ttc" id="astruct_m_q_t_t_subscribe_info__t_html"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_subscribe_info__t.html">MQTTSubscribeInfo_t</a></div></div>
 <div class="ttc" id="astruct_m_q_t_t_subscribe_info__t_html_a64cf2e423f60cfec122eeaef80c0fd86"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_subscribe_info__t.html#a64cf2e423f60cfec122eeaef80c0fd86">MQTTSubscribeInfo_t::qos</a></div><div class="ttdeci">MQTTQoS_t qos</div></div>
 <div class="ttc" id="astruct_m_q_t_t_subscribe_info__t_html_a6972f8e036f8bde9b1f23a2aacb61382"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_subscribe_info__t.html#a6972f8e036f8bde9b1f23a2aacb61382">MQTTSubscribeInfo_t::topicFilterLength</a></div><div class="ttdeci">uint16_t topicFilterLength</div></div>
@@ -750,8 +702,8 @@ Functions</h2></td></tr>
 <div class="line">  <span class="comment">// about completion of the Unsubscribe operation will be notified to application</span></div>
 <div class="line">  <span class="comment">// through invocation of unsubscribeCompleteCb().</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_ac3f70c81c8f8947dfb7346045c8edb63"><div class="ttname"><a href="core__mqtt__agent_8c.html#ac3f70c81c8f8947dfb7346045c8edb63">MQTTAgent_Unsubscribe</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Unsubscribe(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentSubscribeArgs_t *pSubscriptionArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Unsubscribe() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1155</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html_a4c9e9b55c7b576a390f734238b60f3aa"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html#a4c9e9b55c7b576a390f734238b60f3aa">MQTTAgentCommandInfo_t::cmdCompleteCallback</a></div><div class="ttdeci">MQTTAgentCommandCallback_t cmdCompleteCallback</div><div class="ttdoc">Callback to invoke upon completion.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:222</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_ac3f70c81c8f8947dfb7346045c8edb63"><div class="ttname"><a href="core__mqtt__agent_8c.html#ac3f70c81c8f8947dfb7346045c8edb63">MQTTAgent_Unsubscribe</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Unsubscribe(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentSubscribeArgs_t *pSubscriptionArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Unsubscribe() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1196</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_command_info__t_html_a4c9e9b55c7b576a390f734238b60f3aa"><div class="ttname"><a href="struct_m_q_t_t_agent_command_info__t.html#a4c9e9b55c7b576a390f734238b60f3aa">MQTTAgentCommandInfo_t::cmdCompleteCallback</a></div><div class="ttdeci">MQTTAgentCommandCallback_t cmdCompleteCallback</div><div class="ttdoc">Callback to invoke upon completion.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:190</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
@@ -832,7 +784,7 @@ Functions</h2></td></tr>
 <div class="line">   <span class="comment">// The event of publish operation completion will be notified with</span></div>
 <div class="line">   <span class="comment">// the invocation of the publishCmdCompleteCb().</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_afea2405ab859324cb241ea47e6a5ab81"><div class="ttname"><a href="core__mqtt__agent_8c.html#afea2405ab859324cb241ea47e6a5ab81">MQTTAgent_Publish</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Publish(const MQTTAgentContext_t *pMqttAgentContext, MQTTPublishInfo_t *pPublishInfo, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Publish() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1180</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_afea2405ab859324cb241ea47e6a5ab81"><div class="ttname"><a href="core__mqtt__agent_8c.html#afea2405ab859324cb241ea47e6a5ab81">MQTTAgent_Publish</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Publish(const MQTTAgentContext_t *pMqttAgentContext, MQTTPublishInfo_t *pPublishInfo, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Publish() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1221</div></div>
 <div class="ttc" id="agroup__mqtt__enum__types_html_ggae308a5928d7f537379c29a894228093aa019d0b8a8cfadb6f98462b046bdacbb2"><div class="ttname"><a href="coreMQTT/group__mqtt__enum__types.html#ggae308a5928d7f537379c29a894228093aa019d0b8a8cfadb6f98462b046bdacbb2">MQTTQoS1</a></div><div class="ttdeci">MQTTQoS1</div></div>
 <div class="ttc" id="astruct_m_q_t_t_publish_info__t_html_a178224d02b4acdec7e08e88de0e4b399"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_publish_info__t.html#a178224d02b4acdec7e08e88de0e4b399">MQTTPublishInfo_t::qos</a></div><div class="ttdeci">MQTTQoS_t qos</div></div>
 <div class="ttc" id="astruct_m_q_t_t_publish_info__t_html_a6161c792d20cc7cf8284c1b71ea1145f"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_publish_info__t.html#a6161c792d20cc7cf8284c1b71ea1145f">MQTTPublishInfo_t::topicNameLength</a></div><div class="ttdeci">uint16_t topicNameLength</div></div>
@@ -868,7 +820,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a call to <a class="elRef" href="coreMQTT/core__mqtt_8h.html#adce9111350db412c1256689ef9a7b9f4">MQTT_ProcessLoop()</a>. This function can be used to wake the MQTT agent task when it is known data may be available on the connected socket. </p>
+<p>Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a call to <a class="elRef" href="coreMQTT/core__mqtt_8h.html#ab95d3d6b3eed98a6184fb2018c5b55d7">MQTT_ProcessLoop()</a>. This function can be used to wake the MQTT agent task when it is known data may be available on the connected socket. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">pMqttAgentContext</td><td>The MQTT agent to use. </td></tr>
@@ -904,7 +856,7 @@ Functions</h2></td></tr>
 <div class="line">   <span class="comment">// the event will be notified with invocation of the incoming publish</span></div>
 <div class="line">   <span class="comment">// callback configured in the agent context.</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_aa14c9c86e036d0b1f5c04a538597cc46"><div class="ttname"><a href="core__mqtt__agent_8c.html#aa14c9c86e036d0b1f5c04a538597cc46">MQTTAgent_ProcessLoop</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_ProcessLoop(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a c...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1205</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_aa14c9c86e036d0b1f5c04a538597cc46"><div class="ttname"><a href="core__mqtt__agent_8c.html#aa14c9c86e036d0b1f5c04a538597cc46">MQTTAgent_ProcessLoop</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_ProcessLoop(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Send a message to the MQTT agent purely to trigger an iteration of its loop, which will result in a c...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1246</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
@@ -971,7 +923,7 @@ Functions</h2></td></tr>
 <div class="line">  <span class="comment">// handle keep-alive timeout if detected through return value of</span></div>
 <div class="line">  <span class="comment">// MQTTAgent_CommandLoop in the task running the agent.</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_ae260e29f31d51953cbab2e1437f645ed"><div class="ttname"><a href="core__mqtt__agent_8c.html#ae260e29f31d51953cbab2e1437f645ed">MQTTAgent_Ping</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Ping(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Ping() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1276</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_ae260e29f31d51953cbab2e1437f645ed"><div class="ttname"><a href="core__mqtt__agent_8c.html#ae260e29f31d51953cbab2e1437f645ed">MQTTAgent_Ping</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Ping(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Ping() for an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1317</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
@@ -1077,9 +1029,9 @@ Functions</h2></td></tr>
 <div class="line">  <span class="comment">// The MQTT connection event will be notified through the</span></div>
 <div class="line">  <span class="comment">// invocation of connectCmdCallback().</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a782425e50d258837d23e379471254412"><div class="ttname"><a href="core__mqtt__agent_8c.html#a782425e50d258837d23e379471254412">MQTTAgent_Connect</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Connect(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentConnectArgs_t *pConnectArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Connect() for an MQTT connection. If a session is resumed with the broker,...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1228</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a782425e50d258837d23e379471254412"><div class="ttname"><a href="core__mqtt__agent_8c.html#a782425e50d258837d23e379471254412">MQTTAgent_Connect</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Connect(const MQTTAgentContext_t *pMqttAgentContext, MQTTAgentConnectArgs_t *pConnectArgs, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to call MQTT_Connect() for an MQTT connection. If a session is resumed with the broker,...</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1269</div></div>
 <div class="ttc" id="agroup__mqtt__enum__types_html_ggae308a5928d7f537379c29a894228093aaad51b23a1ae1417f96d8f343c788d1d2"><div class="ttname"><a href="coreMQTT/group__mqtt__enum__types.html#ggae308a5928d7f537379c29a894228093aaad51b23a1ae1417f96d8f343c788d1d2">MQTTQoS0</a></div><div class="ttdeci">MQTTQoS0</div></div>
-<div class="ttc" id="astruct_m_q_t_t_agent_connect_args__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_connect_args__t.html">MQTTAgentConnectArgs_t</a></div><div class="ttdoc">Struct holding arguments for a CONNECT call.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:209</div></div>
+<div class="ttc" id="astruct_m_q_t_t_agent_connect_args__t_html"><div class="ttname"><a href="struct_m_q_t_t_agent_connect_args__t.html">MQTTAgentConnectArgs_t</a></div><div class="ttdoc">Struct holding arguments for a CONNECT call.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.h:177</div></div>
 <div class="ttc" id="astruct_m_q_t_t_connect_info__t_html_a010f8f6993cbf8899648d5c515ff7884"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_connect_info__t.html#a010f8f6993cbf8899648d5c515ff7884">MQTTConnectInfo_t::pClientIdentifier</a></div><div class="ttdeci">const char * pClientIdentifier</div></div>
 <div class="ttc" id="astruct_m_q_t_t_connect_info__t_html_a1118d7d3251a11445318557280db53b4"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_connect_info__t.html#a1118d7d3251a11445318557280db53b4">MQTTConnectInfo_t::pUserName</a></div><div class="ttdeci">const char * pUserName</div></div>
 <div class="ttc" id="astruct_m_q_t_t_connect_info__t_html_a606e7765c4f2215fb2bf630f6eb9ff6b"><div class="ttname"><a href="coreMQTT/struct_m_q_t_t_connect_info__t.html#a606e7765c4f2215fb2bf630f6eb9ff6b">MQTTConnectInfo_t::cleanSession</a></div><div class="ttdeci">bool cleanSession</div></div>
@@ -1156,7 +1108,7 @@ The MQTTAgent_Disconnect function is provided to give a thread safe equivalent t
 <div class="line">  <span class="comment">// The MQTT disconnection event will be notified through the</span></div>
 <div class="line">  <span class="comment">// invocation of disconnectCmdCallback().</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_a26687b9b762b5f52b14387bacdf17224"><div class="ttname"><a href="core__mqtt__agent_8c.html#a26687b9b762b5f52b14387bacdf17224">MQTTAgent_Disconnect</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Disconnect(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to disconnect an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1253</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_a26687b9b762b5f52b14387bacdf17224"><div class="ttname"><a href="core__mqtt__agent_8c.html#a26687b9b762b5f52b14387bacdf17224">MQTTAgent_Disconnect</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Disconnect(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a command to disconnect an MQTT connection.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1294</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
@@ -1224,7 +1176,7 @@ We RECOMMEND that this function is used from application task(s), that is a task
 <div class="line">{</div>
 <div class="line">  <span class="comment">// Command to terminate the agent loop has been queued.</span></div>
 <div class="line">}</div>
-<div class="ttc" id="acore__mqtt__agent_8c_html_ae1b19c10831f72251603b045f2608313"><div class="ttname"><a href="core__mqtt__agent_8c.html#ae1b19c10831f72251603b045f2608313">MQTTAgent_Terminate</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Terminate(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a termination command to the command queue.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1299</div></div>
+<div class="ttc" id="acore__mqtt__agent_8c_html_ae1b19c10831f72251603b045f2608313"><div class="ttname"><a href="core__mqtt__agent_8c.html#ae1b19c10831f72251603b045f2608313">MQTTAgent_Terminate</a></div><div class="ttdeci">MQTTStatus_t MQTTAgent_Terminate(const MQTTAgentContext_t *pMqttAgentContext, const MQTTAgentCommandInfo_t *pCommandInfo)</div><div class="ttdoc">Add a termination command to the command queue.</div><div class="ttdef"><b>Definition:</b> core_mqtt_agent.c:1340</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
