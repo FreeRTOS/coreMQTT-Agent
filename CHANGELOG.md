@@ -1,5 +1,11 @@
 # Changelog for coreMQTT Agent Library
 
+## v1.2.0 (October 2022)
+
+### Changes
+ - [#77](https://github.com/FreeRTOS/coreMQTT-Agent/pull/77) Update coreMQTT-Agent to work with the coreMQTT v2.1.0. No breaking changes from the previous version.
+ - [#75](https://github.com/FreeRTOS/coreMQTT-Agent/pull/75) Update coreMQTT-Agent to work with the coreMQTT v2.0.0.
+
 ## v1.1.0 (November 2021)
 
 ### Changes
