@@ -285,4 +285,5 @@ usernamelength
 utest
 uxcontrolandlengthbytes
 willinfo
+writev
 www
