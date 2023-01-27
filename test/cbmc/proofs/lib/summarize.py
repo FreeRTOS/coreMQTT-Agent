@@ -136,7 +136,7 @@ def print_proof_results(out_file):
 
 if __name__ == '__main__':
     args = get_args()
-    logging.basicConfig(format="%(levelname)s:%(message)s")
+    logging.basicConfig(format="%(levelname)s: %(message)s")
     try:
         print_proof_results(args.run_file)
     except Exception as ex: # pylint: disable=broad-except
