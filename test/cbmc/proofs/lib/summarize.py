@@ -113,6 +113,7 @@ def print_proof_results(out_file):
         output += _get_rendered_table(summary)
 
     print(output)
+    sys.stdout.flush()
 
     github_summary_file = os.getenv("GITHUB_STEP_SUMMARY")
     if github_summary_file:

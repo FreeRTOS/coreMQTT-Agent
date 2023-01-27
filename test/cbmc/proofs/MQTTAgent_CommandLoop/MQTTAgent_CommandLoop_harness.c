@@ -27,6 +27,7 @@
 
 void harness()
 {
+    assert(0);
     MQTTAgentContext_t * pMqttAgentContext = NULL;
 
     pMqttAgentContext = allocateMqttAgentContext( pMqttAgentContext );
