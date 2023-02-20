@@ -25,10 +25,7 @@
 var NAVTREE =
 [
   [ "coreMQTT Agent", "index.html", [
-    [ "Overview", "index.html", [
-      [ "Why is there a higher level library based on coreMQTT?", "index.html#coreMQTT_brief", null ],
-      [ "Memory Requirements", "index.html#core_mqtt_agent_memory_requirements", null ]
-    ] ],
+    [ "Overview", "index.html", "index" ],
     [ "Design", "mqtt_agent_design.html", [
       [ "Thread Safe and Unsafe APIs", "mqtt_agent_design.html#mqtt_agent_task_thread_safety", null ],
       [ "Interfaces and Callbacks", "mqtt_agent_design.html#mqtt_agent_interfaces", null ],
@@ -44,14 +41,13 @@ var NAVTREE =
       [ "Message Interface Overview", "mqtt_agent_message_interface.html#mqtt_agent_message_interface_overview", null ],
       [ "Implementing the Message Interface", "mqtt_agent_message_interface.html#mqtt_agent_message_interface_implement", null ]
     ] ],
-    [ "Data types and Constants", "modules.html", "modules" ],
-    [ "Files", "files.html", "files" ]
+    [ "Data types and Constants", "modules.html", "modules" ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"core__mqtt__agent_8c.html"
+"core_mqtt_agent_config.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
