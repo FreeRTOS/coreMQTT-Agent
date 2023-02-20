@@ -189,7 +189,6 @@ uint16_t MQTT_PublishToResend( const MQTTContext_t * pMqttContext,
     else
     {
         #ifdef MAX_PACKET_ID
-
             /* Limit the packet Ids so that the range of packet ids so that the
              * probability of finding a matching packet in the pending acks is high. */
             __CPROVER_assume( packetId < MAX_PACKET_ID );
