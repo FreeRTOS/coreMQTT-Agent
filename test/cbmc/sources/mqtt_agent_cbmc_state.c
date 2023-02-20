@@ -177,7 +177,6 @@ void addPendingAcks( MQTTAgentContext_t * pContext )
     for( i = 0; i < MQTT_AGENT_MAX_OUTSTANDING_ACKS; i++ )
     {
         #ifdef MAX_PACKET_ID
-
             /* Limit the packet Ids so that the range of packet ids retrieved through
              * MQTT_PublishToResend can be limited as well. */
             __CPROVER_assume( packetId < MAX_PACKET_ID );
