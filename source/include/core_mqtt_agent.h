@@ -479,6 +479,16 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
 /* @[declare_mqtt_agent_subscribe] */
 
 /**
+ * @brief TBD _RB_.
+ */
+ /* @[declare_mqtt_agent_subscribe] */
+MQTTStatus_t MQTTAgent_SubscribeSync( const MQTTAgentContext_t* pMqttAgentContext,
+                                      MQTTAgentSubscribeArgs_t* pSubscriptionArgs,
+                                      TickType_t xTimeToWait_ms );
+/* @[declare_mqtt_agent_subscribe] */
+
+
+/**
  * @brief Add a command to call MQTT_Unsubscribe() for an MQTT connection.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.

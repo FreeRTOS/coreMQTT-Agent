@@ -49,6 +49,10 @@
 /* MQTT Agent default logging configuration include. */
 #include "core_mqtt_agent_default_logging.h"
 
+/*_RB_ The gain in simplicity making this FreeRTOS specific warrants bringing this
+ * in here. */
+#include "FreeRTOS.h"
+#include "task.h"
 /*-----------------------------------------------------------*/
 
 #if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
@@ -528,6 +532,7 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
                                        uint32_t blockTimeMs )
 {
     bool queueStatus;
+    MQTTStatus_t mqttStatus = MQTTSuccess;
 
     assert( pAgentContext != NULL );
     assert( pCommand != NULL );
@@ -541,7 +546,12 @@ static MQTTStatus_t addCommandToQueue( const MQTTAgentContext_t * pAgentContext,
         blockTimeMs
         );
 
-    return ( queueStatus ) ? MQTTSuccess : MQTTSendFailed;
+    if( queueStatus == false )
+    {
+        mqttStatus = MQTTSendFailed;
+    }
+
+    return mqttStatus;
 }
 
 /*-----------------------------------------------------------*/
@@ -584,9 +594,10 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     operationStatus = commandFunction( pMqttAgentContext, pCommandArgs, &commandOutParams );
 
     if( ( operationStatus == MQTTSuccess ) &&
-        commandOutParams.addAcknowledgment &&
+        ( commandOutParams.addAcknowledgment != false ) &&
         ( commandOutParams.packetId != MQTT_PACKET_ID_INVALID ) )
     {
+        /*_RB_ Needs a comment or a different function name - I think this is registering a pending ACK. */
         operationStatus = addAwaitingOperation( pMqttAgentContext, commandOutParams.packetId, pCommand );
         ackAdded = ( operationStatus == MQTTSuccess );
     }
@@ -605,8 +616,7 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         {
             pMqttAgentContext->packetReceivedInLoop = false;
 
-            if( ( ( operationStatus == MQTTSuccess ) || ( operationStatus == MQTTNeedMoreBytes ) ) &&
-                ( pMqttAgentContext->mqttContext.connectStatus == MQTTConnected ) )
+            if( ( operationStatus == MQTTSuccess ) && ( pMqttAgentContext->mqttContext.connectStatus == MQTTConnected ) )
             {
                 operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ) );
             }
@@ -614,7 +624,14 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     }
 
     /* Set the flag to break from the command loop. */
-    *pEndLoop = ( commandOutParams.endLoop || ( operationStatus != MQTTSuccess ) );
+    if( ( operationStatus != MQTTSuccess ) && ( operationStatus != MQTTNeedMoreBytes ) )
+    {
+        *pEndLoop = true;
+    }
+    else
+    {
+        *pEndLoop = commandOutParams.endLoop;
+    }
 
     return operationStatus;
 }
@@ -1047,7 +1064,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
     }
 
     /* Loop until an error or we receive a terminate command. */
-    while( operationStatus == MQTTSuccess )
+    while( ( operationStatus == MQTTSuccess ) || ( operationStatus == MQTTNeedMoreBytes ) )
     {
         /* Wait for the next command, if any. */
         pCommand = NULL;
@@ -1058,14 +1075,14 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext )
             );
         operationStatus = processCommand( pMqttAgentContext, pCommand, &endLoop );
 
-        if( operationStatus != MQTTSuccess )
+        if( ( operationStatus != MQTTSuccess ) && ( operationStatus != MQTTNeedMoreBytes ) )
         {
             LogError( ( "MQTT operation failed with status %s\n",
                         MQTT_Status_strerror( operationStatus ) ) );
         }
 
         /* Terminate the loop on disconnects, errors, or the termination command. */
-        if( endLoop )
+        if( endLoop != false )
         {
             break;
         }
@@ -1160,6 +1177,87 @@ MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext )
                 /* Now remove it from the list. */
                 ( void ) memset( &( pendingAcks[ i ] ), 0x00, sizeof( MQTTAgentAckInfo_t ) );
             }
+        }
+    }
+
+    return statusReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+static void prvCommandCompleteCallback( MQTTAgentCommandContext_t * pCommandCallbackContext,
+                                         MQTTAgentReturnInfo_t * pReturnInfo )
+{
+     xTaskNotifyIndexed( ( TaskHandle_t ) pCommandCallbackContext,
+                         MQTT_AGENT_NOTIFICATION_INDEX,
+                         0, /* Could pass specific number here so the API waiting for this callback can pare it to a command. */
+                         eSetValueWithOverwrite );
+}
+
+/*-----------------------------------------------------------*/
+
+static BaseType_t prvWaitForCommandComplete( TickType_t xTicksToWait_ms )
+{
+BaseType_t xReturn;
+uint32_t ulNotificationValue;
+
+     xReturn = xTaskNotifyWaitIndexed( MQTT_AGENT_NOTIFICATION_INDEX,
+                                       0,
+                                       0,
+                                       &ulNotificationValue,
+                                       pdMS_TO_TICKS( xTicksToWait_ms ) );
+
+     if( xReturn == pdPASS )
+     {
+         /*_RB_ If a specific notification value was used it can be verified here. */
+     }
+
+     return xReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+static void prvPrepareCommandForAgentCallback( MQTTAgentCommandInfo_t* pCommandInfo,
+                                               TickType_t xTimeToWait_ms )
+{
+    /* Clear the notification state as it is used in the agent's callback to
+	notify this task. */
+    xTaskNotifyStateClearIndexed( NULL, MQTT_AGENT_NOTIFICATION_INDEX );
+
+    /* The task the notification will be sent to. */
+    pCommandInfo->pCmdCompleteCallbackContext = ( MQTTAgentCommandContext_t * ) xTaskGetCurrentTaskHandle();
+
+    /* Use the agent's callback, that sends a task notification to this task. */
+    pCommandInfo->cmdCompleteCallback = prvCommandCompleteCallback;
+
+    pCommandInfo->blockTimeMs = xTimeToWait_ms;
+}
+
+/*-----------------------------------------------------------*/
+
+MQTTStatus_t MQTTAgent_SubscribeSync( const MQTTAgentContext_t* pMqttAgentContext,
+                                      MQTTAgentSubscribeArgs_t* pSubscriptionArgs,
+                                      TickType_t xTimeToWait_ms ) /* If FreeRTOS specific this should be in ticks. */
+{
+    MQTTAgentCommandInfo_t xCommandInfo = { 0 };
+    MQTTStatus_t statusReturn = MQTTBadParameter;
+    bool paramsValid = false;
+    BaseType_t xStatus;
+
+    prvPrepareCommandForAgentCallback( &xCommandInfo, xTimeToWait_ms );
+
+    statusReturn = MQTTAgent_Subscribe( pMqttAgentContext,
+                                        pSubscriptionArgs,
+                                        &xCommandInfo );
+
+    if( statusReturn == MQTTSuccess )
+    {
+        xStatus = prvWaitForCommandComplete( xTimeToWait_ms ); /*_RB_ Temporarily reusing an unadjusted block time. */
+
+        if( xStatus != pdPASS )
+        {
+            /* SUBACK wasn't received. */
+            statusReturn = MQTTRecvFailed;
         }
     }
 
