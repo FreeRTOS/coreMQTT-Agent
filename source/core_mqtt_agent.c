@@ -300,6 +300,16 @@ static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext );
 
 /*-----------------------------------------------------------*/
 
+struct SyncCommandContext
+{
+    TaskHandle_t xTaskToNotify;
+    uint32_t ulCommandNumber;
+};
+
+typedef struct SyncCommandContext SyncCommandContext_t;
+
+/*-----------------------------------------------------------*/
+
 static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext )
 {
     const MQTTAgentAckInfo_t * pendingAcks;
@@ -1186,30 +1196,45 @@ MQTTStatus_t MQTTAgent_CancelAll( MQTTAgentContext_t * pMqttAgentContext )
 /*-----------------------------------------------------------*/
 
 static void prvCommandCompleteCallback( MQTTAgentCommandContext_t * pCommandCallbackContext,
-                                         MQTTAgentReturnInfo_t * pReturnInfo )
+                                        MQTTAgentReturnInfo_t * pReturnInfo )
 {
-     xTaskNotifyIndexed( ( TaskHandle_t ) pCommandCallbackContext,
-                         MQTT_AGENT_NOTIFICATION_INDEX,
-                         0, /* Could pass specific number here so the API waiting for this callback can pare it to a command. */
-                         eSetValueWithOverwrite );
+SyncCommandContext_t *pxCommandContext = ( SyncCommandContext_t * ) pCommandCallbackContext;
+
+    configASSERT( pCommandCallbackContext );
+
+    if( xTaskNotifyIndexed( pxCommandContext->xTaskToNotify,
+                            MQTT_AGENT_NOTIFICATION_INDEX,
+                            pxCommandContext->ulCommandNumber,
+                            eSetValueWithoutOverwrite ) != pdPASS )
+    {
+        LogError( ( "---ERROR--- MQTT agent task failed to notify a waiting task because the waiting task already had a notification pending." ) );
+    }
 }
 
 /*-----------------------------------------------------------*/
 
-static BaseType_t prvWaitForCommandComplete( TickType_t xTicksToWait_ms )
+static BaseType_t prvWaitForCommandComplete( uint32_t ulComamndNumber, TickType_t xTicksToWait_ms )
 {
 BaseType_t xReturn;
-uint32_t ulNotificationValue;
+uint32_t ulReceivedNotificationValue;
 
      xReturn = xTaskNotifyWaitIndexed( MQTT_AGENT_NOTIFICATION_INDEX,
                                        0,
                                        0,
-                                       &ulNotificationValue,
+                                       &ulReceivedNotificationValue,
                                        pdMS_TO_TICKS( xTicksToWait_ms ) );
 
      if( xReturn == pdPASS )
      {
-         /*_RB_ If a specific notification value was used it can be verified here. */
+         if( ulReceivedNotificationValue !=  ulComamndNumber )
+         {
+             LogError( ( "---ERROR--- MQTT agent received an unexpected Ack number.  Received %ul, expected %ul.", ulReceivedNotificationValue, ulComamndNumber ) );
+             xReturn = pdFAIL;
+         }
+     }
+     else
+     {
+         LogError( ( "---ERROR--- MQTT agent timed out before receiving expected Ack number %ul.", ulComamndNumber ) );
      }
 
      return xReturn;
@@ -1217,20 +1242,48 @@ uint32_t ulNotificationValue;
 
 /*-----------------------------------------------------------*/
 
-static void prvPrepareCommandForAgentCallback( MQTTAgentCommandInfo_t* pCommandInfo,
+static uint32_t ulGetNextCommandNumber( void )
+{
+static uint32_t ulNextCommandNumber = 0UL;
+uint32_t ulReturn;
+
+    taskENTER_CRITICAL();
+    {
+        ulNextCommandNumber++;
+        ulReturn = ulNextCommandNumber;
+    }
+    taskEXIT_CRITICAL();
+
+    return ulReturn;
+}
+
+static uint32_t prvPrepareCommandForAgentCallback( MQTTAgentCommandInfo_t *pxCommandInfo,
+                                               SyncCommandContext_t *pxSyncCommandContext,
                                                TickType_t xTimeToWait_ms )
 {
+BaseType_t xReturned;
+
     /* Clear the notification state as it is used in the agent's callback to
 	notify this task. */
-    xTaskNotifyStateClearIndexed( NULL, MQTT_AGENT_NOTIFICATION_INDEX );
+    xReturned = xTaskNotifyStateClearIndexed( NULL, MQTT_AGENT_NOTIFICATION_INDEX );
+    if( xReturned != pdFAIL )
+    {
+        LogError( ( "-- ERROR -- Cleared a pending task notification" ) );
+    }
+    
+    /* Prevent compiler warnings if LogError() isn't defined. */
+    ( void ) xReturned;
 
-    /* The task the notification will be sent to. */
-    pCommandInfo->pCmdCompleteCallbackContext = ( MQTTAgentCommandContext_t * ) xTaskGetCurrentTaskHandle();
+    pxSyncCommandContext->ulCommandNumber = ulGetNextCommandNumber();
+    pxSyncCommandContext->xTaskToNotify = xTaskGetCurrentTaskHandle();
+    pxCommandInfo->pCmdCompleteCallbackContext = ( MQTTAgentCommandContext_t * ) pxSyncCommandContext;
 
-    /* Use the agent's callback, that sends a task notification to this task. */
-    pCommandInfo->cmdCompleteCallback = prvCommandCompleteCallback;
+    /* Use the agent's callback, which sends a task notification to this task. */
+    pxCommandInfo->cmdCompleteCallback = prvCommandCompleteCallback;
 
-    pCommandInfo->blockTimeMs = xTimeToWait_ms;
+    pxCommandInfo->blockTimeMs = xTimeToWait_ms;
+
+    return pxSyncCommandContext->ulCommandNumber;
 }
 
 /*-----------------------------------------------------------*/
@@ -1240,11 +1293,13 @@ MQTTStatus_t MQTTAgent_SubscribeSync( const MQTTAgentContext_t* pMqttAgentContex
                                       TickType_t xTimeToWait_ms ) /* If FreeRTOS specific this should be in ticks. */
 {
     MQTTAgentCommandInfo_t xCommandInfo = { 0 };
-    MQTTStatus_t statusReturn = MQTTBadParameter;
+    SyncCommandContext_t xSyncCommandContext = { 0 };
+    MQTTStatus_t statusReturn;
     bool paramsValid = false;
     BaseType_t xStatus;
+    uint32_t ulCommandNumber;
 
-    prvPrepareCommandForAgentCallback( &xCommandInfo, xTimeToWait_ms );
+    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext, xTimeToWait_ms );
 
     statusReturn = MQTTAgent_Subscribe( pMqttAgentContext,
                                         pSubscriptionArgs,
@@ -1252,11 +1307,12 @@ MQTTStatus_t MQTTAgent_SubscribeSync( const MQTTAgentContext_t* pMqttAgentContex
 
     if( statusReturn == MQTTSuccess )
     {
-        xStatus = prvWaitForCommandComplete( xTimeToWait_ms ); /*_RB_ Temporarily reusing an unadjusted block time. */
+        xStatus = prvWaitForCommandComplete( ulCommandNumber, xTimeToWait_ms );
 
         if( xStatus != pdPASS )
         {
-            /* SUBACK wasn't received. */
+            /* If QoS0, the command never completed.  If QoS1 or Qos2, SUBACK 
+            wasn't received. */
             statusReturn = MQTTRecvFailed;
         }
     }
@@ -1309,6 +1365,37 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
                                             pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
                                             pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
                                             pCommandInfo->blockTimeMs );
+    }
+
+    return statusReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+MQTTStatus_t MQTTAgent_PublishSync( const MQTTAgentContext_t * pMqttAgentContext,
+                                    MQTTPublishInfo_t * pPublishInfo,
+                                    TickType_t xTimeToWait_ms )
+{
+    MQTTStatus_t statusReturn;
+    BaseType_t xReturned;
+    MQTTAgentCommandInfo_t xCommandInfo = { 0 }; /*_RB_ Is it ok for this to go out of scope? */
+    SyncCommandContext_t xSyncCommandContext = { 0 };
+    uint32_t ulCommandNumber;
+
+    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext, xTimeToWait_ms );
+    statusReturn = MQTTAgent_Publish( pMqttAgentContext,
+                                      pPublishInfo,
+                                      &xCommandInfo );
+
+    if( statusReturn == MQTTSuccess )
+    {
+        xReturned = prvWaitForCommandComplete( ulCommandNumber, xTimeToWait_ms ); /*_RB_ Temporarily reusing an unadjusted block time. */
+
+        if( xReturned != pdPASS )
+        {
+            /* PUBACK wasn't received. */
+            statusReturn = MQTTSendFailed;
+        }
     }
 
     return statusReturn;

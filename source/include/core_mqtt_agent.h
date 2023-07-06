@@ -608,6 +608,12 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
                                 const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_publish] */
 
+/*_RB_ Comments TBD. */
+MQTTStatus_t MQTTAgent_PublishSync( const MQTTAgentContext_t * pMqttAgentContext,
+                                    MQTTPublishInfo_t * pPublishInfo,
+                                    TickType_t xTimeToWait_ms );
+
+
 /**
  * @brief Send a message to the MQTT agent purely to trigger an iteration of its loop,
  * which will result in a call to MQTT_ProcessLoop().  This function can be used to
