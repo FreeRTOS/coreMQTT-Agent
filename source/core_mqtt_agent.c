@@ -1226,7 +1226,7 @@ uint32_t ulReceivedNotificationValue;
 
      if( xReturn == pdPASS )
      {
-         if( ulReceivedNotificationValue !=  ulComamndNumber )
+         if( ulReceivedNotificationValue != ulComamndNumber )
          {
              LogError( ( "---ERROR--- MQTT agent received an unexpected Ack number.  Received %ul, expected %ul.", ulReceivedNotificationValue, ulComamndNumber ) );
              xReturn = pdFAIL;
@@ -1258,8 +1258,7 @@ uint32_t ulReturn;
 }
 
 static uint32_t prvPrepareCommandForAgentCallback( MQTTAgentCommandInfo_t *pxCommandInfo,
-                                               SyncCommandContext_t *pxSyncCommandContext,
-                                               TickType_t xTimeToWait_ms )
+                                                   SyncCommandContext_t *pxSyncCommandContext )
 {
 BaseType_t xReturned;
 
@@ -1270,7 +1269,7 @@ BaseType_t xReturned;
     {
         LogError( ( "-- ERROR -- Cleared a pending task notification" ) );
     }
-    
+
     /* Prevent compiler warnings if LogError() isn't defined. */
     ( void ) xReturned;
 
@@ -1281,69 +1280,66 @@ BaseType_t xReturned;
     /* Use the agent's callback, which sends a task notification to this task. */
     pxCommandInfo->cmdCompleteCallback = prvCommandCompleteCallback;
 
-    pxCommandInfo->blockTimeMs = xTimeToWait_ms;
-
     return pxSyncCommandContext->ulCommandNumber;
 }
 
 /*-----------------------------------------------------------*/
 
-MQTTStatus_t MQTTAgent_SubscribeSync( const MQTTAgentContext_t* pMqttAgentContext,
-                                      MQTTAgentSubscribeArgs_t* pSubscriptionArgs,
-                                      TickType_t xTimeToWait_ms ) /* If FreeRTOS specific this should be in ticks. */
+MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * const pMqttAgentContext,
+                                  MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
+                                  const MQTTAgentCommandInfo_t * const pCommandInfo )
 {
-    MQTTAgentCommandInfo_t xCommandInfo = { 0 };
     SyncCommandContext_t xSyncCommandContext = { 0 };
     MQTTStatus_t statusReturn;
-    bool paramsValid = false;
-    BaseType_t xStatus;
+    BaseType_t xStatus, xSynchronous = pdFALSE;
     uint32_t ulCommandNumber;
+    MQTTAgentCommandInfo_t xCommandInfo;
 
-    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext, xTimeToWait_ms );
 
-    statusReturn = MQTTAgent_Subscribe( pMqttAgentContext,
-                                        pSubscriptionArgs,
-                                        &xCommandInfo );
+    configASSERT( pCommandInfo );
 
-    if( statusReturn == MQTTSuccess )
+    if( ( validateStruct( pMqttAgentContext, pCommandInfo ) != true ) ||
+        ( validateParams( SUBSCRIBE, pSubscriptionArgs ) != true ) )
     {
-        xStatus = prvWaitForCommandComplete( ulCommandNumber, xTimeToWait_ms );
-
-        if( xStatus != pdPASS )
+        statusReturn = MQTTBadParameter;
+    }
+    else
+    {
+        /* Take a copy of the command info structure to enable passing the
+         * the address of a const structure in as a parameter. */
+        xCommandInfo = *pCommandInfo;
+        if( xCommandInfo.cmdCompleteCallback == NULL )
         {
-            /* If QoS0, the command never completed.  If QoS1 or Qos2, SUBACK 
-            wasn't received. */
-            statusReturn = MQTTRecvFailed;
+            xSynchronous = pdTRUE;
+            ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext );
+        }
+
+        statusReturn = createAndAddCommand( SUBSCRIBE,                                /* commandType */
+                                            pMqttAgentContext,                        /* mqttContextHandle */
+                                            pSubscriptionArgs,                        /* pMqttInfoParam */
+                                            xCommandInfo.cmdCompleteCallback,         /* commandCompleteCallback */
+                                            xCommandInfo.pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            xCommandInfo.blockTimeMs );
+
+        if( xSynchronous != pdFALSE )
+        {
+            if( statusReturn == MQTTSuccess )
+            {
+                xStatus = prvWaitForCommandComplete( ulCommandNumber, xCommandInfo.blockTimeMs );
+
+                if( xStatus != pdPASS )
+                {
+                    /* If QoS0, the command never completed.  If QoS1 or Qos2, SUBACK
+                    wasn't received. */
+                    statusReturn = MQTTRecvFailed;
+                }
+            }
         }
     }
 
     return statusReturn;
 }
 
-/*-----------------------------------------------------------*/
-
-MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * pMqttAgentContext,
-                                  MQTTAgentSubscribeArgs_t * pSubscriptionArgs,
-                                  const MQTTAgentCommandInfo_t * pCommandInfo )
-{
-    MQTTStatus_t statusReturn = MQTTBadParameter;
-    bool paramsValid = false;
-
-    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
-                  validateParams( SUBSCRIBE, pSubscriptionArgs );
-
-    if( paramsValid )
-    {
-        statusReturn = createAndAddCommand( SUBSCRIBE,                                 /* commandType */
-                                            pMqttAgentContext,                         /* mqttContextHandle */
-                                            pSubscriptionArgs,                         /* pMqttInfoParam */
-                                            pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
-                                            pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
-                                            pCommandInfo->blockTimeMs );
-    }
-
-    return statusReturn;
-}
 
 /*-----------------------------------------------------------*/
 
@@ -1382,7 +1378,7 @@ MQTTStatus_t MQTTAgent_PublishSync( const MQTTAgentContext_t * pMqttAgentContext
     SyncCommandContext_t xSyncCommandContext = { 0 };
     uint32_t ulCommandNumber;
 
-    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext, xTimeToWait_ms );
+    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext );
     statusReturn = MQTTAgent_Publish( pMqttAgentContext,
                                       pPublishInfo,
                                       &xCommandInfo );
