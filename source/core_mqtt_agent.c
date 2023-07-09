@@ -298,6 +298,12 @@ static bool validateParams( MQTTAgentCommandType_t commandType,
  */
 static bool isSpaceInPendingAckList( const MQTTAgentContext_t * pAgentContext );
 
+/*_RB_ TBD comments. */
+static MQTTStatus_t prvWaitAckIfSynchronous( MQTTStatus_t statusReturn,
+                                             BaseType_t xSynchronous,
+                                             uint32_t ulCommandNumber,
+                                             TickType_t xTimeToWait_ms );
+
 /*-----------------------------------------------------------*/
 
 struct SyncCommandContext
@@ -1291,7 +1297,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * const pMqttAgentCon
 {
     SyncCommandContext_t xSyncCommandContext = { 0 };
     MQTTStatus_t statusReturn;
-    BaseType_t xStatus, xSynchronous = pdFALSE;
+    BaseType_t xSynchronous = pdFALSE;
     uint32_t ulCommandNumber;
     MQTTAgentCommandInfo_t xCommandInfo;
 
@@ -1321,20 +1327,7 @@ MQTTStatus_t MQTTAgent_Subscribe( const MQTTAgentContext_t * const pMqttAgentCon
                                             xCommandInfo.pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
                                             xCommandInfo.blockTimeMs );
 
-        if( xSynchronous != pdFALSE )
-        {
-            if( statusReturn == MQTTSuccess )
-            {
-                xStatus = prvWaitForCommandComplete( ulCommandNumber, xCommandInfo.blockTimeMs );
-
-                if( xStatus != pdPASS )
-                {
-                    /* If QoS0, the command never completed.  If QoS1 or Qos2, SUBACK
-                    wasn't received. */
-                    statusReturn = MQTTRecvFailed;
-                }
-            }
-        }
+        statusReturn = prvWaitAckIfSynchronous( statusReturn, xSynchronous, ulCommandNumber, xCommandInfo.blockTimeMs );
     }
 
     return statusReturn;
@@ -1368,29 +1361,25 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
 
 /*-----------------------------------------------------------*/
 
-MQTTStatus_t MQTTAgent_PublishSync( const MQTTAgentContext_t * pMqttAgentContext,
-                                    MQTTPublishInfo_t * pPublishInfo,
-                                    TickType_t xTimeToWait_ms )
+static MQTTStatus_t prvWaitAckIfSynchronous( MQTTStatus_t statusReturn,
+                                             BaseType_t xSynchronous,
+                                             uint32_t ulCommandNumber,
+                                             TickType_t xTimeToWait_ms )
 {
-    MQTTStatus_t statusReturn;
-    BaseType_t xReturned;
-    MQTTAgentCommandInfo_t xCommandInfo = { 0 }; /*_RB_ Is it ok for this to go out of scope? */
-    SyncCommandContext_t xSyncCommandContext = { 0 };
-    uint32_t ulCommandNumber;
+BaseType_t xStatus;
 
-    ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext );
-    statusReturn = MQTTAgent_Publish( pMqttAgentContext,
-                                      pPublishInfo,
-                                      &xCommandInfo );
-
-    if( statusReturn == MQTTSuccess )
+    if( xSynchronous != pdFALSE )
     {
-        xReturned = prvWaitForCommandComplete( ulCommandNumber, xTimeToWait_ms ); /*_RB_ Temporarily reusing an unadjusted block time. */
-
-        if( xReturned != pdPASS )
+        if( statusReturn == MQTTSuccess )
         {
-            /* PUBACK wasn't received. */
-            statusReturn = MQTTSendFailed;
+            xStatus = prvWaitForCommandComplete( ulCommandNumber, xTimeToWait_ms );
+
+            if( xStatus != pdPASS )
+            {
+                /* If QoS0, the command never completed.  If QoS1 or Qos2, SUBACK
+                wasn't received. */
+                statusReturn = MQTTRecvFailed;
+            }
         }
     }
 
@@ -1399,6 +1388,46 @@ MQTTStatus_t MQTTAgent_PublishSync( const MQTTAgentContext_t * pMqttAgentContext
 
 /*-----------------------------------------------------------*/
 
+MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * const pMqttAgentContext,
+                                MQTTPublishInfo_t * pPublishInfo,
+                                const MQTTAgentCommandInfo_t * const pCommandInfo )
+{
+    SyncCommandContext_t xSyncCommandContext = { 0 }; /*_RB_ Is it ok for this to go out of scope? */
+    MQTTStatus_t statusReturn;
+    BaseType_t xSynchronous = pdFALSE;
+    uint32_t ulCommandNumber;
+    MQTTAgentCommandInfo_t xCommandInfo;
+
+    if( ( validateStruct( pMqttAgentContext, pCommandInfo ) != true ) ||
+        ( validateParams( PUBLISH, pPublishInfo ) != true ) )
+    {
+        statusReturn = MQTTBadParameter;
+    }
+    else
+    {
+        /* Take a copy of the command info structure to enable passing the
+         * the address of a const structure in as a parameter. */
+        xCommandInfo = *pCommandInfo;
+        if( xCommandInfo.cmdCompleteCallback == NULL )
+        {
+            xSynchronous = pdTRUE;
+            ulCommandNumber = prvPrepareCommandForAgentCallback( &xCommandInfo, &xSyncCommandContext );
+        }
+
+        statusReturn = createAndAddCommand( PUBLISH,                                   /* commandType */
+                                            pMqttAgentContext,                         /* mqttContextHandle */
+                                            pPublishInfo,                              /* pMqttInfoParam */
+                                            xCommandInfo.cmdCompleteCallback,         /* commandCompleteCallback */
+                                            xCommandInfo.pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
+                                            xCommandInfo.blockTimeMs );
+
+        statusReturn = prvWaitAckIfSynchronous( statusReturn, xSynchronous, ulCommandNumber, xCommandInfo.blockTimeMs );
+    }
+    return statusReturn;
+}
+
+/*-----------------------------------------------------------*/
+#if 0
 MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
                                 const MQTTAgentCommandInfo_t * pCommandInfo )
@@ -1421,7 +1450,7 @@ MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
 
     return statusReturn;
 }
-
+#endif
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgent_ProcessLoop( const MQTTAgentContext_t * pMqttAgentContext,

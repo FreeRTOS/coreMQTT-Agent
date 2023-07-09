@@ -593,9 +593,9 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  * @endcode
  */
 /* @[declare_mqtt_agent_publish] */
-MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
+MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * const pMqttAgentContext,
                                 MQTTPublishInfo_t * pPublishInfo,
-                                const MQTTAgentCommandInfo_t * pCommandInfo );
+                                const MQTTAgentCommandInfo_t * const pCommandInfo );
 /* @[declare_mqtt_agent_publish] */
 
 /*_RB_ Comments TBD. */
