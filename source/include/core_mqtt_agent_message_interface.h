@@ -131,9 +131,6 @@ typedef bool ( * MQTTAgentCommandRelease_t )( MQTTAgentCommand_t * pCommandToRel
 /* @[define_messageinterface] */
 typedef struct MQTTAgentMessageInterface
 {
-    MQTTAgentMessageContext_t * pMsgCtx;      /**< Context with which tasks may deliver messages to the agent. */
-    MQTTAgentMessageSend_t send;              /**< Function to send a command to the agent. */
-    MQTTAgentMessageRecv_t recv;              /**< Function for the agent to receive a command. */
     MQTTAgentCommandGet_t getCommand;         /**< Function to obtain a pointer to an allocated command. */
     MQTTAgentCommandRelease_t releaseCommand; /**< Function to release an allocated command. */
 } MQTTAgentMessageInterface_t;

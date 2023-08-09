@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "FreeRTOS.h"
+#include "queue.h"
+
 /* MQTT agent include. */
 #include "core_mqtt_agent.h"
 

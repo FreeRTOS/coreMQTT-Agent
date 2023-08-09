@@ -156,6 +156,7 @@ typedef struct MQTTAgentContext
     MQTTAgentAckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
     MQTTAgentIncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
     void * pIncomingCallbackContext;                                    /**< Context for incoming publish callback. */
+    QueueHandle_t commandQueue;                                         /**< Queue used to pass commands into the MQTT agent. */
     bool packetReceivedInLoop;                                          /**< Whether a MQTT_ProcessLoop() call received a packet. */
 } MQTTAgentContext_t;
 
