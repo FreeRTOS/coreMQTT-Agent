@@ -130,6 +130,7 @@ mqtteventcallback
 mqttfixedbuffer
 mqttgetcurrenttimefunc
 mqttkeepalivetimeout
+mqttneedmorebytes
 mqttnomemory
 mqttnotconnected
 mqttpublishinfo
