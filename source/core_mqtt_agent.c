@@ -613,6 +613,12 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         } while( pMqttAgentContext->packetReceivedInLoop );
     }
 
+    if( operationStatus == MQTTNeedMoreBytes )
+    {
+        /* Reset the operation status as MQTTNeedMoreBytes is not an error condition. */
+        operationStatus = MQTTSuccess;
+    }
+
     /* Set the flag to break from the command loop. */
     *pEndLoop = ( commandOutParams.endLoop || ( operationStatus != MQTTSuccess ) );
 
