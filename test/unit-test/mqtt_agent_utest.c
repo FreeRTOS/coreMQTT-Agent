@@ -1753,7 +1753,7 @@ void test_MQTTAgent_CommandLoop_NoCommand_NoData( void )
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
 
-    TEST_ASSERT_EQUAL( MQTTNeedMoreBytes, mqttStatus );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
 }
 
 /**

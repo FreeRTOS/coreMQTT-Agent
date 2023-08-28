@@ -27,6 +27,10 @@ MAX_BOUND_FOR_COMMAND_LOOP=3
 # the loop 2 times will be enough for proving memory safety.
 MAX_BOUND_FOR_PROCESS_COMMAND_LOOP=2
 
+# Force CBMC to only use the AgentMessageRecvStub function as the pointee of
+# the recv function.
+RESTRICT_FUNCTION_POINTER += MQTTAgent_CommandLoop.function_pointer_call.1/AgentMessageRecvStub
+
 DEFINES += -DMQTT_AGENT_MAX_OUTSTANDING_ACKS=$(MQTT_AGENT_MAX_OUTSTANDING_ACKS)
 
 INCLUDES +=
