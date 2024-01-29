@@ -36,7 +36,7 @@ To run the proof.
 * Run `make`.
 * Open html/index.html in a web browser.
 
-To use [`arpa`](https://awslabs.github.io/aws-proof-build-assistant/) to simplify writing Makefiles.
+To use [`arpa`](https://awslabs.github.io/aws-proof-build-assistant) to simplify writing Makefiles.
 -------------
 
 * Run `make arpa` to generate a Makefile.arpa that contains relevant build information for the proof.
