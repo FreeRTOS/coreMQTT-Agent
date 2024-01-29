@@ -10,3 +10,10 @@ dependencies:
       type: "git"
       url: "https://github.com/FreeRTOS/coreMQTT/"
       path: source/dependency/coreMQTT
+
+  - name: "CMock"
+    version: "3b443e5"
+    repository:
+      type: "git"
+      url: " https://github.com/ThrowTheSwitch/CMock.git"
+      path: "test/unit-test/CMock"
