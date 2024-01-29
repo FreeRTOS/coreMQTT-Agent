@@ -81,8 +81,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
+
+      - env:
+          stepName: Download MQTT tag
+        name: ${{ env.stepName }}
+        run: |
+          # We don't need to generate the coreMQTT docs, we only need the tag file. We can just download it.
+          echo -e "::group::${{ env.bashInfo }} ${{ env.stepName }} ${{ env.bashEnd }}"
+          mkdir -p source/dependency/coreMQTT/docs/doxygen/output
+          wget -O source/dependency/coreMQTT/docs/doxygen/output/mqtt.tag \
+          "https://freertos.org/Documentation/api-ref/coreMQTT/docs/doxygen/output/mqtt.tag"
+          echo -e "::endgroup::"
+          echo -e "${{env.bashPass}} ${{ env.stepName }} ${{ env.bashEnd }}"
+
       - name: Run doxygen build
         uses: FreeRTOS/CI-CD-Github-Actions/doxygen@main
         with:
