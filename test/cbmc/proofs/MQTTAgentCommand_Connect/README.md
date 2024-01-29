@@ -5,7 +5,7 @@ This directory contains a memory safety proof for MQTTAgentCommand_Connect.
 
 The proof runs within 10 seconds on a t2.2xlarge. It provides complete coverage of:
  * MQTTAgentCommand_Connect()
- 
+
 To run the proof.
 -------------
 
@@ -14,7 +14,7 @@ To run the proof.
 * Run `make`.
 * Open html/index.html in a web browser.
 
-To use [`arpa`](https://github.com/awslabs/aws-proof-build-assistant) to simplify writing Makefiles.
+To use [`arpa`](https://awslabs.github.io/aws-proof-build-assistant) to simplify writing Makefiles.
 -------------
 
 * Run `make arpa` to generate a Makefile.arpa that contains relevant build information for the proof.

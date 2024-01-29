@@ -2,10 +2,18 @@ name : "coreMQTT Agent"
 version: "v1.2.0"
 description: |
   "Agent for thread-safe use of coreMQTT.\n"
+license: "MIT"
 dependencies:
   - name : "coreMQTT"
     version: "v2.1.0"
     repository:
       type: "git"
       url: "https://github.com/FreeRTOS/coreMQTT/"
-license: "MIT"
+      path: source/dependency/coreMQTT
+
+  - name: "CMock"
+    version: "3b443e5"
+    repository:
+      type: "git"
+      url: " https://github.com/ThrowTheSwitch/CMock.git"
+      path: "test/unit-test/CMock"

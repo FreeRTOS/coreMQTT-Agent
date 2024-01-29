@@ -1015,16 +1015,16 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                                   pNetworkBuffer );
 
         #if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
+        {
+            if( returnStatus == MQTTSuccess )
             {
-                if( returnStatus == MQTTSuccess )
-                {
-                    returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
-                                                         pOutgoingPublishRecords,
-                                                         MQTT_AGENT_MAX_OUTSTANDING_ACKS,
-                                                         pIncomingPublishRecords,
-                                                         MQTT_AGENT_MAX_OUTSTANDING_ACKS );
-                }
+                returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
+                                                     pOutgoingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS,
+                                                     pIncomingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS );
             }
+        }
         #endif /* if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 ) */
 
         if( returnStatus == MQTTSuccess )
