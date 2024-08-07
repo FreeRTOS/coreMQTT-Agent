@@ -562,9 +562,9 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
     if( pCommand != NULL )
     {
-        assert( ( unsigned int ) pCommand->commandType < ( unsigned int ) NUM_COMMANDS );
+        assert( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS );
 
-        if( ( unsigned int ) pCommand->commandType < ( unsigned int ) NUM_COMMANDS )
+        if( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS )
         {
             commandFunction = pCommandFunctionTable[ pCommand->commandType ];
             pCommandArgs = pCommand->pArgs;
