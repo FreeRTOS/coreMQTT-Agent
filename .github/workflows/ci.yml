@@ -37,6 +37,7 @@ jobs:
           -G "Unix Makefiles" \
           -DCMAKE_BUILD_TYPE=Debug \
           -DBUILD_CLONE_SUBMODULES=ON \
+          -DUNITTEST=1 \
           -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Werror -DNDEBUG -DLIBRARY_LOG_LEVEL=LOG_DEBUG'
           make -C build/ all
           
@@ -90,7 +91,7 @@ jobs:
           echo -e "::group::${{ env.bashInfo }} ${{ env.stepName }} ${{ env.bashEnd }}"
           mkdir -p source/dependency/coreMQTT/docs/doxygen/output
           wget -O source/dependency/coreMQTT/docs/doxygen/output/mqtt.tag \
-          "https://freertos.org/Documentation/api-ref/coreMQTT/docs/doxygen/output/mqtt.tag"
+          "https://freertos.github.io/coreMQTT/main/mqtt.tag"
           echo -e "::endgroup::"
           echo -e "${{env.bashPass}} ${{ env.stepName }} ${{ env.bashEnd }}"
 

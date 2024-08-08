@@ -25,7 +25,7 @@ git submodule update --init --recursive
 
 ## coreMQTT Agent Library Configurations
 
-The MQTT Agent library uses the same `core_mqtt_config.h` configuration file as coreMQTT, with the addition of configuration constants listed at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Documentation for these configurations can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/core_mqtt_agent_config.html).
+The MQTT Agent library uses the same `core_mqtt_config.h` configuration file as coreMQTT, with the addition of configuration constants listed at the top of [core_mqtt_agent.h](source/include/core_mqtt_agent.h) and [core_mqtt_agent_command_functions.h](source/include/core_mqtt_agent_command_functions.h). Documentation for these configurations can be found [here](https://freertos.github.io/coreMQTT-Agent/main/core_mqtt_agent_config.html).
 
 To provide values for these configuration values, they must be either:
 * Defined in `core_mqtt_config.h` used by coreMQTT
@@ -131,7 +131,7 @@ Please refer to the demos of the MQTT Agent library in the following locations f
 
 ## Documentation
 
-The MQTT Agent API documentation can be found [here](https://freertos.org/Documentation/api-ref/coreMQTT-Agent/docs/doxygen/output/html/index.html).
+The MQTT Agent API documentation can be found [here](https://freertos.github.io/coreMQTT-Agent/main/index.html).
 
 ### Generating documentation
 
@@ -143,7 +143,7 @@ doxygen docs/doxygen/config.doxyfile
 ```
 
 ## Getting help
-You can use your Github login to get support from both the FreeRTOS community and directly from the primary FreeRTOS developers on our [active support forum](https://forums.freertos.org). You can find a list of [frequently asked questions](https://www.freertos.org/FAQ.html) here.
+You can use your Github login to get support from both the FreeRTOS community and directly from the primary FreeRTOS developers on our [active support forum](https://forums.freertos.org). You can find a list of [frequently asked questions](https://www.freertos.org/Why-FreeRTOS/FAQs) here.
 
 ## Contributing
 
