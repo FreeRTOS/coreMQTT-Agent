@@ -23,4 +23,17 @@ Deviations from the MISRA standard are listed below:
 | Rule 8.13 | Advisory | Functions that are passed as pointers to coreMQTT or the agent must exactly match function signatures with the pointer type definition, so `const` modifiers cannot be added even if a specific function implementation does not modify a given parameter. |
 
 ### Suppressed with Coverity Comments
-*None.*
+To find the deviation references in the source files run grep on the source code
+with ( Assuming rule 11.3 violation; with justification in point 1 ):
+```
+grep 'MISRA Ref 11.3.1' . -rI
+```
+#### Rule 11.3
+
+_Ref 11.3.1_
+
+- MISRA C-2012 Rule 11.3 states that a cast shall not be performed between a pointer to
+  to object type and a pointer to a different object type. In this library, the MQTT stack
+  processes data as byte stream, requiring casting to specific data structure. However this
+  casting is safe because the buffers are aligned to a 4-byte boundaries, ensuring  that no
+  unaligned memory access occurs.
