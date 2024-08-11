@@ -974,11 +974,13 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              void * pIncomingPacketContext )
 {
     MQTTStatus_t returnStatus;
+
     /**
      * @brief Array used to maintain the outgoing publish records and their
      * state by the coreMQTT library.
      */
     static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+
     /**
      * @brief Array used to maintain the outgoing publish records and their
      * state by the coreMQTT library.
