@@ -1,3 +1,7 @@
+# Include filepaths for source and include.
+include( ${MODULE_ROOT_DIR}/source/dependency/coreMQTT/mqttFilePaths.cmake )
+include( ${MODULE_ROOT_DIR}/mqttAgentFilePaths.cmake )
+
 # ====================  Define your project name (edit) ========================
 set(project_name "mqtt_agent")
 

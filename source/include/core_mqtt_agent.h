@@ -201,8 +201,8 @@ typedef struct MQTTAgentCommandInfo
  * @param[in] pMqttAgentContext Pointer to struct to initialize.
  * @param[in] pMsgInterface Command interface to use for allocating and sending commands.
  * @param[in] pNetworkBuffer Pointer to network buffer to use.
- * @param[in] pTransportInterface Transport interface to use with the MQTT
- * library.  See https://www.freertos.org/network-interface.html
+ * @param[in] pTransportInterface Transport interface to use with the MQTT library.
+ * See https://www.freertos.org/Documentation/03-Libraries/03-FreeRTOS-core/06-Transport-Interface/01-Transport-interface
  * @param[in] getCurrentTimeMs Pointer to a function that returns a count value
  * that increments every millisecond.
  * @param[in] incomingCallback The callback to execute when receiving publishes.
