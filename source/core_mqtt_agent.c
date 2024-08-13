@@ -51,21 +51,6 @@
 
 /*-----------------------------------------------------------*/
 
-#if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
-
-/**
- * @brief Array used to maintain the outgoing publish records and their
- * state by the coreMQTT library.
- */
-    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-
-/**
- * @brief Array used to maintain the incoming publish records and their
- * state by the coreMQTT library.
- */
-    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-#endif
-
 /**
  * @brief Track an operation by adding it to a list, indicating it is anticipating
  * an acknowledgment.
@@ -562,9 +547,9 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
     if( pCommand != NULL )
     {
-        assert( ( unsigned int ) pCommand->commandType < ( unsigned int ) NUM_COMMANDS );
+        assert( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS );
 
-        if( ( unsigned int ) pCommand->commandType < ( unsigned int ) NUM_COMMANDS )
+        if( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS )
         {
             commandFunction = pCommandFunctionTable[ pCommand->commandType ];
             pCommandArgs = pCommand->pArgs;
@@ -657,6 +642,9 @@ static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContex
     MQTTAgentContext_t ctx = { 0 };
     ptrdiff_t offset = ( ( uint8_t * ) &( ctx.mqttContext ) ) - ( ( uint8_t * ) &ctx );
 
+    /* MISRA Ref 11.3.1 [Misaligned access] */
+    /* More details at: https://github.com/FreeRTOS/coreMQTT-Agent/blob/main/MISRA.md#rule-113 */
+    /* coverity[misra_c_2012_rule_11_3_violation] */
     return ( MQTTAgentContext_t * ) &( ( ( uint8_t * ) pMQTTContext )[ 0 - offset ] );
 }
 
@@ -986,6 +974,18 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              void * pIncomingPacketContext )
 {
     MQTTStatus_t returnStatus;
+
+    /**
+     * @brief Array used to maintain the outgoing publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+
+    /**
+     * @brief Array used to maintain the outgoing publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
 
     if( ( pMqttAgentContext == NULL ) ||
         ( pMsgInterface == NULL ) ||
