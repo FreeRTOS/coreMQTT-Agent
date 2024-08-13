@@ -22,11 +22,10 @@ var searchData=
   ['core_5fmqtt_5fagent_5fdefault_5flogging_2eh_19',['core_mqtt_agent_default_logging.h',['../core__mqtt__agent__default__logging_8h.html',1,'']]],
   ['core_5fmqtt_5fagent_5fmessage_5finterface_2eh_20',['core_mqtt_agent_message_interface.h',['../core__mqtt__agent__message__interface_8h.html',1,'']]],
   ['core_5fmqtt_5fconfig_5fdefaults_2eh_21',['core_mqtt_config_defaults.h',['coreMQTT/core__mqtt__config__defaults_8h.html',1,'']]],
-  ['core_5fmqtt_5fdefault_5flogging_2eh_22',['core_mqtt_default_logging.h',['coreMQTT/core__mqtt__default__logging_8h.html',1,'']]],
-  ['core_5fmqtt_5fserializer_2ec_23',['core_mqtt_serializer.c',['coreMQTT/core__mqtt__serializer_8c.html',1,'']]],
-  ['core_5fmqtt_5fserializer_2eh_24',['core_mqtt_serializer.h',['coreMQTT/core__mqtt__serializer_8h.html',1,'']]],
-  ['core_5fmqtt_5fstate_2ec_25',['core_mqtt_state.c',['coreMQTT/core__mqtt__state_8c.html',1,'']]],
-  ['core_5fmqtt_5fstate_2eh_26',['core_mqtt_state.h',['coreMQTT/core__mqtt__state_8h.html',1,'']]],
-  ['createandaddcommand_27',['createAndAddCommand',['../core__mqtt__agent_8c.html#a594dbfd47f77c6988960110da3c25a2c',1,'core_mqtt_agent.c']]],
-  ['createcommand_28',['createCommand',['../core__mqtt__agent_8c.html#a4f2d34a65263b609595aa8f1705ff89f',1,'core_mqtt_agent.c']]]
+  ['core_5fmqtt_5fserializer_2ec_22',['core_mqtt_serializer.c',['coreMQTT/core__mqtt__serializer_8c.html',1,'']]],
+  ['core_5fmqtt_5fserializer_2eh_23',['core_mqtt_serializer.h',['coreMQTT/core__mqtt__serializer_8h.html',1,'']]],
+  ['core_5fmqtt_5fstate_2ec_24',['core_mqtt_state.c',['coreMQTT/core__mqtt__state_8c.html',1,'']]],
+  ['core_5fmqtt_5fstate_2eh_25',['core_mqtt_state.h',['coreMQTT/core__mqtt__state_8h.html',1,'']]],
+  ['createandaddcommand_26',['createAndAddCommand',['../core__mqtt__agent_8c.html#a594dbfd47f77c6988960110da3c25a2c',1,'core_mqtt_agent.c']]],
+  ['createcommand_27',['createCommand',['../core__mqtt__agent_8c.html#a4f2d34a65263b609595aa8f1705ff89f',1,'core_mqtt_agent.c']]]
 ];
