@@ -1,5 +1,19 @@
 # Changelog for coreMQTT Agent Library
 
+## v1.3.0 (August 2024)
+
+### Changes
+ - [#111](https://github.com/FreeRTOS/coreMQTT-Agent/pull/111) Update coreMQTT-Agent to work with the coreMQTT v2.3.1.
+ - [#110](https://github.com/FreeRTOS/coreMQTT-Agent/pull/110) Fix MISRA violation.
+ - [#109](https://github.com/FreeRTOS/coreMQTT-Agent/pull/109) Update CMakeList optionally build UT/Coverity & Update Coverity configuration.
+ - [#108](https://github.com/FreeRTOS/coreMQTT-Agent/pull/108) Use CBMC version 5.95.1.
+ - [#107](https://github.com/FreeRTOS/coreMQTT-Agent/pull/107) Add documentation about configuration options.
+ - [#105](https://github.com/FreeRTOS/coreMQTT-Agent/pull/105) Update this repository to use new CI-CD Actions.
+ - [#103](https://github.com/FreeRTOS/coreMQTT-Agent/pull/103) Update Agent to treat MQTTNeedMoreBytes correctly.
+ - [#84](https://github.com/FreeRTOS/coreMQTT-Agent/pull/84) Create pull_request_template.md.
+ - [#83](https://github.com/FreeRTOS/coreMQTT-Agent/pull/83) Add CBMC proof-running GitHub Action.
+ - [#81](https://github.com/FreeRTOS/coreMQTT-Agent/pull/81) Fix unsigned comparison IAR compiler warnings.
+
 ## v1.2.0 (October 2022)
 
 ### Changes

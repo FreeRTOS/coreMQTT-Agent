@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent v1.2.0
+ * coreMQTT Agent v1.3.0
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
