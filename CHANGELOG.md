@@ -3,6 +3,7 @@
 ## v1.3.0 (August 2024)
 
 ### Changes
+ - [#114](https://github.com/FreeRTOS/coreMQTT-Agent/pull/114) Update CMock submodule pointer to latest version v2.5.3.
  - [#111](https://github.com/FreeRTOS/coreMQTT-Agent/pull/111) Update coreMQTT-Agent to work with the coreMQTT v2.3.1.
  - [#110](https://github.com/FreeRTOS/coreMQTT-Agent/pull/110) Fix MISRA violation.
  - [#109](https://github.com/FreeRTOS/coreMQTT-Agent/pull/109) Update CMakeList optionally build UT/Coverity & Update Coverity configuration.

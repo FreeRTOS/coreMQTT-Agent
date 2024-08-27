@@ -12,7 +12,7 @@ dependencies:
       path: source/dependency/coreMQTT
 
   - name: "CMock"
-    version: "3b443e5"
+    version: "v2.5.3"
     repository:
       type: "git"
       url: " https://github.com/ThrowTheSwitch/CMock.git"
