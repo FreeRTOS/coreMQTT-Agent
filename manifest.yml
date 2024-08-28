@@ -6,6 +6,7 @@ license: "MIT"
 dependencies:
   - name : "coreMQTT"
     version: "v2.3.1"
+    license: "MIT"
     repository:
       type: "git"
       url: "https://github.com/FreeRTOS/coreMQTT/"
@@ -13,6 +14,7 @@ dependencies:
 
   - name: "CMock"
     version: "v2.5.3"
+    license: "MIT"
     repository:
       type: "git"
       url: " https://github.com/ThrowTheSwitch/CMock.git"
