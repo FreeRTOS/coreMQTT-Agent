@@ -1,0 +1,52 @@
+SPDXVersion: SPDX-2.2
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: coreMQTT Agent
+DocumentNamespace: https://github.com/FreeRTOS/coreMQTT Agent/blob/v1.3.1/sbom.spdx
+Creator: Organization:Amazon Web Services
+Created: 2024-08-29T09:04:54Z
+CreatorComment: NOASSERTION
+DocumentComment: NOASSERTION
+
+PackageName: coreMQTT Agent
+SPDXID: SPDXRef-Package-coreMQTT Agent
+PackageVersion: v1.3.1
+PackageDownloadLocation: https://github.com/FreeRTOS/coreMQTT-Agent/tree/v1.3.1
+PackageLicenseDeclared: MIT
+PackageLicenseConcluded: MIT
+PackageLicenseInfoFromFiles: NOASSERTION
+FilesAnalyzed: true
+PackageVerificationCode: a6de60f11ecfc1b23ccf8436bd6f1da0be555423
+PackageCopyrightText: NOASSERTION
+PackageSummary: NOASSERTION
+PackageDescription: "Agent for thread-safe use of coreMQTT.\n"
+
+
+FileName: ./core_mqtt_agent.c
+SPDXID: SPDXRef-File-coremqttagent.c
+FileChecksum: SHA1: be5a720e74e50451cd1e675ad73d2e7e5daffed0
+LicenseConcluded: MIT
+FileCopyrightText: NOASSERTION
+FileComment: NOASSERTION
+
+FileName: ./core_mqtt_agent_command_functions.c
+SPDXID: SPDXRef-File-coremqttagentcommandfunctions.c
+FileChecksum: SHA1: 9c6f652d280eea97cfe2f14e5a65650ad60dd44d
+LicenseConcluded: MIT
+FileCopyrightText: NOASSERTION
+FileComment: NOASSERTION
+
+PackageName: coreMQTT
+SPDXID: SPDXRef-Package-coreMQTT
+PackageVersion: v2.3.1
+PackageDownloadLocation: https://github.com/FreeRTOS/coreMQTT/
+PackageLicenseDeclared: MIT
+PackageLicenseConcluded: MIT
+PackageLicenseInfoFromFiles: NOASSERTION
+FilesAnalyzed: true
+PackageVerificationCode: da39a3ee5e6b4b0d3255bfef95601890afd80709
+PackageCopyrightText: NOASSERTION
+PackageSummary: NOASSERTION
+PackageDescription: NOASSERTION
+
+Relationship: SPDXRef-Package-coreMQTT Agent DEPENDS_ON SPDXRef-Package-coreMQTT
