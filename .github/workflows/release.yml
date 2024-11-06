@@ -22,7 +22,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Check if tag exists
         run: |
           git fetch origin
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.commit_id }}
       - name: Configure git identity
@@ -137,7 +137,7 @@ jobs:
           ctest -E system --output-on-failure
           cd ..
       - name: Create artifact of ZIP
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
           path: zip-check/coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
@@ -184,7 +184,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Download ZIP artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
       - name: Upload Release Asset
