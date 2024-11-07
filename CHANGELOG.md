@@ -1,5 +1,10 @@
 # Changelog for coreMQTT Agent Library
 
+## v1.3.1 (August 2024)
+
+### Changes
+ - [#117](https://github.com/FreeRTOS/coreMQTT-Agent/pull/117) Update the incorrect version number.
+
 ## v1.3.0 (August 2024)
 
 ### Changes
