@@ -109,21 +109,27 @@ jobs:
           cd coreMQTT-Agent
           git submodule update --init --checkout --recursive
       - name: Create ZIP
+        env:
+          VERSION_NUMBER: ${{ github.event.inputs.version_number }}
         run: |
-          zip -r coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip coreMQTT-Agent -x "*.git*"
+          zip -r coreMQTT-Agent-"$VERSION_NUMBER".zip coreMQTT-Agent -x "*.git*"
           ls ./
       - name: Validate created ZIP
+        env:
+          VERSION_NUMBER: ${{ github.event.inputs.version_number }}
         run: |
           mkdir zip-check
-          mv coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip zip-check
+          mv coreMQTT-Agent-"$VERSION_NUMBER".zip zip-check
           cd zip-check
-          unzip coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip -d coreMQTT-Agent-${{ github.event.inputs.version_number }}
-          ls coreMQTT-Agent-${{ github.event.inputs.version_number }}
-          diff -r -x "*.git*" coreMQTT-Agent-${{ github.event.inputs.version_number }}/coreMQTT-Agent/ ../coreMQTT-Agent/
+          unzip coreMQTT-Agent-"$VERSION_NUMBER".zip -d coreMQTT-Agent-"$VERSION_NUMBER"
+          ls coreMQTT-Agent-"$VERSION_NUMBER"
+          diff -r -x "*.git*" coreMQTT-Agent-"$VERSION_NUMBER"/coreMQTT-Agent/ ../coreMQTT-Agent/
           cd ../
       - name: Build
+        env:
+          VERSION_NUMBER: ${{ github.event.inputs.version_number }}
         run: |
-          cd zip-check/coreMQTT-Agent-${{ github.event.inputs.version_number }}/coreMQTT-Agent
+          cd zip-check/coreMQTT-Agent-"$VERSION_NUMBER"/coreMQTT-Agent
           sudo apt-get install -y lcov
           cmake -S test -B build/ \
           -G "Unix Makefiles" \
@@ -132,8 +138,10 @@ jobs:
           -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Werror -DNDEBUG'
           make -C build/ all
       - name: Test
+        env:
+          VERSION_NUMBER: ${{ github.event.inputs.version_number }}
         run: |
-          cd zip-check/coreMQTT-Agent-${{ github.event.inputs.version_number }}/coreMQTT-Agent/build/
+          cd zip-check/coreMQTT-Agent-"$VERSION_NUMBER"/coreMQTT-Agent/build/
           ctest -E system --output-on-failure
           cd ..
       - name: Create artifact of ZIP
