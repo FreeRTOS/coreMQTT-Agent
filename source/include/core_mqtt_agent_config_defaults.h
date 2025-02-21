@@ -41,6 +41,8 @@
 #endif
 /* *INDENT-ON* */
 
+#include "core_mqtt_config_defaults.h"
+
 /* MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG allows building the MQTT library
  * without a custom config. If a custom config is provided, the
  * MQTT_AGENT_DO_NOT_USE_CUSTOM_CONFIG macro should be defined. */

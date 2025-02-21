@@ -5,7 +5,7 @@ description: |
 license: "MIT"
 dependencies:
   - name : "coreMQTT"
-    version: "v2.3.1"
+    version: "8dfeccb02abe6bfdeb826ac17add7d9368aef8fa"
     license: "MIT"
     repository:
       type: "git"
