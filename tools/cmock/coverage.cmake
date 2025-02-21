@@ -17,7 +17,7 @@ execute_process( COMMAND lcov --directory ${CMAKE_BINARY_DIR}
                          --rc lcov_branch_coverage=1
                          --output-file=${CMAKE_BINARY_DIR}/base_coverage.info
                          --include "*source*"
-                         
+
         )
 file(GLOB files "${CMAKE_BINARY_DIR}/bin/tests/*")
 

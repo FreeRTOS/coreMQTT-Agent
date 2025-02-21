@@ -1623,7 +1623,7 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
     mqttAgentContext.agentInterface.releaseCommand = stubReleaseCommandFailed;
-    
+
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );

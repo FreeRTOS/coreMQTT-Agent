@@ -172,3 +172,7 @@ utest
 vect
 writev
 xlarge
+DCMAKE
+Wextra
+Wsign
+Werror
