@@ -710,7 +710,6 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
                 break;
 
             /* Any other packet type is invalid. */
-            case MQTT_PACKET_TYPE_PINGRESP:
             default:
                 LogError( ( "Unknown packet type received:(%02x).\n",
                             pPacketInfo->type ) );
@@ -953,7 +952,6 @@ static bool validateParams( MQTTAgentCommandType_t commandType,
                     ( pSubscribeArgs->numSubscriptions != 0U ) );
             break;
 
-        case PUBLISH:
         default:
             /* Publish, does not need to be cast since we do not check it. */
             ret = ( pParams != NULL );
