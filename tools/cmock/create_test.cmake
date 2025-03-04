@@ -129,7 +129,7 @@ function(create_mock_list mock_name
                                ${mocks_dir}
                                ${mock_include_list}
            )
-           if (APPLE)
+        if (APPLE)
            set_target_properties(${mock_name} PROPERTIES
                    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
                    POSITION_INDEPENDENT_CODE ON
