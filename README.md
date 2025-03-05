@@ -103,7 +103,28 @@ git submodule update --checkout --init --recursive test/unit-test/CMock
 
 1. Go to the root directory of this repository. (Make sure that the **CMock** submodule is cloned as described [above](#checkout-cmock-submodule))
 
-1. Run the *cmake* command: `cmake -S test -B build`
+1. Run the *cmake* command:
+
+    For Linux machines:
+    ```
+    cmake -S test -B build/ \
+              -G "Unix Makefiles" \
+              -DCMAKE_BUILD_TYPE=Debug  \
+              -DBUILD_CLONE_SUBMODULES=ON \
+              -DUNITTEST=1 \
+              -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Wsign-compare -Werror -DNDEBUG -DLIBRARY_LOG_LEVEL=LOG_DEBUG'
+    ```
+    For Mac machines:
+
+    ```
+    cmake -S test -B build/ \
+              -G "Unix Makefiles" \
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo  \
+              -DBUILD_CLONE_SUBMODULES=ON \
+              -DUNITTEST=1 \
+              -DCMAKE_C_FLAGS='--coverage -Wall -Wextra -Wsign-compare -Werror -DNDEBUG -DLIBRARY_LOG_LEVEL=LOG_DEBUG' \
+              -DCMAKE_C_STANDARD=99
+    ```
 
 1. Run this command to build the library and unit tests: `make -C build all`
 

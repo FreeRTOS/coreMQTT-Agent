@@ -45,7 +45,7 @@ function(create_test test_name
         add_dependencies(${test_name} ${dependency})
         target_link_libraries(${test_name} ${dependency})
     endforeach()
-    target_link_libraries(${test_name} -lgcov unity)
+    target_link_libraries(${test_name} unity)
     target_link_directories(${test_name}  PUBLIC
                             ${CMAKE_CURRENT_BINARY_DIR}/lib
             )
@@ -129,11 +129,20 @@ function(create_mock_list mock_name
                                ${mocks_dir}
                                ${mock_include_list}
            )
-    set_target_properties(${mock_name} PROPERTIES
-                        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
-                        POSITION_INDEPENDENT_CODE ON
-            )
-    target_compile_definitions(${mock_name} PUBLIC
+        if (APPLE)
+           set_target_properties(${mock_name} PROPERTIES
+                   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
+                   POSITION_INDEPENDENT_CODE ON
+                   LINK_FLAGS "-Wl,-undefined,dynamic_lookup"
+               )
+       else()
+           set_target_properties(${mock_name} PROPERTIES
+                   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
+                   POSITION_INDEPENDENT_CODE ON
+               )
+       endif()
+
+       target_compile_definitions(${mock_name} PUBLIC
             ${mock_define_list}
         )
     target_link_libraries(${mock_name} cmock unity)
@@ -160,9 +169,5 @@ function(create_real_library target
             )
     if(NOT(mock_name STREQUAL ""))
         add_dependencies(${target} ${mock_name})
-        target_link_libraries(${target}
-                        -l${mock_name}
-                        -lgcov
-                )
     endif()
 endfunction()

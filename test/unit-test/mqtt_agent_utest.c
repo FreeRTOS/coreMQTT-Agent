@@ -217,6 +217,16 @@ static bool stubReleaseCommand( MQTTAgentCommand_t * pCommandToRelease )
 }
 
 /**
+ * @brief A mocked function to release an allocated command.
+ */
+static bool stubReleaseCommandFailed( MQTTAgentCommand_t * pCommandToRelease )
+{
+    ( void ) pCommandToRelease;
+    commandReleaseCallCount++;
+    return false;
+}
+
+/**
  * @brief A mock publish callback function.
  */
 static void stubPublishCallback( MQTTAgentContext_t * pMqttAgentContext,
@@ -794,6 +804,29 @@ void test_MQTTAgent_Ping_Command_Send_Failure( void )
 
     pCommandToReturn = &command;
     agentContext.agentInterface.send = stubSendFail;
+    mqttStatus = MQTTAgent_Ping( &agentContext, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
+    /* Test that the command was released. */
+    TEST_ASSERT_EQUAL_INT( 1, commandReleaseCallCount );
+    /* Also test that the command was set. */
+    TEST_ASSERT_EQUAL( PING, command.commandType );
+}
+
+/**
+ * @brief Test error case when a command cannot be enqueued and the release also fails.
+ */
+void test_MQTTAgent_Ping_Command_Send_Failure_Release_Failed( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
+
+    setupAgentContext( &agentContext );
+
+    pCommandToReturn = &command;
+    agentContext.agentInterface.send = stubSendFail;
+    agentContext.agentInterface.releaseCommand = stubReleaseCommandFailed;
     mqttStatus = MQTTAgent_Ping( &agentContext, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTSendFailed, mqttStatus );
     /* Test that the command was released. */
@@ -1566,6 +1599,31 @@ void test_MQTTAgent_CommandLoop_with_eventCallback( void )
 
     MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
     MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
+    MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
+
+    mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
+
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+    /* Ensure that callback is invoked. */
+    TEST_ASSERT_EQUAL( 2, commandCompleteCallbackCount );
+    /* Ensure that acknowledgment is cleared. */
+    TEST_ASSERT_EQUAL( 0, mqttAgentContext.pPendingAcks[ 0 ].packetId );
+    TEST_ASSERT_EQUAL( NULL, mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand );
+
+    /* Invoking mqttEventCallback with MQTT_PACKET_TYPE_PUBACK packet type with release command failed.
+     * MQTT_PACKET_TYPE_PUBCOMP, MQTT_PACKET_TYPE_SUBACK, MQTT_PACKET_TYPE_UNSUBACK
+     * packet types code path will also be covered by this test case. */
+    packetType = MQTT_PACKET_TYPE_PUBACK;
+    commandCompleteCallbackCount = 0;
+
+    mqttAgentContext.pPendingAcks[ 0 ].packetId = 1U;
+    command.pCommandCompleteCallback = stubCompletionCallback;
+    mqttAgentContext.pPendingAcks[ 0 ].pOriginalCommand = &command;
+
+    MQTTAgentCommand_Publish_ExpectAnyArgsAndReturn( MQTTSuccess );
+    MQTTAgentCommand_Publish_ReturnThruPtr_pReturnFlags( &returnFlags );
+    mqttAgentContext.agentInterface.releaseCommand = stubReleaseCommandFailed;
+
     MQTT_ProcessLoop_Stub( MQTT_ProcessLoop_CustomStub );
 
     mqttStatus = MQTTAgent_CommandLoop( &mqttAgentContext );
