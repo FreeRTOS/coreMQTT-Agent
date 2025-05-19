@@ -254,7 +254,7 @@ bool myMessageRecvImplementation( MQTTAgentMessageContext_t * pMsgCtx,
 {
     int status = EXIT_FAILURE;
     void * pReceivedPointer;
-    if( ( pMsgCtx != NULL ) && ( pCommandToSend != NULL ) )
+    if( ( pMsgCtx != NULL ) && ( pReceivedCommand != NULL ) )
     {
         //A function to receive data from a queue.
         status = Queue_Recv( pMsgCtx->queue, &pReceivedPointer, blockTimeMs );
