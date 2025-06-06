@@ -826,6 +826,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
     MQTTAgentPublishArgs_t * pOriginalPublish = NULL;
     MQTTContext_t * pMqttContext;
 
+
     assert( pMqttAgentContext != NULL );
     pMqttContext = &( pMqttAgentContext->mqttContext );
 
@@ -841,7 +842,7 @@ static MQTTStatus_t resendPublishes( MQTTAgentContext_t * pMqttAgentContext )
             /* Set the DUP flag. */
             pOriginalPublish = ( MQTTAgentPublishArgs_t * ) ( pFoundAck->pOriginalCommand->pArgs );
             pOriginalPublish->pPublishInfo->dup = true;
-            statusResult = MQTT_Publish( pMqttContext, pOriginalPublish->pPublishInfo, packetId, pOriginalPublish->pProperties );
+            statusResult = MQTT_Publish( pMqttContext, pOriginalPublish->pPublishInfo , packetId, pOriginalPublish->pProperties );
 
             if( statusResult != MQTTSuccess )
             {
@@ -1319,7 +1320,7 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
     {
         statusReturn = createAndAddCommand( DISCONNECT,                                /* commandType */
                                             pMqttAgentContext,                         /* mqttContextHandle */
-                                            NULL,                                      /* pMqttInfoParam */
+                                            pDisconnectArgs,                                      /* pMqttInfoParam */
                                             pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
                                             pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
                                             pCommandInfo->blockTimeMs );
