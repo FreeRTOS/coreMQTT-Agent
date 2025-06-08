@@ -496,7 +496,7 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
 
     statusReturn = ( isValid ) ? MQTTSuccess : MQTTBadParameter;
 
-    if( ( statusReturn == MQTTBadParameter ) && ( isSpace == false ) )
+    if( statusReturn == MQTTBadParameter )
     {
         /* The error was caused not by a bad parameter, but because there was
          * no room in the pending Ack list for the Ack response to an outgoing
@@ -662,6 +662,10 @@ static void mqttEventCallback( MQTTContext_t * pMqttContext,
     uint16_t packetIdentifier = pDeserializedInfo->packetIdentifier;
     MQTTAgentContext_t * pAgentContext;
     const uint8_t upperNibble = ( uint8_t ) 0xF0;
+
+    ( void ) sendPropsBuffer; /* Unused parameter. */
+    ( void ) getPropsBuffer; /* Unused parameter. */
+    ( void ) pReasonCode; /* Unused parameter. */
 
     assert( pMqttContext != NULL );
     assert( pPacketInfo != NULL );
@@ -962,6 +966,7 @@ static bool validateParams( MQTTAgentCommandType_t commandType,
             pPublishArgs = ( const MQTTAgentPublishArgs_t * ) pParams;
             ret = ( ( pPublishArgs != NULL ) &&
                     ( pPublishArgs->pPublishInfo != NULL ) );
+            break ; 
         default:
             ret = ( pParams != NULL );
             break;
@@ -1314,13 +1319,14 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
     MQTTStatus_t statusReturn = MQTTBadParameter;
     bool paramsValid = false;
 
-    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo );
+    paramsValid = validateStruct( pMqttAgentContext, pCommandInfo ) &&
+                  validateParams(DISCONNECT , pDisconnectArgs );
 
     if( paramsValid )
     {
         statusReturn = createAndAddCommand( DISCONNECT,                                /* commandType */
                                             pMqttAgentContext,                         /* mqttContextHandle */
-                                            pDisconnectArgs,                                      /* pMqttInfoParam */
+                                            pDisconnectArgs,                           /* pMqttInfoParam */
                                             pCommandInfo->cmdCompleteCallback,         /* commandCompleteCallback */
                                             pCommandInfo->pCmdCompleteCallbackContext, /* pCommandCompleteCallbackContext */
                                             pCommandInfo->blockTimeMs );

@@ -1004,50 +1004,7 @@ void test_MQTTAgent_Unsubscribe_success( void )
     TEST_ASSERT_EQUAL_PTR( stubCompletionCallback, command.pCommandCompleteCallback );
 }
 
-// /* ========================================================================== */
-
-// /**
-//  * @brief Test MQTTAgent_Publish() with invalid parameters.
-//  */
-// void test_MQTTAgent_Publish_Invalid_Parameters( void )
-// {
-//     MQTTAgentContext_t agentContext = { 0 };
-//     MQTTStatus_t mqttStatus;
-//     MQTTAgentCommandInfo_t commandInfo = { 0 };
-//     MQTTAgentCommand_t command = { 0 };
-//     MQTTAgentPublishArgs_t publishArgs = { 0 };
-//     MQTTPublishInfo_t publishInfo = { 0 } ; 
-
-//     setupAgentContext( &agentContext );
-//     pCommandToReturn = &command;
-//     commandInfo.cmdCompleteCallback = stubCompletionCallback;
-//     /* Test topic name. */
-//     publishInfo.pTopicName = "test";
-//     publishInfo.topicNameLength = 4;
-
-//     publishArgs.pPublishInfo = &publishInfo;
-
-//     /* NULL parameters. */
-//     mqttStatus = MQTTAgent_Publish( NULL, &publishArgs, &commandInfo );
-//     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-//     mqttStatus = MQTTAgent_Publish( &agentContext, NULL, &commandInfo );
-//     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-//     mqttStatus = MQTTAgent_Publish( &agentContext, &publishArgs, NULL );
-//     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-
-//     /* This needs to be large enough to hold the PUBLISH:
-//      * 1 byte: control header
-//      * 1 byte: remaining length
-//      * 2 bytes: topic name length
-//      * 1+ bytes: topic name.
-//      * For this test case, the buffer must have size at least
-//      * 1+1+2+4=8. */
-//     agentContext.mqttContext.networkBuffer.size = 6;
-//     mqttStatus = MQTTAgent_Publish( &agentContext, &publishArgs, &commandInfo );
-//     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
-// }
+/* ========================================================================== */
 
 /**
  * @brief Test that an MQTTNoMemory error is returned when there
@@ -1135,6 +1092,9 @@ void test_MQTTAgent_Connect_Invalid_Parameters( void )
     MQTTAgentCommand_t command = { 0 };
     MQTTAgentConnectArgs_t connectArgs = { 0 };
     MQTTConnectInfo_t connectInfo = { 0 };
+    MQTTPropBuilder_t willProperties = { 0 }; 
+    MQTTPublishInfo_t willInfo = { 0 };
+    
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
@@ -1155,6 +1115,20 @@ void test_MQTTAgent_Connect_Invalid_Parameters( void )
     connectArgs.pConnectInfo = NULL;
     mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /*Invalid argument : will info is null while will properties are not null. */
+    connectArgs.pConnectInfo = &connectInfo;
+    connectArgs.pWillInfo = NULL ; 
+    connectArgs.pWillProperties = &willProperties;
+    mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    /* Will Info is set and Will properties are also sent. */
+    connectArgs.pWillInfo = &willInfo ; 
+    mqttStatus = MQTTAgent_Connect( &agentContext, &connectArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTSuccess, mqttStatus );
+
+
 }
 
 /**
@@ -1218,14 +1192,23 @@ void test_MQTTAgent_ProcessLoop_success( void )
 
 /* ========================================================================== */
 
-// /**
-//  * @brief Test MQTTAgent_Disconnect() with invalid parameters.
-//  */
-// void test_MQTTAgent_Disconnect_Invalid_Params( void )
-// {
-//     /* Call the common helper function with the function pointer and name. */
-//     invalidParamsTestFunc( MQTTAgent_Disconnect, "Function=MQTTAgent_Disconnect" );
-// }
+/**
+ * @brief Test MQTTAgent_Disconnect() with invalid parameters.
+ */
+void test_MQTTAgent_Disconnect_Invalid_Params( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+
+    mqttStatus = MQTTAgent_Disconnect( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+}
 
 /**
  * @brief Test that MQTTAgent_Disconnect() works as intended.
@@ -1967,4 +1950,33 @@ void test_MQTTAgent_CancelAll( void )
 
     /* Ensure that command is released. */
     TEST_ASSERT_EQUAL( 2, commandReleaseCallCount );
+}
+
+void test_MQTTAgent_Publish_InvalidParams( void )
+{
+    MQTTAgentContext_t agentContext = { 0 };
+    MQTTStatus_t mqttStatus;
+    MQTTAgentCommandInfo_t commandInfo = { 0 };
+    MQTTAgentCommand_t command = { 0 };
+    MQTTPublishInfo_t publishInfo = { 0 };
+    MQTTAgentPublishArgs_t publishArgs = { 0 };
+
+    setupAgentContext( &agentContext );
+    pCommandToReturn = &command;
+    commandInfo.cmdCompleteCallback = stubCompletionCallback;
+    /* Test topic name. */
+    publishInfo.pTopicName = "test";
+    publishInfo.topicNameLength = 4;
+
+    publishArgs.pPublishInfo = &publishInfo;
+
+    mqttStatus = MQTTAgent_Publish( NULL, &publishArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Publish( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    publishArgs.pPublishInfo = NULL ; 
+    mqttStatus = MQTTAgent_Publish( &agentContext, &publishArgs, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 }
