@@ -1201,12 +1201,16 @@ void test_MQTTAgent_Disconnect_Invalid_Params( void )
     MQTTStatus_t mqttStatus;
     MQTTAgentCommandInfo_t commandInfo = { 0 };
     MQTTAgentCommand_t command = { 0 };
+    MQTTAgentDisconnectArgs_t disconnectArgs = { 0 };
 
     setupAgentContext( &agentContext );
     pCommandToReturn = &command;
     commandInfo.cmdCompleteCallback = stubCompletionCallback;
 
     mqttStatus = MQTTAgent_Disconnect( &agentContext, NULL, &commandInfo );
+    TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
+
+    mqttStatus = MQTTAgent_Disconnect( NULL , &disconnectArgs , &commandInfo );
     TEST_ASSERT_EQUAL( MQTTBadParameter, mqttStatus );
 }
 
