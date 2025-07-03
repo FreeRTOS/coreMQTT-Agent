@@ -173,6 +173,8 @@ jobs:
             mv source/dependency/coreMQTT/docs/doxygen/output/html docs/doxygen/output/html/coreMQTT
             if [ "$(wc -c < doxyoutput.txt | bc)" = "0" ]; then exit 0; else exit 1; fi
   create-release:
+    permissions:
+      id-token: write
     needs:
       - create-zip
       - deploy-doxygen
@@ -205,3 +207,8 @@ jobs:
           asset_path: ./coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
           asset_name: coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
           asset_content_type: application/zip
+      - name: Backup Release Asset
+        uses: FreeRTOS/CI-CD-Github-Actions/artifact-backup@main
+        with:
+          artifact_path: ./coreMQTT-Agent-${{ github.event.inputs.version_number }}.zip
+          release_tag: ${{ github.event.inputs.version_number }}
