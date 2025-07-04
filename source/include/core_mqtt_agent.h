@@ -167,7 +167,18 @@ typedef struct MQTTAgentSubscribeArgs
 {
     MQTTSubscribeInfo_t * pSubscribeInfo; /**< @brief List of MQTT subscriptions. */
     size_t numSubscriptions;              /**< @brief Number of elements in `pSubscribeInfo`. */
+    MQTTPropBuilder_t * pProperties; /**< @brief Optional properties for the SUBSCRIBE or UNSUBSCRIBE packet. */
 } MQTTAgentSubscribeArgs_t;
+
+/**
+ * @ingroup mqtt_agent_struct_types
+ * @brief Struct holding arguments for a PUBLISH call.
+ */
+typedef struct MQTTAgentPublishArgs
+{
+    MQTTPublishInfo_t * pPublishInfo; /**< @brief MQTT publish packet information. */
+    MQTTPropBuilder_t * pProperties;  /**< @brief Optional properties for the PUBLISH packet. */
+} MQTTAgentPublishArgs_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -179,7 +190,19 @@ typedef struct MQTTAgentConnectArgs
     MQTTPublishInfo_t * pWillInfo;    /**< @brief Optional Last Will and Testament. */
     uint32_t timeoutMs;               /**< @brief Maximum timeout for a CONNACK packet. */
     bool sessionPresent;              /**< @brief Output flag set if a previous session was present. */
+    MQTTPropBuilder_t * pProperties; /**< @brief Optional properties for the CONNECT packet. */
+    MQTTPropBuilder_t * pWillProperties; /**< @brief Optional properties for the Last Will and Testament. */
 } MQTTAgentConnectArgs_t;
+
+/**
+ * @ingroup mqtt_agent_struct_types
+ * @brief Struct holding arguments for a DISCONNECT call.
+ */
+typedef struct MQTTAgentDisconnectArgs
+{
+    MQTTPropBuilder_t * pProperties; /**< @brief Optional properties for the DISCONNECT packet. */
+    MQTTSuccessFailReasonCode_t reasonCode ; /**< @brief Reason code for the DISCONNECT packet. */
+}MQTTAgentDisconnectArgs_t;
 
 /**
  * @ingroup mqtt_agent_struct_types
@@ -208,6 +231,10 @@ typedef struct MQTTAgentCommandInfo
  * @param[in] incomingCallback The callback to execute when receiving publishes.
  * @param[in] pIncomingPacketContext A pointer to a context structure defined by
  * the application writer.
+ * @param[out] pAckPropsBuffer A pointer to a buffer for storing properties
+ * for sending acknowledgments. This buffer is used to store properties for PUBACK,
+ * PUBREC, PUBREL, and PUBCOMP packets.
+ * @param[out] ackPropsBufferSize The size of the buffer pointed to by @p pAckPropsBuffer.
  *
  * @note The @p pIncomingPacketContext context provided for the incoming publish
  * callback MUST remain in scope throughout the period that the agent task is running.
@@ -290,7 +317,9 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                              const TransportInterface_t * pTransportInterface,
                              MQTTGetCurrentTimeFunc_t getCurrentTimeMs,
                              MQTTAgentIncomingPublishCallback_t incomingCallback,
-                             void * pIncomingPacketContext );
+                             void * pIncomingPacketContext,
+                             uint8_t * pAckPropsBuffer, 
+                             size_t ackPropsBufferSize );
 /* @[declare_mqtt_agent_init] */
 
 /**
@@ -594,7 +623,7 @@ MQTTStatus_t MQTTAgent_Unsubscribe( const MQTTAgentContext_t * pMqttAgentContext
  */
 /* @[declare_mqtt_agent_publish] */
 MQTTStatus_t MQTTAgent_Publish( const MQTTAgentContext_t * pMqttAgentContext,
-                                MQTTPublishInfo_t * pPublishInfo,
+                                MQTTAgentPublishArgs_t * pPublishArgs,
                                 const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_publish] */
 
@@ -814,6 +843,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  * task be responsible for disconnecting the MQTT connection.
  *
  * @param[in] pMqttAgentContext The MQTT agent to use.
+ * @param[in] pDisconnectArgs Struct holding args for MQTT_Disconnect().
  * @param[in] pCommandInfo The information pertaining to the command, including:
  *  - cmdCompleteCallback Optional callback to invoke when the command completes.
  *  - pCmdCompleteCallbackContext Optional completion callback context.
@@ -857,6 +887,7 @@ MQTTStatus_t MQTTAgent_Connect( const MQTTAgentContext_t * pMqttAgentContext,
  */
 /* @[declare_mqtt_agent_disconnect] */
 MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
+                                   MQTTAgentDisconnectArgs_t * pDisconnectArgs,
                                    const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_disconnect] */
 

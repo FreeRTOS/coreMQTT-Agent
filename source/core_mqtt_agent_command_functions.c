@@ -58,29 +58,29 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
-                                       void * pPublishArg,
+                                       void * pVoidPublishArgs,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
-    const MQTTPublishInfo_t * pPublishInfo;
+    const MQTTAgentPublishArgs_t * pPublishArgs ; 
     MQTTStatus_t ret;
 
     assert( pMqttAgentContext != NULL );
-    assert( pPublishArg != NULL );
+    assert( pPublishArgs != NULL );
     assert( pReturnFlags != NULL );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
-    pPublishInfo = ( const MQTTPublishInfo_t * ) ( pPublishArg );
+    pPublishArgs = ( const MQTTAgentPublishArgs_t * ) ( pVoidPublishArgs );
 
-    if( pPublishInfo->qos != MQTTQoS0 )
+    if( pPublishArgs->pPublishInfo->qos != MQTTQoS0 )
     {
         pReturnFlags->packetId = MQTT_GetPacketId( &( pMqttAgentContext->mqttContext ) );
     }
 
-    LogInfo( ( "Publishing message to %.*s.\n", ( int ) pPublishInfo->topicNameLength, pPublishInfo->pTopicName ) );
-    ret = MQTT_Publish( &( pMqttAgentContext->mqttContext ), pPublishInfo, pReturnFlags->packetId );
+    LogInfo( ( "Publishing message to %.*s.\n", ( int ) pPublishArgs->pPublishInfo->topicNameLength, pPublishArgs->pPublishInfo->pTopicName ) );
+    ret = MQTT_Publish( &( pMqttAgentContext->mqttContext ), pPublishArgs->pPublishInfo , pReturnFlags->packetId, pPublishArgs->pProperties );
 
     /* Add to pending ack list, or call callback if QoS 0. */
-    pReturnFlags->addAcknowledgment = ( pPublishInfo->qos != MQTTQoS0 ) && ( ret == MQTTSuccess );
+    pReturnFlags->addAcknowledgment = ( pPublishArgs->pPublishInfo->qos != MQTTQoS0 ) && ( ret == MQTTSuccess );
     pReturnFlags->runProcessLoop = true;
 
     return ret;
@@ -106,7 +106,8 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
     ret = MQTT_Subscribe( &( pMqttAgentContext->mqttContext ),
                           pSubscribeArgs->pSubscribeInfo,
                           pSubscribeArgs->numSubscriptions,
-                          pReturnFlags->packetId );
+                          pReturnFlags->packetId, 
+                          pSubscribeArgs->pProperties );
 
     pReturnFlags->addAcknowledgment = ( ret == MQTTSuccess );
     pReturnFlags->runProcessLoop = true;
@@ -134,7 +135,8 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
     ret = MQTT_Unsubscribe( &( pMqttAgentContext->mqttContext ),
                             pSubscribeArgs->pSubscribeInfo,
                             pSubscribeArgs->numSubscriptions,
-                            pReturnFlags->packetId );
+                            pReturnFlags->packetId,
+                            pSubscribeArgs->pProperties );
 
     pReturnFlags->addAcknowledgment = ( ret == MQTTSuccess );
     pReturnFlags->runProcessLoop = true;
@@ -161,7 +163,9 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
                         pConnectInfo->pConnectInfo,
                         pConnectInfo->pWillInfo,
                         pConnectInfo->timeoutMs,
-                        &( pConnectInfo->sessionPresent ) );
+                        &( pConnectInfo->sessionPresent ),
+                        pConnectInfo->pProperties,
+                        pConnectInfo->pWillProperties );
 
     /* Resume a session if one existed, else clear the list of acknowledgments. */
     if( ret == MQTTSuccess )
@@ -179,17 +183,18 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
 /*-----------------------------------------------------------*/
 
 MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
-                                          void * pUnusedArg,
+                                          void * pVoidDisconnectArgs,
                                           MQTTAgentCommandFuncReturns_t * pReturnFlags )
 {
     MQTTStatus_t ret;
+    MQTTAgentDisconnectArgs_t * pDisconnectArgs;
 
-    ( void ) pUnusedArg;
+    pDisconnectArgs = ( MQTTAgentDisconnectArgs_t * ) ( pVoidDisconnectArgs );
 
     assert( pMqttAgentContext != NULL );
     assert( pReturnFlags != NULL );
 
-    ret = MQTT_Disconnect( &( pMqttAgentContext->mqttContext ) );
+    ret = MQTT_Disconnect( &( pMqttAgentContext->mqttContext ), pDisconnectArgs->pProperties, pDisconnectArgs->reasonCode );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->endLoop = true;

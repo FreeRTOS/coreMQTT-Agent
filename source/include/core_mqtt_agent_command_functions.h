@@ -218,13 +218,13 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
  * - MQTTAgentCommandFuncReturns_t.endLoop
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pUnusedArg Unused NULL argument.
+ * @param[in] pUnusedArg Arguments for MQTT_Disconnect.
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Disconnect().
  */
 MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
-                                          void * pUnusedArg,
+                                          void * pVoidDisconnectArgs,
                                           MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
 /**
