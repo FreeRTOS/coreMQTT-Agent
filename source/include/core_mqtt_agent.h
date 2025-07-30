@@ -151,12 +151,14 @@ typedef void (* MQTTAgentIncomingPublishCallback_t )( struct MQTTAgentContext * 
  */
 typedef struct MQTTAgentContext
 {
-    MQTTContext_t mqttContext;                                          /**< MQTT connection information used by coreMQTT. */
-    MQTTAgentMessageInterface_t agentInterface;                         /**< Struct of function pointers for agent messaging. */
-    MQTTAgentAckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< List of pending acknowledgment packets. */
-    MQTTAgentIncomingPublishCallback_t pIncomingCallback;               /**< Callback to invoke for incoming publishes. */
-    void * pIncomingCallbackContext;                                    /**< Context for incoming publish callback. */
-    bool packetReceivedInLoop;                                          /**< Whether a MQTT_ProcessLoop() call received a packet. */
+    MQTTContext_t mqttContext;                                                   /**< MQTT connection information used by coreMQTT. */
+    MQTTAgentMessageInterface_t agentInterface;                                  /**< Struct of function pointers for agent messaging. */
+    MQTTAgentAckInfo_t pPendingAcks[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];          /**< List of pending acknowledgment packets. */
+    MQTTAgentIncomingPublishCallback_t pIncomingCallback;                        /**< Callback to invoke for incoming publishes. */
+    void * pIncomingCallbackContext;                                             /**< Context for incoming publish callback. */
+    bool packetReceivedInLoop;                                                   /**< Whether a MQTT_ProcessLoop() call received a packet. */
+    MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< Array used to maintain the incoming publish records and their state by the coreMQTT library. */
+    MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ]; /**< Array used to maintain the outgoing publish records and their state by the coreMQTT library. */
 } MQTTAgentContext_t;
 
 /**
