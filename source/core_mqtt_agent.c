@@ -973,18 +973,6 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
 {
     MQTTStatus_t returnStatus;
 
-    /**
-     * @brief Array used to maintain the outgoing publish records and their
-     * state by the coreMQTT library.
-     */
-    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-
-    /**
-     * @brief Array used to maintain the outgoing publish records and their
-     * state by the coreMQTT library.
-     */
-    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
-
     if( ( pMqttAgentContext == NULL ) ||
         ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
@@ -1017,9 +1005,9 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
             if( returnStatus == MQTTSuccess )
             {
                 returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
-                                                     pOutgoingPublishRecords,
+                                                     pMqttAgentContext->pOutgoingPublishRecords,
                                                      MQTT_AGENT_MAX_OUTSTANDING_ACKS,
-                                                     pIncomingPublishRecords,
+                                                     pMqttAgentContext->pIncomingPublishRecords,
                                                      MQTT_AGENT_MAX_OUTSTANDING_ACKS );
             }
         }
