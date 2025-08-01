@@ -53,5 +53,6 @@ PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/agent_command_functions_stub.c
 PROOF_SOURCES += $(SRCDIR)/test/cbmc/stubs/core_mqtt_stubs.c
 
 PROJECT_SOURCES += $(SRCDIR)/source/core_mqtt_agent.c
+PROJECT_SOURCES += $(SRCDIR)/source/dependency/coreMQTT/source/core_mqtt.c
 
 include ../Makefile.common
