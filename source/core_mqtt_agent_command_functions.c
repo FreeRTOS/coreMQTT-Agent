@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent <DEVELOPMENT BRANCH>
+ * coreMQTT Agent v1.2.0
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -77,7 +77,7 @@ MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
     }
 
     LogInfo( ( "Publishing message to %.*s.\n", ( int ) pPublishInfo->topicNameLength, pPublishInfo->pTopicName ) );
-    ret = MQTT_Publish( &( pMqttAgentContext->mqttContext ), pPublishInfo, pReturnFlags->packetId );
+    ret = MQTT_Publish( &( pMqttAgentContext->mqttContext ), pPublishInfo, pReturnFlags->packetId, NULL );
 
     /* Add to pending ack list, or call callback if QoS 0. */
     pReturnFlags->addAcknowledgment = ( pPublishInfo->qos != MQTTQoS0 ) && ( ret == MQTTSuccess );
@@ -106,7 +106,8 @@ MQTTStatus_t MQTTAgentCommand_Subscribe( MQTTAgentContext_t * pMqttAgentContext,
     ret = MQTT_Subscribe( &( pMqttAgentContext->mqttContext ),
                           pSubscribeArgs->pSubscribeInfo,
                           pSubscribeArgs->numSubscriptions,
-                          pReturnFlags->packetId );
+                          pReturnFlags->packetId,
+                          NULL );
 
     pReturnFlags->addAcknowledgment = ( ret == MQTTSuccess );
     pReturnFlags->runProcessLoop = true;
@@ -134,7 +135,8 @@ MQTTStatus_t MQTTAgentCommand_Unsubscribe( MQTTAgentContext_t * pMqttAgentContex
     ret = MQTT_Unsubscribe( &( pMqttAgentContext->mqttContext ),
                             pSubscribeArgs->pSubscribeInfo,
                             pSubscribeArgs->numSubscriptions,
-                            pReturnFlags->packetId );
+                            pReturnFlags->packetId,
+                            NULL );
 
     pReturnFlags->addAcknowledgment = ( ret == MQTTSuccess );
     pReturnFlags->runProcessLoop = true;
@@ -161,7 +163,9 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
                         pConnectInfo->pConnectInfo,
                         pConnectInfo->pWillInfo,
                         pConnectInfo->timeoutMs,
-                        &( pConnectInfo->sessionPresent ) );
+                        &( pConnectInfo->sessionPresent ),
+                        NULL,
+                        NULL );
 
     /* Resume a session if one existed, else clear the list of acknowledgments. */
     if( ret == MQTTSuccess )
@@ -189,7 +193,7 @@ MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext
     assert( pMqttAgentContext != NULL );
     assert( pReturnFlags != NULL );
 
-    ret = MQTT_Disconnect( &( pMqttAgentContext->mqttContext ) );
+    ret = MQTT_Disconnect( &( pMqttAgentContext->mqttContext ), NULL, NULL );
 
     ( void ) memset( pReturnFlags, 0x00, sizeof( MQTTAgentCommandFuncReturns_t ) );
     pReturnFlags->endLoop = true;
