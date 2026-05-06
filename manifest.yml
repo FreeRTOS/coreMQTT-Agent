@@ -1,5 +1,5 @@
 name : "coreMQTT Agent"
-version: "v1.3.2"
+version: "v2.0.0"
 description: |
   "Agent for thread-safe use of coreMQTT.\n"
 license: "MIT"
