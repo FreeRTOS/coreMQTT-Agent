@@ -430,7 +430,7 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
                                    MQTTAgentCommandContext_t * pCommandCompleteCallbackContext,
                                    MQTTAgentCommand_t * pCommand )
 {
-    bool isValid, isSpace = true;
+    bool isSpace = true;
     MQTTStatus_t statusReturn;
     const MQTTAgentPublishArgs_t * pPublishArgs = NULL;
 
@@ -451,8 +451,6 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
              * the array contains space for another outstanding ack. */
             isSpace = isSpaceInPendingAckList( pMqttAgentContext );
 
-            isValid = isSpace;
-
             break;
 
         case PUBLISH:
@@ -469,8 +467,6 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
                 isSpace = isSpaceInPendingAckList( pMqttAgentContext );
             }
 
-            isValid = isSpace;
-
             break;
 
         case PROCESSLOOP:
@@ -479,11 +475,10 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
         case DISCONNECT:
         default:
             /* Other operations don't need to store ACKs. */
-            isValid = true;
             break;
     }
 
-    if( isValid )
+    if( isSpace )
     {
         pCommand->commandType = commandType;
         pCommand->pArgs = pMqttInfoParam;
@@ -491,15 +486,7 @@ static MQTTStatus_t createCommand( MQTTAgentCommandType_t commandType,
         pCommand->pCommandCompleteCallback = commandCompleteCallback;
     }
 
-    statusReturn = ( isValid ) ? MQTTSuccess : MQTTBadParameter;
-
-    if( ( statusReturn == MQTTBadParameter ) && ( isSpace == false ) )
-    {
-        /* The error was caused not by a bad parameter, but because there was
-         * no room in the pending Ack list for the Ack response to an outgoing
-         * PUBLISH or SUBSCRIBE message. */
-        statusReturn = MQTTNoMemory;
-    }
+    statusReturn = ( isSpace ) ? MQTTSuccess : MQTTNoMemory;
 
     return statusReturn;
 }
@@ -622,7 +609,7 @@ static void handleAcks( const MQTTAgentContext_t * pAgentContext,
     assert( pAckInfo->pOriginalCommand != NULL );
 
     /* A SUBACK's status codes start 2 bytes after the variable header. */
-    pSubackCodes = ( packetType == MQTT_PACKET_TYPE_SUBACK ) ? ( pPacketInfo->pRemainingData + 2U ) : NULL;
+    pSubackCodes = ( packetType == MQTT_PACKET_TYPE_SUBACK ) ? ( &pPacketInfo->pRemainingData[ 2U ] ) : NULL;
 
     concludeCommand( pAgentContext,
                      pAckInfo->pOriginalCommand,
@@ -1013,7 +1000,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
         returnStatus = MQTT_Init( &( pMqttAgentContext->mqttContext ),
                                   pTransportInterface,
                                   getCurrentTimeMs,
-                                  mqttEventCallback,
+                                  &mqttEventCallback,
                                   pNetworkBuffer );
 
         #if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
