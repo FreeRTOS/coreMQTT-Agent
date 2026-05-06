@@ -1,5 +1,11 @@
 # Changelog for coreMQTT Agent Library
 
+## v2.0.0 (May 2026)
+
+### Changes
+
+- [#136](https://github.com/FreeRTOS/coreMQTT-Agent/pull/136) Update coreMQTT-Agent to use coreMQTT v5.0.x allowing use of MQTTv5 functionality.
+
 ## v1.3.1 (August 2024)
 
 ### Changes

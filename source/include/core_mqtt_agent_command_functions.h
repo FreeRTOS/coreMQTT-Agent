@@ -64,17 +64,17 @@
 #ifndef MQTT_AGENT_FUNCTION_TABLE
     /* Designated initializers are only in C99+. */
     #if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L )
-        #define MQTT_AGENT_FUNCTION_TABLE               \
-    {                                                   \
-        [ NONE ] = MQTTAgentCommand_ProcessLoop,        \
-        [ PROCESSLOOP ] = MQTTAgentCommand_ProcessLoop, \
-        [ PUBLISH ] = MQTTAgentCommand_Publish,         \
-        [ SUBSCRIBE ] = MQTTAgentCommand_Subscribe,     \
-        [ UNSUBSCRIBE ] = MQTTAgentCommand_Unsubscribe, \
-        [ PING ] = MQTTAgentCommand_Ping,               \
-        [ CONNECT ] = MQTTAgentCommand_Connect,         \
-        [ DISCONNECT ] = MQTTAgentCommand_Disconnect,   \
-        [ TERMINATE ] = MQTTAgentCommand_Terminate      \
+        #define MQTT_AGENT_FUNCTION_TABLE                \
+    {                                                    \
+        [ NONE ] = &MQTTAgentCommand_ProcessLoop,        \
+        [ PROCESSLOOP ] = &MQTTAgentCommand_ProcessLoop, \
+        [ PUBLISH ] = &MQTTAgentCommand_Publish,         \
+        [ SUBSCRIBE ] = &MQTTAgentCommand_Subscribe,     \
+        [ UNSUBSCRIBE ] = &MQTTAgentCommand_Unsubscribe, \
+        [ PING ] = &MQTTAgentCommand_Ping,               \
+        [ CONNECT ] = &MQTTAgentCommand_Connect,         \
+        [ DISCONNECT ] = &MQTTAgentCommand_Disconnect,   \
+        [ TERMINATE ] = &MQTTAgentCommand_Terminate      \
     }
     #else /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
 
@@ -82,15 +82,15 @@
  * to the order of MQTTAgentCommandType_t commands. */
         #define MQTT_AGENT_FUNCTION_TABLE \
     {                                     \
-        MQTTAgentCommand_ProcessLoop,     \
-        MQTTAgentCommand_ProcessLoop,     \
-        MQTTAgentCommand_Publish,         \
-        MQTTAgentCommand_Subscribe,       \
-        MQTTAgentCommand_Unsubscribe,     \
-        MQTTAgentCommand_Ping,            \
-        MQTTAgentCommand_Connect,         \
-        MQTTAgentCommand_Disconnect,      \
-        MQTTAgentCommand_Terminate        \
+        &MQTTAgentCommand_ProcessLoop,    \
+        &MQTTAgentCommand_ProcessLoop,    \
+        &MQTTAgentCommand_Publish,        \
+        &MQTTAgentCommand_Subscribe,      \
+        &MQTTAgentCommand_Unsubscribe,    \
+        &MQTTAgentCommand_Ping,           \
+        &MQTTAgentCommand_Connect,        \
+        &MQTTAgentCommand_Disconnect,     \
+        &MQTTAgentCommand_Terminate       \
     }
     #endif /* if defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) */
 #endif /* ifndef MQTT_AGENT_FUNCTION_TABLE */
@@ -153,13 +153,13 @@ MQTTStatus_t MQTTAgentCommand_ProcessLoop( MQTTAgentContext_t * pMqttAgentContex
  * - MQTTAgentCommandFuncReturns_t.addAcknowledgment (for QoS > 0)
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pPublishArg Publish information for MQTT_Publish().
+ * @param[in] pVoidPublishArgs Publish information for MQTT_Publish().
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Publish().
  */
 MQTTStatus_t MQTTAgentCommand_Publish( MQTTAgentContext_t * pMqttAgentContext,
-                                       void * pPublishArg,
+                                       void * pVoidPublishArgs,
                                        MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
 /**
@@ -218,13 +218,13 @@ MQTTStatus_t MQTTAgentCommand_Connect( MQTTAgentContext_t * pMqttAgentContext,
  * - MQTTAgentCommandFuncReturns_t.endLoop
  *
  * @param[in] pMqttAgentContext MQTT Agent context information.
- * @param[in] pUnusedArg Unused NULL argument.
+ * @param[in] pVoidDisconnectArgs Unused NULL argument.
  * @param[out] pReturnFlags Flags set to indicate actions the MQTT agent should take.
  *
  * @return Status code of MQTT_Disconnect().
  */
 MQTTStatus_t MQTTAgentCommand_Disconnect( MQTTAgentContext_t * pMqttAgentContext,
-                                          void * pUnusedArg,
+                                          void * pVoidDisconnectArgs,
                                           MQTTAgentCommandFuncReturns_t * pReturnFlags );
 
 /**
