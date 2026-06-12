@@ -351,7 +351,7 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
  * {
  *    // Terminate command was processed but MQTT connection was not
  *    // closed. Thus, need to close both MQTT and socket connections.
- *    status = MQTT_Disconnect( &( mqttAgentContext.mqttContext ) );
+ *    status = MQTT_Disconnect( &( mqttAgentContext.mqttContext ), NULL, NULL );
  *    assert( status == MQTTSuccess );
  *    Platform_DisconnectNetwork( mqttAgentContext.mqttContext.transportInterface.pNetworkContext );
  * }
@@ -394,7 +394,7 @@ MQTTStatus_t MQTTAgent_CommandLoop( MQTTAgentContext_t * pMqttAgentContext );
  * // Refer to the MQTT_Connect API for a more detailed example.
  *
  * // Attempt to resume session with the broker.
- * status = MQTT_Connect( &( mqttAgentContext.mqttContext ), &connectInfo, &willInfo, 100, &sessionPresent )
+ * status = MQTT_Connect( &( mqttAgentContext.mqttContext ), &connectInfo, &willInfo, 100, &sessionPresent, NULL, NULL );
  *
  * if( status == MQTTSuccess )
  * {
